@@ -46,6 +46,11 @@ const MEDIA_FIELDS = `
   bannerImage
   tags { name rank isMediaSpoiler isAdult }
   externalLinks { site url type language icon color }
+  trailer { id site thumbnail }
+  nextAiringEpisode { airingAt episode }
+  studios(isMain: true) { nodes { name } }
+  staff(perPage: 4, sort: RELEVANCE) { edges { role node { name { full } } } }
+  streamingEpisodes { title url site }
   relations { edges { relationType node { id type format countryOfOrigin title { romaji english } } } }
   characters(perPage: 10, sort: [ROLE, RELEVANCE]) { edges { role node { id name { full native alternative } image { large } description(asHtml: false) gender age dateOfBirth { month day } } } }
 `
@@ -170,6 +175,9 @@ function shape(media, kind) {
     country: media.countryOfOrigin,
     description: (media.description || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim(),
     startYear: media.startDate?.year ?? null,
+    startDate: media.startDate?.year ? [media.startDate.year, media.startDate.month || 1, media.startDate.day || 1] : null,
+    trailer: media.trailer?.site === 'youtube' ? { id: media.trailer.id, thumb: media.trailer.thumbnail || null } : null,
+    nextEpisode: media.nextAiringEpisode ? { at: media.nextAiringEpisode.airingAt, number: media.nextAiringEpisode.episode } : null,
     endYear: media.endDate?.year ?? null,
     chapters: media.chapters ?? null,
     volumes: media.volumes ?? null,

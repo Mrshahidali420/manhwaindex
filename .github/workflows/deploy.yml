@@ -1,0 +1,50 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [master]
+  schedule:
+    # Every day at 02:00 UTC: pull fresh data, rebuild, redeploy.
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The daily run pulls fresh data from AniList. A push deploy
+      # skips the pull and builds from the data already in the repo.
+      - name: Pull fresh data
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: node --max-old-space-size=3000 scripts/ingest.mjs
+
+      - name: Commit refreshed data
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "manhwaindex-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "chore: daily data refresh [skip ci]"
+          git push
+
+      - run: npm run build
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 735d0fbab0757142b2c29917563e0626
