@@ -1,4 +1,4 @@
-import { comics, anime, charactersWithPages } from '../lib/catalog.js'
+import { comics, anime, charactersWithPages, genres } from '../lib/catalog.js'
 
 const SITE = 'https://manhwaindex.com'
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
@@ -12,7 +12,12 @@ export function GET() {
     { loc: `${SITE}/manhua`, priority: '0.9' },
     { loc: `${SITE}/anime`, priority: '0.9' },
     { loc: `${SITE}/character`, priority: '0.9' },
+    { loc: `${SITE}/genre`, priority: '0.9' },
   ]
+
+  for (const g of genres) {
+    urls.push({ loc: `${SITE}/genre/${g.slug}`, priority: '0.7' })
+  }
 
   const counts = {
     manhwa: comics.filter((c) => c.country === 'KR').length,

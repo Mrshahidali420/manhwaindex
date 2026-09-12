@@ -17,6 +17,7 @@ const nav = [
   { href: '/manga', label: 'Manga' },
   { href: '/manhua', label: 'Manhua' },
   { href: '/anime', label: 'Anime' },
+  { href: '/genre', label: 'Genres' },
   { href: '/character', label: 'Characters' },
 ]
 const here = Astro.url.pathname
@@ -30,6 +31,7 @@ const here = Astro.url.pathname
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
+    <meta name="theme-color" content="#0e0d13" />
     {noindex && <meta name="robots" content="noindex,follow" />}
 
     <meta property="og:type" content="website" />
@@ -56,7 +58,25 @@ const here = Astro.url.pathname
 
     <header class="masthead">
       <div class="shell masthead__inner">
-        <a class="wordmark" href="/">manhwa<span>index</span></a>
+        <a class="wordmark" href="/" aria-label="manhwaindex home">
+          <svg class="wordmark__mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+            <rect x="1" y="1" width="13" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+            <path d="M9 7l9 4-9 4z" fill="currentColor" />
+          </svg>
+          manhwa<span>index</span>
+        </a>
+
+        <div class="finder" id="finder">
+          <input
+            id="finder-input"
+            type="search"
+            placeholder="Search 3,500 titles…"
+            autocomplete="off"
+            aria-label="Search titles"
+          />
+          <ul id="finder-results" hidden></ul>
+        </div>
+
         <nav aria-label="Browse">
           {
             nav.map((item) => (
@@ -74,18 +94,97 @@ const here = Astro.url.pathname
     </main>
 
     <footer class="colophon">
-      <div class="shell">
-        <p>
-          manhwaindex points you to the official places to read and watch. We host no
-          chapters and no episodes. Every link goes to the publisher or the streaming
-          service that holds the rights.
-        </p>
-        <p>
-          Title data and cover art come from <a href="https://anilist.co" rel="noopener">AniList</a>.
-          Platform availability changes often. If a link is wrong, it is worth checking the
-          platform directly.
-        </p>
+      <div class="shell colophon__grid">
+        <div>
+          <a class="wordmark" href="/">manhwa<span>index</span></a>
+          <p>
+            The official-sources index. Look up a manhwa, manga, manhua or anime and get
+            the apps and services that legally carry it. We host no chapters and no
+            episodes — every link goes to the rights holder.
+          </p>
+        </div>
+        <div>
+          <h3>Browse</h3>
+          <ul>
+            <li><a href="/manhwa">Manhwa</a></li>
+            <li><a href="/manga">Manga</a></li>
+            <li><a href="/manhua">Manhua</a></li>
+            <li><a href="/anime">Anime</a></li>
+            <li><a href="/genre">Genres</a></li>
+            <li><a href="/character">Characters</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>About</h3>
+          <p>
+            Title data and cover art come from
+            <a href="https://anilist.co" rel="noopener">AniList</a>. Availability changes
+            often — when a link looks wrong, check the platform directly. Found a broken
+            link? It will fix itself: the index refreshes every day.
+          </p>
+        </div>
       </div>
     </footer>
+
+    <script>
+      // Header search. The index is one static JSON file, fetched the
+      // first time the box is focused, then filtered in memory.
+      const input = document.getElementById('finder-input')
+      const list = document.getElementById('finder-results')
+      let index = null
+      let loading = false
+
+      async function loadIndex() {
+        if (index || loading) return
+        loading = true
+        try {
+          const res = await fetch('/search-index.json')
+          index = await res.json()
+        } catch {
+          loading = false
+        }
+      }
+
+      function render(matches) {
+        if (!matches.length) {
+          list.hidden = true
+          list.innerHTML = ''
+          return
+        }
+        list.innerHTML = matches
+          .map(
+            (m) =>
+              `<li><a href="${m.u}"><img src="${m.c}" alt="" loading="lazy" width="34" height="48" /><span><b>${m.t}</b><em>${m.k}${m.y ? ' · ' + m.y : ''}</em></span></a></li>`
+          )
+          .join('')
+        list.hidden = false
+      }
+
+      function search(q) {
+        if (!index || q.length < 2) return render([])
+        const needle = q.toLowerCase()
+        const out = []
+        for (const m of index) {
+          if (m.s.includes(needle)) {
+            out.push(m)
+            if (out.length === 8) break
+          }
+        }
+        render(out)
+      }
+
+      input.addEventListener('focus', loadIndex, { once: false })
+      input.addEventListener('input', () => search(input.value.trim()))
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const first = list.querySelector('a')
+          if (first) location.href = first.href
+        }
+        if (e.key === 'Escape') render([])
+      })
+      document.addEventListener('click', (e) => {
+        if (!document.getElementById('finder').contains(e.target)) render([])
+      })
+    </script>
   </body>
 </html>

@@ -1,11 +1,16 @@
 ---
 import Base from '../layouts/Base.astro'
 import CoverGrid from '../components/CoverGrid.astro'
-import { animeByPopularity, comics, comicsOfCountry, anime } from '../lib/catalog.js'
+import { animeByPopularity, comics, comicsOfCountry, anime, genres } from '../lib/catalog.js'
 
 const manhwa = comicsOfCountry('KR')
+const manga = comicsOfCountry('JP')
+const manhua = comicsOfCountry('CN')
 const readable = comics.filter((c) => c.readLinks.length > 0).length
 const watchable = anime.filter((a) => a.watchLinks.length > 0).length
+
+// The most popular banner becomes the ambient backdrop of the hero.
+const backdrop = [...manhwa, ...animeByPopularity].find((i) => i.banner)?.banner
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -14,21 +19,27 @@ const jsonld = {
   url: 'https://manhwaindex.com',
   description:
     'Find the official place to read any manhwa, manga or manhua, and the official place to watch the anime.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://manhwaindex.com/manhwa?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
 }
 ---
 
 <Base
-  title="manhwaindex — where to legally read manhwa and watch the anime"
+  title="manhwaindex — where to read manhwa and watch anime online, legally"
   description="Look up any manhwa, manga, manhua or anime and see the official apps that carry it. No pirate mirrors, just the publishers and streaming services that hold the rights."
   jsonld={jsonld}
 >
-  <div class="shell">
-    <section class="hero">
+  <section class="hero hero--home">
+    {backdrop && <img class="hero__backdrop" src={backdrop} alt="" loading="eager" fetchpriority="high" />}
+    <div class="shell hero__content">
       <h1>You found the series. Now find where it is.</h1>
       <p>
         Someone recommends a manhwa and never says where to read it. Look it up here and
-        you get the official apps that carry it, what each one costs you, and whether there
-        is an anime yet.
+        you get the official apps that carry it, what each one costs, and whether there is
+        an anime yet.
       </p>
       <div class="hero__stat">
         <div>
@@ -40,34 +51,74 @@ const jsonld = {
           <span>with an official place to read</span>
         </div>
         <div>
+          <b>{anime.length.toLocaleString()}</b>
+          <span>anime indexed</span>
+        </div>
+        <div>
           <b>{watchable.toLocaleString()}</b>
-          <span>anime with official streaming</span>
+          <span>with official streaming</span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <div class="shell">
+    <section class="section">
+      <div class="section__head section__head--row">
+        <div>
+          <h2>Trending manhwa</h2>
+          <p>The colour bars under each cover show which platforms carry it.</p>
+        </div>
+        <a class="section__more" href="/manhwa">All {manhwa.length.toLocaleString()} →</a>
+      </div>
+      <CoverGrid items={manhwa.slice(0, 18)} base="/manhwa" shelf />
+    </section>
+
+    <section class="section">
+      <div class="section__head section__head--row">
+        <div>
+          <h2>Trending anime</h2>
+          <p>Each one links back to the manga or manhwa it came from.</p>
+        </div>
+        <a class="section__more" href="/anime">All {anime.length.toLocaleString()} →</a>
+      </div>
+      <CoverGrid items={animeByPopularity.slice(0, 18)} base="/anime" shelf />
+    </section>
+
+    <section class="section">
+      <div class="section__head section__head--row">
+        <div>
+          <h2>Trending manga</h2>
+        </div>
+        <a class="section__more" href="/manga">All {manga.length.toLocaleString()} →</a>
+      </div>
+      <CoverGrid items={manga.slice(0, 18)} base="/manga" shelf />
+    </section>
+
+    <section class="section">
+      <div class="section__head section__head--row">
+        <div>
+          <h2>Trending manhua</h2>
+        </div>
+        <a class="section__more" href="/manhua">All {manhua.length.toLocaleString()} →</a>
+      </div>
+      <CoverGrid items={manhua.slice(0, 18)} base="/manhua" shelf />
     </section>
 
     <section class="section">
       <div class="section__head">
-        <h2>Most-read manhwa</h2>
-        <p>The colour bars under each cover show which platforms carry it.</p>
+        <h2>Browse by genre</h2>
       </div>
-      <CoverGrid items={manhwa.slice(0, 24)} base="/manhwa" />
-      <nav class="pager">
-        <span />
-        <a href="/manhwa">See all {manhwa.length.toLocaleString()} manhwa</a>
-      </nav>
-    </section>
-
-    <section class="section">
-      <div class="section__head">
-        <h2>Most-watched anime</h2>
-        <p>Each one links back to the manga or manhwa it came from.</p>
-      </div>
-      <CoverGrid items={animeByPopularity.slice(0, 24)} base="/anime" />
-      <nav class="pager">
-        <span />
-        <a href="/anime">See all {anime.length.toLocaleString()} anime</a>
-      </nav>
+      <ul class="chips">
+        {
+          genres.slice(0, 18).map((g) => (
+            <li>
+              <a href={`/genre/${g.slug}`}>{g.name}</a>
+            </li>
+          ))
+        }
+        <li><a href="/genre">All genres →</a></li>
+      </ul>
     </section>
   </div>
 </Base>

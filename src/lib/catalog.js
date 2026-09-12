@@ -145,3 +145,29 @@ export function kindOfAppearance(appearance) {
   if (appearance.country === 'CN' || appearance.country === 'TW') return 'manhua'
   return 'manga'
 }
+
+// --- genres -----------------------------------------------------------------
+export function genreSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+// Every genre that appears in the catalog, with counts, biggest first.
+export const genres = (() => {
+  const tally = new Map()
+  for (const item of [...comics, ...anime]) {
+    for (const g of item.genres || []) {
+      const row = tally.get(g) || { name: g, slug: genreSlug(g), comics: 0, anime: 0 }
+      if (item.kind === 'anime') row.anime += 1
+      else row.comics += 1
+      tally.set(g, row)
+    }
+  }
+  return [...tally.values()].sort((a, b) => b.comics + b.anime - (a.comics + a.anime))
+})()
+
+export function ofGenre(name) {
+  return {
+    comics: comics.filter((c) => (c.genres || []).includes(name)),
+    anime: anime.filter((a) => (a.genres || []).includes(name)),
+  }
+}

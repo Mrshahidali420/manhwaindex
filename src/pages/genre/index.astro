@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro'
+import { genres } from '../../lib/catalog.js'
+---
+
+<Base
+  title="Browse by genre — every manhwa, manga and anime genre"
+  description="Pick a genre and see every manhwa, manga, manhua and anime in it, each with the official places to read or watch."
+  canonical="/genre"
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>Genres</h1>
+        <p>Every list is sorted by how many people are reading or watching.</p>
+      </div>
+      <ul class="genre-wall">
+        {
+          genres.map((g) => (
+            <li>
+              <a href={`/genre/${g.slug}`}>
+                <b>{g.name}</b>
+                <span>
+                  {g.comics.toLocaleString()} comics · {g.anime.toLocaleString()} anime
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</Base>

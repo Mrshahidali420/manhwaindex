@@ -36,8 +36,17 @@ const related = isComic ? item.animeInIndex : item.comicInIndex
 
 // The page title is written the way people actually type the search.
 const pageTitle = isComic
-  ? `Where to read ${item.title} — official ${word} links`
-  : `Where to watch ${item.title} — official streaming links`
+  ? `Read ${item.title} Online — Official ${word} Sites & Apps`
+  : `Watch ${item.title} Online — Official Streaming Sites`
+
+// Airing helper: turn the next-episode timestamp into a readable date.
+const nextEp = item.nextEpisode
+  ? new Date(item.nextEpisode.at * 1000).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null
 
 const platformNames = links.map((l) => l.site)
 const description = links.length
@@ -56,6 +65,9 @@ const facts = [
   ['First released', item.startYear ?? '—'],
   ['Country', { KR: 'South Korea', JP: 'Japan', CN: 'China', TW: 'Taiwan' }[item.country] || '—'],
   ['Format', word],
+  ...(item.authors?.length ? [['Author', item.authors.map((a) => a.name).join(', ')]] : []),
+  ...(nextEp ? [[`Episode ${item.nextEpisode.number} airs`, nextEp]] : []),
+  ...(item.favourites ? [['AniList favourites', item.favourites.toLocaleString()]] : []),
 ].filter(([, value]) => value !== '—' || true)
 
 const jsonld = {
@@ -69,6 +81,16 @@ const jsonld = {
   ...(isComic ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
   ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
   ...(item.authors?.length ? { author: item.authors.map((a) => ({ '@type': 'Person', name: a.name })) } : {}),
+  ...(item.trailer
+    ? {
+        trailer: {
+          '@type': 'VideoObject',
+          name: `${item.title} trailer`,
+          embedUrl: `https://www.youtube-nocookie.com/embed/${item.trailer.id}`,
+          thumbnailUrl: item.trailer.thumb || undefined,
+        },
+      }
+    : {}),
   ...(item.score
     ? {
         aggregateRating: {
@@ -222,6 +244,32 @@ const cast = charactersOf(item).slice(0, 12)
                 </li>
               ))}
             </ul>
+          </section>
+        )
+      }
+
+      {
+        item.trailer && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Trailer</h2>
+            </div>
+            <div class="trailer" data-yt={item.trailer.id}>
+              {item.trailer.thumb && <img src={item.trailer.thumb} alt="" loading="lazy" />}
+              <button type="button">
+                <span>▶ Play trailer</span>
+              </button>
+            </div>
+            <script>
+              // The iframe loads only on click, so YouTube costs nothing
+              // until someone actually wants the video.
+              document.querySelectorAll('.trailer').forEach((box) => {
+                box.querySelector('button').addEventListener('click', () => {
+                  const id = box.dataset.yt
+                  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="Trailer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+                })
+              })
+            </script>
           </section>
         )
       }

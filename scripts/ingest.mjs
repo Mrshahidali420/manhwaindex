@@ -372,7 +372,7 @@ async function main() {
     }
   }
   const characterList = [...CHARACTERS.values()]
-    .filter((c) => c.name && c.image && c.appearsIn.some((a) => a.role === 'MAIN'))
+    .filter((c) => c.name && c.image && (c.appearsIn.some((a) => a.role === 'MAIN') || c.description))
     .map((c) => ({ ...c, appearsIn: c.appearsIn.sort((x, y) => y.popularity - x.popularity) }))
     .sort((x, y) => (y.appearsIn[0]?.popularity || 0) - (x.appearsIn[0]?.popularity || 0))
   writeFileSync(join(DATA_DIR, 'characters.json'), JSON.stringify(characterList))
