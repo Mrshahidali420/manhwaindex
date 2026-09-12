@@ -1,0 +1,103 @@
+---
+import Base from '../../layouts/Base.astro'
+import { charactersWithPages, kindOfAppearance, truncate } from '../../lib/catalog.js'
+
+export function getStaticPaths() {
+  return charactersWithPages.map((person) => ({
+    params: { slug: person.slug },
+    props: { person },
+  }))
+}
+
+const { person } = Astro.props
+const main = person.appearsIn.filter((a) => a.role === 'MAIN')
+const lead = main[0] || person.appearsIn[0]
+const leadKind = kindOfAppearance(lead)
+const facts = [
+  person.age ? ['Age', person.age] : null,
+  person.gender ? ['Gender', person.gender] : null,
+  person.birthday ? ['Birthday', person.birthday] : null,
+  ['Appears in', `${person.appearsIn.length} ${person.appearsIn.length === 1 ? 'title' : 'titles'}`],
+].filter(Boolean)
+
+const description = `${person.name} is a character in ${lead.title}. See every manhwa, manga and anime they appear in, and the official places to read or watch each one.`
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: person.name,
+  alternateName: person.native || undefined,
+  image: person.image,
+  description: truncate(person.description || description, 300),
+  subjectOf: person.appearsIn.map((a) => ({
+    '@type': a.kind === 'anime' ? 'TVSeries' : 'Book',
+    name: a.title,
+    url: `https://manhwaindex.com/${kindOfAppearance(a)}/${a.slug}`,
+  })),
+}
+---
+
+<Base
+  title={`${person.name} — ${lead.title} character, and where to read it`}
+  description={description}
+  canonical={`/character/${person.slug}`}
+  image={person.image}
+  jsonld={jsonld}
+>
+  <div class="shell">
+    <article class="person">
+      <div class="person__portrait">
+        <img src={person.image} alt={person.name} width="440" height="587" loading="eager" />
+      </div>
+      <div>
+        <h1>{person.name}</h1>
+        {person.native && <p class="person__native">{person.native}</p>}
+        {person.aliases.length > 0 && (
+          <p class="person__alias">Also called {person.aliases.join(' · ')}</p>
+        )}
+        <p>
+          {person.name} is a character in <a href={`/${leadKind}/${lead.slug}`}>{lead.title}</a>.
+          Every place you can read or watch that story is listed on its own page.
+        </p>
+        <dl class="facts">
+          {facts.map(([term, value]) => (
+            <div>
+              <dt>{term}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </article>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Where {person.name} shows up</h2>
+        <p>Open a title to see the official apps that carry it.</p>
+      </div>
+      <ul class="appears">
+        {person.appearsIn.map((a) => (
+          <li>
+            <a href={`/${kindOfAppearance(a)}/${a.slug}`}>
+              <img src={a.cover} alt="" width="46" height="64" loading="lazy" />
+              <span>
+                <b>{a.title}</b>
+                <span>{kindOfAppearance(a)}</span>
+              </span>
+              <em>{a.role === 'MAIN' ? 'Main character' : a.role === 'SUPPORTING' ? 'Supporting' : 'Appears'}</em>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {person.description && (
+      <section class="section">
+        <div class="section__head">
+          <h2>About {person.name}</h2>
+        </div>
+        <div class="synopsis"><p>{person.description}</p></div>
+      </section>
+    )}
+  </div>
+</Base>

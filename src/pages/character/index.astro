@@ -1,0 +1,42 @@
+---
+import Base from '../../layouts/Base.astro'
+import { charactersWithPages, kindOfAppearance } from '../../lib/catalog.js'
+
+export const PER_PAGE = 120
+export const PEOPLE = charactersWithPages
+
+const items = PEOPLE.slice(0, PER_PAGE)
+const pageCount = Math.ceil(PEOPLE.length / PER_PAGE)
+---
+
+<Base
+  title="Manhwa and anime characters — who they are and where to read them"
+  description="Look up a character by name and jump straight to the manhwa, manga or anime they are in, plus the official apps that carry it."
+  canonical="/character"
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>Characters</h1>
+        <p>You remember the name, not the title. Start here.</p>
+        <p class="answer__count">{PEOPLE.length.toLocaleString()} characters indexed</p>
+      </div>
+      <ul class="people">
+        {items.map((person) => (
+          <li>
+            <a href={`/character/${person.slug}`}>
+              <img src={person.image} alt="" width="220" height="293" loading="lazy" />
+              <b>{person.name}</b>
+              <span>{kindOfAppearance(person.appearsIn[0])}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+    <nav class="pager" aria-label="Pagination">
+      <span />
+      <span>Page 1 of {pageCount}</span>
+      {pageCount > 1 ? <a href="/character/page/2" rel="next">Next</a> : <span />}
+    </nav>
+  </div>
+</Base>

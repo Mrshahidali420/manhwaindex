@@ -1,0 +1,91 @@
+---
+import '../styles/app.css'
+
+const {
+  title,
+  description,
+  canonical = Astro.url.pathname,
+  image,
+  jsonld,
+  noindex = false,
+} = Astro.props
+
+const site = 'https://manhwaindex.com'
+const canonicalUrl = new URL(canonical, site).href
+const nav = [
+  { href: '/manhwa', label: 'Manhwa' },
+  { href: '/manga', label: 'Manga' },
+  { href: '/manhua', label: 'Manhua' },
+  { href: '/anime', label: 'Anime' },
+  { href: '/character', label: 'Characters' },
+]
+const here = Astro.url.pathname
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex,follow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="manhwaindex" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    {image && <meta property="og:image" content={image} />}
+    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Public+Sans:wght@400;600;700&display=swap"
+    />
+    <link rel="preconnect" href="https://s4.anilist.co" />
+
+    {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
+  </head>
+
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="masthead">
+      <div class="shell masthead__inner">
+        <a class="wordmark" href="/">manhwa<span>index</span></a>
+        <nav aria-label="Browse">
+          {
+            nav.map((item) => (
+              <a href={item.href} aria-current={here.startsWith(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="colophon">
+      <div class="shell">
+        <p>
+          manhwaindex points you to the official places to read and watch. We host no
+          chapters and no episodes. Every link goes to the publisher or the streaming
+          service that holds the rights.
+        </p>
+        <p>
+          Title data and cover art come from <a href="https://anilist.co" rel="noopener">AniList</a>.
+          Platform availability changes often. If a link is wrong, it is worth checking the
+          platform directly.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

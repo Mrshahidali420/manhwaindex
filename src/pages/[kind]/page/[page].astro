@@ -1,0 +1,56 @@
+---
+import Base from '../../../layouts/Base.astro'
+import CoverGrid from '../../../components/CoverGrid.astro'
+import { KINDS, PER_PAGE } from '../index.astro'
+
+export function getStaticPaths() {
+  const paths = []
+  for (const [kind, config] of Object.entries(KINDS)) {
+    const all = config.items()
+    const pageCount = Math.ceil(all.length / PER_PAGE)
+    for (let page = 2; page <= pageCount; page++) {
+      paths.push({
+        params: { kind, page: String(page) },
+        props: {
+          config,
+          pageCount,
+          items: all.slice((page - 1) * PER_PAGE, page * PER_PAGE),
+          total: all.length,
+        },
+      })
+    }
+  }
+  return paths
+}
+
+const { kind, page } = Astro.params
+const { config, pageCount, items, total } = Astro.props
+const current = Number(page)
+---
+
+<Base
+  title={`${config.label} — page ${current} of ${pageCount}`}
+  description={config.description}
+  canonical={`/${kind}/page/${current}`}
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>{config.label}</h1>
+        <p>{config.blurb}</p>
+        <p class="answer__count">
+          Showing {(current - 1) * PER_PAGE + 1}–{Math.min(current * PER_PAGE, total)} of {total}
+        </p>
+      </div>
+      <CoverGrid items={items} base={`/${kind}`} />
+    </section>
+
+    <nav class="pager" aria-label="Pagination">
+      <a href={current === 2 ? `/${kind}` : `/${kind}/page/${current - 1}`} rel="prev">
+        Previous
+      </a>
+      <span>Page {current} of {pageCount}</span>
+      {current < pageCount ? <a href={`/${kind}/page/${current + 1}`} rel="next">Next</a> : <span />}
+    </nav>
+  </div>
+</Base>

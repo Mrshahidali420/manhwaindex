@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro'
+---
+
+<Base
+  title="Not found — manhwaindex"
+  description="That page is not in the index."
+  noindex={true}
+>
+  <div class="shell">
+    <section class="hero">
+      <h1>That one is not in the index.</h1>
+      <p>
+        Either the title has not been added yet, or the link is old. Start from a browse
+        page and work down — the lists are ordered by how many people are reading.
+      </p>
+      <nav class="pager">
+        <a href="/manhwa">Browse manhwa</a>
+        <a href="/anime">Browse anime</a>
+      </nav>
+    </section>
+  </div>
+</Base>

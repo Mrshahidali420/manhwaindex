@@ -1,0 +1,255 @@
+---
+import Base from '../../layouts/Base.astro'
+import Platforms from '../../components/Platforms.astro'
+import {
+  comics,
+  anime,
+  findAnime,
+  findComic,
+  formatWord,
+  statusWord,
+  truncate,
+  charactersOf,
+} from '../../lib/catalog.js'
+
+export function getStaticPaths() {
+  const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
+
+  const comicPaths = comics.map((item) => ({
+    params: { kind: KIND_OF_COUNTRY[item.country] || 'manga', slug: item.slug },
+    props: { item, isComic: true },
+  }))
+
+  const animePaths = anime.map((item) => ({
+    params: { kind: 'anime', slug: item.slug },
+    props: { item, isComic: false },
+  }))
+
+  return [...comicPaths, ...animePaths]
+}
+
+const { item, isComic } = Astro.props
+
+const word = isComic ? formatWord(item) : 'anime'
+const links = isComic ? item.readLinks : item.watchLinks
+const related = isComic ? item.animeInIndex : item.comicInIndex
+
+// The page title is written the way people actually type the search.
+const pageTitle = isComic
+  ? `Where to read ${item.title} — official ${word} links`
+  : `Where to watch ${item.title} — official streaming links`
+
+const platformNames = links.map((l) => l.site)
+const description = links.length
+  ? `${item.title} is officially ${isComic ? 'readable' : 'streaming'} on ${platformNames
+      .slice(0, 3)
+      .join(', ')}${platformNames.length > 3 ? ` and ${platformNames.length - 3} more` : ''}. ` +
+    `${statusWord(item.status)}${item.chapters ? `, ${item.chapters} chapters` : ''}${
+      item.episodes ? `, ${item.episodes} episodes` : ''
+    }.`
+  : `${item.title} has no official English ${isComic ? 'reading' : 'streaming'} platform listed yet. Here is what we know about it.`
+
+const facts = [
+  ['Status', statusWord(item.status)],
+  isComic ? ['Chapters', item.chapters ?? 'Not counted'] : ['Episodes', item.episodes ?? 'Not counted'],
+  isComic ? ['Volumes', item.volumes ?? '—'] : ['Studio', item.studios[0] ?? '—'],
+  ['First released', item.startYear ?? '—'],
+  ['Country', { KR: 'South Korea', JP: 'Japan', CN: 'China', TW: 'Taiwan' }[item.country] || '—'],
+  ['Format', word],
+].filter(([, value]) => value !== '—' || true)
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': isComic ? 'Book' : 'TVSeries',
+  name: item.title,
+  alternateName: item.titleNative || item.titleRomaji,
+  image: item.cover,
+  description: truncate(item.description, 400),
+  genre: item.genres,
+  ...(isComic ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
+  ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
+  ...(item.authors?.length ? { author: item.authors.map((a) => ({ '@type': 'Person', name: a.name })) } : {}),
+  ...(item.score
+    ? {
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: (item.score / 10).toFixed(1),
+          bestRating: 10,
+          ratingCount: Math.max(item.favourites, 1),
+        },
+      }
+    : {}),
+  ...(links.length
+    ? {
+        potentialAction: links.map((l) => ({
+          '@type': isComic ? 'ReadAction' : 'WatchAction',
+          target: l.url,
+          name: l.site,
+        })),
+      }
+    : {}),
+}
+const cast = charactersOf(item).slice(0, 12)
+---
+
+<Base
+  title={pageTitle}
+  description={description}
+  image={item.cover}
+  jsonld={jsonld}
+>
+  <div class="shell title-page">
+    <div class="cover-rail">
+      <img
+        class="cover"
+        src={item.cover}
+        alt={`Cover of ${item.title}`}
+        width="460"
+        height="690"
+        fetchpriority="high"
+      />
+      {
+        item.score && (
+          <p class="cover-rail__score">
+            <b>{(item.score / 10).toFixed(1)}</b>
+            <span>average score on AniList</span>
+          </p>
+        )
+      }
+    </div>
+
+    <div>
+      <div class="title-head">
+        <h1>{item.title}</h1>
+        {item.titleNative && <p class="title-head__native">{item.titleNative}</p>}
+        <ul class="title-head__meta">
+          <li>{word}</li>
+          <li>{statusWord(item.status)}</li>
+          {item.startYear && <li>{item.startYear}</li>}
+          {item.genres.slice(0, 3).map((genre) => <li>{genre}</li>)}
+        </ul>
+      </div>
+
+      <Platforms
+        heading={isComic ? 'Read it on' : 'Watch it on'}
+        links={links}
+        count={`${links.length} official ${links.length === 1 ? 'place' : 'places'}`}
+      >
+        <Fragment slot="empty">
+          <p>
+            <strong>No official platform listed yet.</strong>
+            {' '}
+            {isComic
+              ? `No publisher has licensed ${item.title} in a language we track. That usually changes once a series gets popular, so it is worth checking back.`
+              : `${item.title} is not on a streaming service we track. It may be region-locked or not licensed yet.`}
+          </p>
+        </Fragment>
+      </Platforms>
+
+      {
+        isComic && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Is there an anime?</h2>
+            </div>
+            {related.length > 0 ? (
+              related.map((rel) => (
+                <a class="crosslink" href={`/anime/${rel.slug}`}>
+                  <div>
+                    <span class="crosslink__lead">Yes. Watch the adaptation</span>
+                    <span class="crosslink__title">{rel.title}</span>
+                    <span class="crosslink__lead">
+                      {rel.episodes ? `${rel.episodes} episodes` : 'Episode count not confirmed'}
+                      {rel.watchCount ? ` · on ${rel.watchCount} services` : ''}
+                    </span>
+                  </div>
+                </a>
+              ))
+            ) : item.hasAnime ? (
+              <div class="empty">
+                <p>
+                  <strong>Yes, an adaptation exists</strong>, but it is not in our index yet.
+                </p>
+              </div>
+            ) : (
+              <div class="empty">
+                <p>
+                  <strong>Not yet.</strong> {item.title} has no anime adaptation announced. Most
+                  series never get one, so the comic is the whole story for now.
+                </p>
+              </div>
+            )}
+          </section>
+        )
+      }
+
+      {
+        !isComic && related.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Read the original</h2>
+            </div>
+            {related.map((rel) => (
+              <a class="crosslink" href={`/manhwa/${rel.slug}`}>
+                <div>
+                  <span class="crosslink__lead">The anime is based on this</span>
+                  <span class="crosslink__title">{rel.title}</span>
+                  <span class="crosslink__lead">
+                    {rel.readCount ? `${rel.readCount} official reading options` : 'No official reader yet'}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </section>
+        )
+      }
+
+      {
+        cast.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Who is in it</h2>
+              <p>Tap a face to see every other story that character turns up in.</p>
+            </div>
+            <ul class="people">
+              {cast.map((person) => (
+                <li>
+                  <a href={`/character/${person.slug}`}>
+                    <img src={person.image} alt="" width="220" height="293" loading="lazy" />
+                    <b>{person.name}</b>
+                    <span>{person.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      <section class="answer">
+        <div class="answer__head">
+          <h2>The facts</h2>
+        </div>
+        <dl class="facts">
+          {facts.map(([label, value]) => (
+            <div>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {
+        item.description && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>What it is about</h2>
+            </div>
+            <p class="synopsis">{item.description}</p>
+          </section>
+        )
+      }
+    </div>
+  </div>
+</Base>

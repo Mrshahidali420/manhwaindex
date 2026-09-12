@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "manhwaindex",
+  "compatibility_date": "2026-09-01",
+  "routes": [
+    { "pattern": "manhwaindex.com", "custom_domain": true },
+    { "pattern": "www.manhwaindex.com", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

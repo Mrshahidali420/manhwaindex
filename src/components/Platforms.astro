@@ -1,0 +1,36 @@
+---
+import { platform } from '../lib/catalog.js'
+
+const { heading, links, empty, count } = Astro.props
+---
+
+<section class="answer">
+  <div class="answer__head">
+    <h2>{heading}</h2>
+    {links.length > 0 && <p class="answer__count">{count}</p>}
+  </div>
+
+  {
+    links.length > 0 ? (
+      <ul class="platforms">
+        {links.map((link) => {
+          const brand = platform(link.site)
+          return (
+            <li class="platform" style={`--mark:${brand.color}`}>
+              <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
+                <i class="platform__edge" aria-hidden="true" />
+                <span class="platform__name">{link.site}</span>
+                <span class="platform__note">
+                  {[brand.note, link.language].filter(Boolean).join(' — ') || 'Official'}
+                </span>
+                <span class="platform__go">Open</span>
+              </a>
+            </li>
+          )
+        })}
+      </ul>
+    ) : (
+      <div class="empty"><slot name="empty">{empty}</slot></div>
+    )
+  }
+</section>

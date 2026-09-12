@@ -1,0 +1,73 @@
+---
+import Base from '../layouts/Base.astro'
+import CoverGrid from '../components/CoverGrid.astro'
+import { animeByPopularity, comics, comicsOfCountry, anime } from '../lib/catalog.js'
+
+const manhwa = comicsOfCountry('KR')
+const readable = comics.filter((c) => c.readLinks.length > 0).length
+const watchable = anime.filter((a) => a.watchLinks.length > 0).length
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'manhwaindex',
+  url: 'https://manhwaindex.com',
+  description:
+    'Find the official place to read any manhwa, manga or manhua, and the official place to watch the anime.',
+}
+---
+
+<Base
+  title="manhwaindex — where to legally read manhwa and watch the anime"
+  description="Look up any manhwa, manga, manhua or anime and see the official apps that carry it. No pirate mirrors, just the publishers and streaming services that hold the rights."
+  jsonld={jsonld}
+>
+  <div class="shell">
+    <section class="hero">
+      <h1>You found the series. Now find where it is.</h1>
+      <p>
+        Someone recommends a manhwa and never says where to read it. Look it up here and
+        you get the official apps that carry it, what each one costs you, and whether there
+        is an anime yet.
+      </p>
+      <div class="hero__stat">
+        <div>
+          <b>{comics.length.toLocaleString()}</b>
+          <span>comics indexed</span>
+        </div>
+        <div>
+          <b>{readable.toLocaleString()}</b>
+          <span>with an official place to read</span>
+        </div>
+        <div>
+          <b>{watchable.toLocaleString()}</b>
+          <span>anime with official streaming</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Most-read manhwa</h2>
+        <p>The colour bars under each cover show which platforms carry it.</p>
+      </div>
+      <CoverGrid items={manhwa.slice(0, 24)} base="/manhwa" />
+      <nav class="pager">
+        <span />
+        <a href="/manhwa">See all {manhwa.length.toLocaleString()} manhwa</a>
+      </nav>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Most-watched anime</h2>
+        <p>Each one links back to the manga or manhwa it came from.</p>
+      </div>
+      <CoverGrid items={animeByPopularity.slice(0, 24)} base="/anime" />
+      <nav class="pager">
+        <span />
+        <a href="/anime">See all {anime.length.toLocaleString()} anime</a>
+      </nav>
+    </section>
+  </div>
+</Base>

@@ -1,0 +1,40 @@
+---
+import { platform } from '../lib/catalog.js'
+
+const { items, base } = Astro.props
+
+/** Which marks to show under a cover: read links for comics, watch for anime. */
+const marksOf = (item) => (base === '/anime' ? item.watchLinks : item.readLinks)
+---
+
+<ul class="grid">
+  {
+    items.map((item) => {
+      const marks = marksOf(item)
+      const shown = marks.slice(0, 4)
+      const extra = marks.length - shown.length
+      return (
+        <li class="card">
+          <a href={`${base}/${item.slug}`}>
+            <img
+              src={item.cover}
+              alt={`Cover of ${item.title}`}
+              width="230"
+              height="345"
+              loading="lazy"
+              decoding="async"
+            />
+            <p class="card__title">{item.title}</p>
+            <p class="card__marks">
+              {shown.map((link) => (
+                <i style={`--mark:${platform(link.site).color}`} title={link.site} />
+              ))}
+              {extra > 0 && <em>+{extra}</em>}
+              {marks.length === 0 && <em>no official link yet</em>}
+            </p>
+          </a>
+        </li>
+      )
+    })
+  }
+</ul>

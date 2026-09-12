@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+ingest.log
+
+# Page dumps from the AniList pull. 60 MB, and the pull rebuilds them.
+data/raw/

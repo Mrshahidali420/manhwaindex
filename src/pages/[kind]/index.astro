@@ -1,0 +1,79 @@
+---
+import Base from '../../layouts/Base.astro'
+import CoverGrid from '../../components/CoverGrid.astro'
+import { animeByPopularity, comicsOfCountry } from '../../lib/catalog.js'
+
+export const PER_PAGE = 60
+
+export const KINDS = {
+  manhwa: {
+    label: 'Manhwa',
+    blurb:
+      'Korean webcomics, ranked by how many people are reading them. Every entry lists the official apps that carry it.',
+    title: 'Where to read manhwa — official platforms for every series',
+    description:
+      'Find where to legally read any manhwa. Official links to WEBTOON, Tapas, Tappytoon, Lezhin, Kakao and more, with the anime adaptation when one exists.',
+    items: () => comicsOfCountry('KR'),
+  },
+  manga: {
+    label: 'Manga',
+    blurb:
+      'Japanese manga with the publisher or app that officially carries the English release.',
+    title: 'Where to read manga — official platforms for every series',
+    description:
+      'Find where to legally read any manga. Official links to MANGA Plus, VIZ, Azuki, Comikey, Yen Press and more, plus the anime when there is one.',
+    items: () => comicsOfCountry('JP'),
+  },
+  manhua: {
+    label: 'Manhua',
+    blurb: 'Chinese webcomics and the platforms that publish them in English.',
+    title: 'Where to read manhua — official platforms for every series',
+    description:
+      'Find where to legally read any manhua. Official links to Bilibili Comics, KuaiKan, WebComics, INKR and more.',
+    items: () => comicsOfCountry('CN'),
+  },
+  anime: {
+    label: 'Anime',
+    blurb:
+      'Every series with the streaming services that actually hold it, and a link to the comic it came from.',
+    title: 'Where to watch anime — official streaming for every series',
+    description:
+      'Find where to legally stream any anime. Official links to Crunchyroll, Netflix, Hulu, Prime Video, Disney+ and HIDIVE, plus where to read the original manga.',
+    items: () => animeByPopularity,
+  },
+}
+
+export function getStaticPaths() {
+  return Object.keys(KINDS).map((kind) => ({ params: { kind } }))
+}
+
+const { kind } = Astro.params
+const config = KINDS[kind]
+const all = config.items()
+const items = all.slice(0, PER_PAGE)
+const pageCount = Math.ceil(all.length / PER_PAGE)
+---
+
+<Base title={config.title} description={config.description} canonical={`/${kind}`}>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>{config.label}</h1>
+        <p>{config.blurb}</p>
+        <p class="answer__count">{all.length} titles in the index</p>
+      </div>
+      <CoverGrid items={items} base={`/${kind}`} />
+    </section>
+
+    {
+      pageCount > 1 && (
+        <nav class="pager" aria-label="Pagination">
+          <span>Page 1 of {pageCount}</span>
+          <a href={`/${kind}/page/2`} rel="next">
+            Next 60 titles
+          </a>
+        </nav>
+      )
+    }
+  </div>
+</Base>
