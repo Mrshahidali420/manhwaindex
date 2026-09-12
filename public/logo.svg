@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 32" width="220" height="32">
+  <!-- Full wordmark: panel-M mark plus the name. -->
+  <path d="M4 4h24v17.5L21.5 28H4Z" fill="none" stroke="#f5ecdd" stroke-width="2.5"/>
+  <path d="M9 22V10h2.8L16 15.2 20.2 10H23v12h-2.8v-7.4L16 19.6l-4.2-5V22Z" fill="#f5ecdd"/>
+  <text x="38" y="22.5" font-family="Saira, 'Segoe UI', sans-serif" font-size="17" font-weight="800" letter-spacing="0.5" fill="#f5ecdd">manhwa<tspan fill="#e0688a">index</tspan></text>
+</svg>

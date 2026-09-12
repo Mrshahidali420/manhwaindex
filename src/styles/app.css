@@ -210,6 +210,29 @@ img {
   color: var(--rose);
 }
 
+/* Desktop: the menu wrapper is invisible; its children sit in the header row. */
+.masthead__menu {
+  display: contents;
+}
+.menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: none;
+  border: 1px solid var(--cobalt);
+  border-radius: 4px;
+  color: var(--dawn);
+  cursor: pointer;
+}
+.menu-btn__x {
+  display: none;
+}
+.nav-home {
+  display: none;
+}
+
 .masthead nav {
   display: flex;
   gap: 1.35rem;
@@ -1197,14 +1220,46 @@ main:has(.title-page) {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  .masthead nav {
-    order: 3;
+  /* Mobile header: [logo] ........ [menu button]. The panel opens below. */
+  .masthead__inner {
+    padding-block: 0.65rem;
+  }
+  .menu-btn {
+    display: inline-flex;
+  }
+  .masthead__menu {
+    display: none;
+  }
+  body.menu-open .masthead__menu {
+    display: block;
     width: 100%;
-    flex-wrap: wrap;
-    row-gap: 0.1rem;
+    padding-block: 0.85rem 0.35rem;
+    border-top: 1px solid rgb(36 65 143 / 0.45);
+  }
+  body.menu-open .menu-btn__bars {
+    display: none;
+  }
+  body.menu-open .menu-btn__x {
+    display: block;
+  }
+  .masthead nav {
+    flex-direction: column;
+    gap: 0;
+    margin-top: 0.85rem;
+  }
+  .masthead nav a {
+    display: block;
+    padding-block: 0.6rem;
+    border-bottom: 1px solid rgb(36 65 143 / 0.25);
+    font-size: 1rem;
+  }
+  .masthead nav a[aria-current='page'] {
+    border-bottom-color: var(--rose);
+  }
+  .nav-home {
+    display: block;
   }
   .finder {
-    order: 2;
     max-width: none;
   }
   .hero--home {

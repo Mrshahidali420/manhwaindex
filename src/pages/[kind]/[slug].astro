@@ -175,7 +175,6 @@ const cast = charactersOf(item).slice(0, 12)
           <section class="answer">
             <div class="answer__head">
               <h2>Is there an anime?</h2>
-              <span class="cue">Cue 20 · First light</span>
             </div>
             {related.length > 0 ? (
               related.map((rel) => (
@@ -213,7 +212,6 @@ const cast = charactersOf(item).slice(0, 12)
           <section class="answer">
             <div class="answer__head">
               <h2>Read the original</h2>
-              <span class="cue">Cue 20 · First light</span>
             </div>
             {related.map((rel) => (
               <a class="crosslink" href={`/manhwa/${rel.slug}`}>
@@ -236,7 +234,6 @@ const cast = charactersOf(item).slice(0, 12)
             <div class="answer__head">
               <h2>Who is in it</h2>
               <p>Tap a face to see every other story that character turns up in.</p>
-              <span class="cue">Cue 30 · Dawn</span>
             </div>
             <ul class="people">
               {cast.map((person) => (
@@ -258,7 +255,6 @@ const cast = charactersOf(item).slice(0, 12)
           <section class="answer">
             <div class="answer__head">
               <h2>Trailer</h2>
-              <span class="cue">Cue 40 · Hold</span>
             </div>
             <div class="trailer" data-yt={item.trailer.id}>
               {item.trailer.thumb && <img src={item.trailer.thumb} alt="" loading="lazy" />}
@@ -294,7 +290,6 @@ const cast = charactersOf(item).slice(0, 12)
       <section class="answer">
         <div class="answer__head">
           <h2>The facts</h2>
-          <span class="cue">Cue 50 · Day</span>
         </div>
         <dl class="facts">
           {facts.map(([label, value]) => (
@@ -311,7 +306,6 @@ const cast = charactersOf(item).slice(0, 12)
           <section class="answer">
             <div class="answer__head">
               <h2>What it is about</h2>
-              <span class="cue">Cue 60 · Day, hold</span>
             </div>
             <p class="synopsis">{item.description}</p>
           </section>

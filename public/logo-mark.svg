@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Manhwa Index mark: a manga panel with a cut corner, holding a bold M. -->
+  <path d="M4 4h24v17.5L21.5 28H4Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter"/>
+  <path d="M9 22V10h2.8L16 15.2 20.2 10H23v12h-2.8v-7.4L16 19.6l-4.2-5V22Z" fill="currentColor"/>
+</svg>

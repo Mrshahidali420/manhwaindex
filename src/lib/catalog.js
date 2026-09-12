@@ -1,5 +1,10 @@
 import comicsRaw from '../../data/comics.json'
 import animeRaw from '../../data/anime.json'
+import characterData from '../../data/characters.json'
+import { reslugAll } from './reslug.mjs'
+
+// Public URLs carry clean slugs, never database ids (see reslug.mjs).
+reslugAll(comicsRaw, animeRaw, characterData)
 
 export const comics = comicsRaw
 export const anime = animeRaw
@@ -120,8 +125,6 @@ export const truncate = (text, length) =>
   !text ? '' : text.length <= length ? text : `${text.slice(0, length).replace(/\s+\S*$/, '')}…`
 
 // --- characters -------------------------------------------------------------
-import characterData from '../../data/characters.json'
-
 export const characters = characterData
 
 export function findCharacter(slug) {

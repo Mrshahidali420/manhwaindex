@@ -39,8 +39,13 @@ const here = Astro.url.pathname
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
-    {image && <meta property="og:image" content={image} />}
-    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+    <meta property="og:image" content={image || `${site}/og-image.png`} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -77,35 +82,50 @@ const here = Astro.url.pathname
 
     <header class="masthead">
       <div class="shell masthead__inner">
-        <a class="wordmark" href="/" aria-label="manhwaindex home">
-          <svg class="wordmark__mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-            <circle cx="11" cy="14" r="5" fill="none" stroke="currentColor" stroke-width="2" />
-            <line x1="1" y1="14" x2="21" y2="14" stroke="currentColor" stroke-width="2" />
-            <line x1="11" y1="3" x2="11" y2="6" stroke="currentColor" stroke-width="2" />
+        <a class="wordmark" href="/" aria-label="Manhwa Index home">
+          <svg class="wordmark__mark" width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M4 4h24v17.5L21.5 28H4Z" fill="none" stroke="currentColor" stroke-width="2.5" />
+            <path d="M9 22V10h2.8L16 15.2 20.2 10H23v12h-2.8v-7.4L16 19.6l-4.2-5V22Z" fill="currentColor" />
           </svg>
           manhwa<span>index</span>
         </a>
 
-        <div class="finder" id="finder">
-          <input
-            id="finder-input"
-            type="search"
-            placeholder="Search 3,500 titles…"
-            autocomplete="off"
-            aria-label="Search titles"
-          />
-          <ul id="finder-results" hidden></ul>
-        </div>
+        <button
+          class="menu-btn"
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="site-menu"
+        >
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+            <path class="menu-btn__bars" d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path class="menu-btn__x" d="M5 5l12 12M17 5L5 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
 
-        <nav aria-label="Browse">
-          {
-            nav.map((item) => (
-              <a href={item.href} aria-current={here.startsWith(item.href) ? 'page' : undefined}>
-                {item.label}
-              </a>
-            ))
-          }
-        </nav>
+        <div class="masthead__menu" id="site-menu">
+          <div class="finder" id="finder">
+            <input
+              id="finder-input"
+              type="search"
+              placeholder="Search 3,500 titles…"
+              autocomplete="off"
+              aria-label="Search titles"
+            />
+            <ul id="finder-results" hidden></ul>
+          </div>
+
+          <nav aria-label="Browse">
+            <a href="/" class="nav-home">Home</a>
+            {
+              nav.map((item) => (
+                <a href={item.href} aria-current={here.startsWith(item.href) ? 'page' : undefined}>
+                  {item.label}
+                </a>
+              ))
+            }
+          </nav>
+        </div>
       </div>
     </header>
 
@@ -145,7 +165,7 @@ const here = Astro.url.pathname
         </div>
       </div>
       <div class="shell colophon__cue">
-        <span class="cue">Cue 00 · Blackout — the index refreshes daily at 02:00 UTC</span>
+        <span class="cue">The index refreshes daily at 02:00 UTC</span>
       </div>
     </footer>
 
@@ -207,6 +227,15 @@ const here = Astro.url.pathname
       })
       document.addEventListener('click', (e) => {
         if (!document.getElementById('finder').contains(e.target)) render([])
+      })
+
+      // Mobile menu: the button shows and hides the search + nav panel.
+      const menuBtn = document.querySelector('.menu-btn')
+      menuBtn.addEventListener('click', () => {
+        const open = document.body.classList.toggle('menu-open')
+        menuBtn.setAttribute('aria-expanded', String(open))
+        menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu')
+        if (open) document.getElementById('finder-input').focus()
       })
     </script>
   </body>

@@ -8,3 +8,4 @@ ingest.log
 data/raw/
 data/raw-v1/
 .impeccable/
+data/redirects.json
