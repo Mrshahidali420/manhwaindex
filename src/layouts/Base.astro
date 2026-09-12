@@ -31,7 +31,7 @@ const here = Astro.url.pathname
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
-    <meta name="theme-color" content="#0e0d13" />
+    <meta name="theme-color" content="#050508" />
     {noindex && <meta name="robots" content="noindex,follow" />}
 
     <meta property="og:type" content="website" />
@@ -46,7 +46,7 @@ const here = Astro.url.pathname
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Public+Sans:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Saira:wght@400;600;700;800&family=Saira+Stencil+One&display=swap"
     />
     <link rel="preconnect" href="https://s4.anilist.co" />
 
@@ -54,14 +54,34 @@ const here = Astro.url.pathname
   </head>
 
   <body>
+    <!--
+    DIRECTION CONTRACT — Cyclorama Dawn
+    THESIS: Every page is a lit stage at dawn: depthless cyc black, a cobalt
+    horizon, rose light gathering above it; cover art stands on the horizon
+    band like actors against a Shinkai sky.
+    OWN-WORLD: stagecraft-theater-lighting-cyclorama-dawn — cyc black ground,
+    cobalt horizon structure, rose gather, white-day reserved for the active
+    state; lighting-plot stencil caps for cue names with tabular numerals;
+    content stacked in horizon bands from dark to light; phases named in text
+    (night, first light, dawn, hold, day) so colour is never the sole signal.
+    STORY: a visitor walks in during the night cue and the answer is already
+    standing lit at the horizon.
+    FIRST VIEWPORT: black sky, cobalt-to-rose horizon glow, the headline above
+    the line, a skyline of covers standing on it.
+    FORM: horizon-band index; list position challenger-cyclorama; seed 0a16551e.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the
+    finish review, the verdict, DESIGN.md, and every shipping raster carrying
+    its provenance.
+    -->
     <a class="skip" href="#main">Skip to content</a>
 
     <header class="masthead">
       <div class="shell masthead__inner">
         <a class="wordmark" href="/" aria-label="manhwaindex home">
           <svg class="wordmark__mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-            <rect x="1" y="1" width="13" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
-            <path d="M9 7l9 4-9 4z" fill="currentColor" />
+            <circle cx="11" cy="14" r="5" fill="none" stroke="currentColor" stroke-width="2" />
+            <line x1="1" y1="14" x2="21" y2="14" stroke="currentColor" stroke-width="2" />
+            <line x1="11" y1="3" x2="11" y2="6" stroke="currentColor" stroke-width="2" />
           </svg>
           manhwa<span>index</span>
         </a>
@@ -123,6 +143,9 @@ const here = Astro.url.pathname
             link? It will fix itself: the index refreshes every day.
           </p>
         </div>
+      </div>
+      <div class="shell colophon__cue">
+        <span class="cue">Cue 00 · Blackout — the index refreshes daily at 02:00 UTC</span>
       </div>
     </footer>
 

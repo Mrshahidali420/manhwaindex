@@ -9,8 +9,8 @@ const manhua = comicsOfCountry('CN')
 const readable = comics.filter((c) => c.readLinks.length > 0).length
 const watchable = anime.filter((a) => a.watchLinks.length > 0).length
 
-// The most popular banner becomes the ambient backdrop of the hero.
-const backdrop = [...manhwa, ...animeByPopularity].find((i) => i.banner)?.banner
+// The nine most-read covers stand on the horizon line like a skyline.
+const skyline = manhwa.slice(0, 9)
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -33,7 +33,7 @@ const jsonld = {
   jsonld={jsonld}
 >
   <section class="hero hero--home">
-    {backdrop && <img class="hero__backdrop" src={backdrop} alt="" loading="eager" fetchpriority="high" />}
+    <div class="hero__glow" aria-hidden="true"></div>
     <div class="shell hero__content">
       <h1>You found the series. Now find where it is.</h1>
       <p>
@@ -41,29 +41,37 @@ const jsonld = {
         you get the official apps that carry it, what each one costs, and whether there is
         an anime yet.
       </p>
-      <div class="hero__stat">
-        <div>
-          <b>{comics.length.toLocaleString()}</b>
-          <span>comics indexed</span>
-        </div>
-        <div>
-          <b>{readable.toLocaleString()}</b>
-          <span>with an official place to read</span>
-        </div>
-        <div>
-          <b>{anime.length.toLocaleString()}</b>
-          <span>anime indexed</span>
-        </div>
-        <div>
-          <b>{watchable.toLocaleString()}</b>
-          <span>with official streaming</span>
-        </div>
-      </div>
+    </div>
+    <div class="skyline" aria-hidden="true">
+      {
+        skyline.map((item, i) => (
+          <img
+            src={item.cover}
+            alt=""
+            width="230"
+            height="345"
+            loading={i < 5 ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchpriority={i === 4 ? 'high' : undefined}
+          />
+        ))
+      }
     </div>
   </section>
 
+  <div class="shell cue-sheet">
+    <span class="cue">Cue 05 · House count</span>
+    <p>
+      <b>{comics.length.toLocaleString()}</b> comics indexed ·
+      <b>{readable.toLocaleString()}</b> with an official place to read ·
+      <b>{anime.length.toLocaleString()}</b> anime ·
+      <b>{watchable.toLocaleString()}</b> with official streaming
+    </p>
+  </div>
+
   <div class="shell">
-    <section class="section">
+    <section class="section" data-phase="night">
+      <span class="section__cue cue">Cue 10 · Night</span>
       <div class="section__head section__head--row">
         <div>
           <h2>Trending manhwa</h2>
@@ -74,7 +82,8 @@ const jsonld = {
       <CoverGrid items={manhwa.slice(0, 18)} base="/manhwa" shelf />
     </section>
 
-    <section class="section">
+    <section class="section" data-phase="first">
+      <span class="section__cue cue">Cue 20 · First light</span>
       <div class="section__head section__head--row">
         <div>
           <h2>Trending anime</h2>
@@ -85,7 +94,8 @@ const jsonld = {
       <CoverGrid items={animeByPopularity.slice(0, 18)} base="/anime" shelf />
     </section>
 
-    <section class="section">
+    <section class="section" data-phase="dawn">
+      <span class="section__cue cue cue--rose">Cue 30 · Dawn</span>
       <div class="section__head section__head--row">
         <div>
           <h2>Trending manga</h2>
@@ -95,7 +105,8 @@ const jsonld = {
       <CoverGrid items={manga.slice(0, 18)} base="/manga" shelf />
     </section>
 
-    <section class="section">
+    <section class="section" data-phase="hold">
+      <span class="section__cue cue cue--rose">Cue 40 · Hold</span>
       <div class="section__head section__head--row">
         <div>
           <h2>Trending manhua</h2>
@@ -105,7 +116,8 @@ const jsonld = {
       <CoverGrid items={manhua.slice(0, 18)} base="/manhua" shelf />
     </section>
 
-    <section class="section">
+    <section class="section" data-phase="day">
+      <span class="section__cue cue cue--rose">Cue 50 · Day</span>
       <div class="section__head">
         <h2>Browse by genre</h2>
       </div>
