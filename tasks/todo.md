@@ -30,7 +30,7 @@ Measured: parsing a 25-title JSON shard costs 0.78 ms. It fits.
 - [x] 6. Convert `[kind]/[slug].astro` and `character/[slug].astro` to SSR
 - [x] 7. Wrap the adapter worker: redirects + edge cache
 - [x] 8. Build, test with `wrangler dev`, check worker size and CPU
-- [ ] 9. Deploy, then run the full backfill
+- [x] 9. Deploy, then run the full backfill
 
 ## Review
 
