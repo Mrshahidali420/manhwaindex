@@ -671,8 +671,10 @@ img {
 }
 .card img {
   width: 100%;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
+  height: auto; /* the height attribute must not beat the aspect-ratio */
+  /* AniList covers are 460x651 — a 2/3 box would shave the sides */
+  aspect-ratio: 460 / 651;
+  object-fit: contain;
   background: var(--night-raised);
   border: 1px solid var(--cobalt-line);
   box-shadow:
