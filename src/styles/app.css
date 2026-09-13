@@ -359,6 +359,20 @@ img {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
 }
 
+/* real banner art behind the copy, dissolving into the cyc gradient */
+.hero__banner {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 74%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0.42;
+  filter: saturate(1.05);
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.9) 0%, rgb(0 0 0 / 0.75) 40%, transparent 96%);
+  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.9) 0%, rgb(0 0 0 / 0.75) 40%, transparent 96%);
+}
+
 /* the light gathers once, on arrival — the page's one authored moment */
 .hero__glow {
   position: absolute;
@@ -726,14 +740,59 @@ img {
   display: flex;
   overflow-x: auto;
   gap: 1.1rem;
-  padding-block: 0.25rem 0.9rem;
-  scroll-snap-type: x proximity;
+  padding-block: 0.35rem 0.9rem;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--cobalt) transparent;
 }
 .grid--shelf .card {
   flex: 0 0 148px;
   scroll-snap-align: start;
+}
+
+.shelf-wrap {
+  position: relative;
+}
+.shelf-arrow {
+  position: absolute;
+  z-index: 2;
+  top: 111px; /* vertical centre of a 148px-wide, 2:3 cover */
+  translate: 0 -50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--cobalt);
+  background: rgb(7 10 22 / 0.92);
+  color: var(--day);
+  font-size: 1.45rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 8px 22px -8px rgb(3 3 6 / 0.9);
+  transition: border-color 160ms var(--ease-dawn), color 160ms var(--ease-dawn), opacity 160ms var(--ease-dawn);
+}
+.shelf-arrow--left {
+  left: -0.75rem;
+}
+.shelf-arrow--right {
+  right: -0.75rem;
+}
+.shelf-arrow:hover:not(:disabled),
+.shelf-arrow:focus-visible {
+  border-color: var(--rose);
+  color: var(--rose);
+}
+.shelf-arrow:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+@media (hover: none) {
+  /* touch screens swipe; the arrows only add clutter there */
+  .shelf-arrow {
+    display: none;
+  }
 }
 
 /* ---------- title pages ---------------------------------------------------- */
@@ -809,6 +868,14 @@ main:has(.title-page) {
 .cover-rail__score span {
   color: var(--dawn-faint);
   font-size: 0.82rem;
+}
+.cover-rail__score--alt {
+  margin-top: 0.4rem;
+  border-top: 0;
+  padding-top: 0;
+}
+.cover-rail__score--alt b {
+  font-size: 1.15rem;
 }
 
 .title-head__native {
@@ -1017,6 +1084,26 @@ main:has(.title-page) {
 }
 .track-line a:hover {
   text-decoration: underline;
+}
+
+/* "Also listed on" — neutral info databases, never reading sources. */
+.also-on {
+  margin: 0.55rem 0 0;
+  font-size: 0.85rem;
+  color: var(--dawn-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  align-items: baseline;
+}
+.also-on a {
+  color: var(--dawn-dim);
+  text-decoration: underline;
+  text-decoration-color: var(--cobalt);
+  text-underline-offset: 3px;
+}
+.also-on a:hover {
+  color: var(--day);
 }
 
 /* ---------- family: prequels, sequels, spin-offs --------------------------- */

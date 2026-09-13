@@ -31,12 +31,17 @@ const airing = airingThisWeek.slice(0, 8).map((a) => ({
   airDay: new Date(a.nextEpisode.at * 1000).toLocaleDateString('en-US', { weekday: 'long' }),
 }))
 
-const tabs = [
-  { id: 'manhwa', label: 'Manhwa', items: manhwa.slice(0, 18), base: '/manhwa', all: manhwa.length, note: 'The colour bars under each cover show which platforms carry it.' },
-  { id: 'anime', label: 'Anime', items: animeByPopularity.slice(0, 18), base: '/anime', all: anime.length, note: 'Each one links back to the manga or manhwa it came from.' },
-  { id: 'manga', label: 'Manga', items: manga.slice(0, 18), base: '/manga', all: manga.length, note: '' },
-  { id: 'manhua', label: 'Manhua', items: manhua.slice(0, 18), base: '/manhua', all: manhua.length, note: '' },
+// One shelf per catalog, all visible at once. Arrows scroll each shelf.
+const rows = [
+  { id: 'manhwa', label: 'Trending manhwa', items: manhwa.slice(0, 18), base: '/manhwa', all: manhwa.length, note: 'The colour bars under each cover show which platforms carry it.' },
+  { id: 'anime', label: 'Trending anime', items: animeByPopularity.slice(0, 18), base: '/anime', all: anime.length, note: 'Each one links back to the manga or manhwa it came from.' },
+  { id: 'manga', label: 'Trending manga', items: manga.slice(0, 18), base: '/manga', all: manga.length, note: '' },
+  { id: 'manhua', label: 'Trending manhua', items: manhua.slice(0, 18), base: '/manhua', all: manhua.length, note: '' },
 ]
+
+// The hero stands in front of a real banner: the most popular manhwa
+// that ships wide art. Masked so it dissolves into the cyc gradient.
+const heroBanner = manhwa.find((m) => m.banner)?.banner
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -59,6 +64,9 @@ const jsonld = {
   jsonld={jsonld}
 >
   <section class="hero hero--home">
+    {heroBanner && (
+      <img class="hero__banner" src={heroBanner} alt="" width="1900" height="760" loading="eager" fetchpriority="high" decoding="async" />
+    )}
     <div class="hero__glow" aria-hidden="true"></div>
     <div class="shell hero__content">
       <h1>You found the series. Now find where it is.</h1>
@@ -95,53 +103,55 @@ const jsonld = {
   </div>
 
   <div class="shell">
-    <section class="section" data-phase="night">
-      <div class="section__head section__head--row">
-        <div>
-          <h2>Trending now</h2>
-          <p>Pick a shelf. The colour bars under each cover are platform lights.</p>
-        </div>
-        <div class="tabs" role="tablist" aria-label="Trending shelves">
-          {
-            tabs.map((tab, i) => (
-              <button
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-controls={`panel-${tab.id}`}
-                aria-selected={i === 0 ? 'true' : 'false'}
-              >
-                {tab.label}
-              </button>
-            ))
-          }
-        </div>
-      </div>
-      {
-        tabs.map((tab, i) => (
-          <div class="tab-panel" id={`panel-${tab.id}`} role="tabpanel" aria-labelledby={`tab-${tab.id}`} hidden={i !== 0}>
-            <CoverGrid items={tab.items} base={tab.base} shelf />
-            <p class="tab-panel__more">
-              <a class="section__more" href={tab.base}>
-                All {tab.all.toLocaleString()} {tab.label.toLowerCase()} →
-              </a>
-            </p>
+    {
+      rows.map((row) => (
+        <section class="section" data-phase="night">
+          <div class="section__head section__head--row">
+            <div>
+              <h2>{row.label}</h2>
+              {row.note && <p>{row.note}</p>}
+            </div>
+            <a class="section__more" href={row.base}>
+              All {row.all.toLocaleString()} →
+            </a>
           </div>
-        ))
+          <div class="shelf-wrap">
+            <button type="button" class="shelf-arrow shelf-arrow--left" aria-label={`Scroll ${row.id} left`}>
+              ‹
+            </button>
+            <CoverGrid items={row.items} base={row.base} shelf />
+            <button type="button" class="shelf-arrow shelf-arrow--right" aria-label={`Scroll ${row.id} right`}>
+              ›
+            </button>
+          </div>
+        </section>
+      ))
+    }
+    <script>
+      for (const wrap of document.querySelectorAll('.shelf-wrap')) {
+        const shelf = wrap.querySelector('.grid--shelf')
+        const arrows = [wrap.querySelector('.shelf-arrow--left'), wrap.querySelector('.shelf-arrow--right')]
+        const stride = () => {
+          const cards = shelf.querySelectorAll('.card')
+          return cards.length > 1
+            ? cards[1].offsetLeft - cards[0].offsetLeft
+            : shelf.clientWidth * 0.8
+        }
+        const page = (dir) => {
+          const step = stride()
+          const cardsPerView = Math.max(1, Math.floor(shelf.clientWidth / step))
+          shelf.scrollBy({ left: dir * cardsPerView * step, behavior: 'smooth' })
+        }
+        arrows[0].addEventListener('click', () => page(-1))
+        arrows[1].addEventListener('click', () => page(1))
+        const update = () => {
+          arrows[0].disabled = shelf.scrollLeft < 4
+          arrows[1].disabled = shelf.scrollLeft > shelf.scrollWidth - shelf.clientWidth - 4
+        }
+        shelf.addEventListener('scroll', update, { passive: true })
+        update()
       }
-      <script>
-        const tablist = document.querySelector('.tabs')
-        tablist.addEventListener('click', (e) => {
-          const btn = e.target.closest('[role="tab"]')
-          if (!btn) return
-          for (const t of tablist.querySelectorAll('[role="tab"]')) {
-            const on = t === btn
-            t.setAttribute('aria-selected', String(on))
-            document.getElementById(t.getAttribute('aria-controls')).hidden = !on
-          }
-        })
-      </script>
-    </section>
+    </script>
 
     {
       airing.length > 0 && (

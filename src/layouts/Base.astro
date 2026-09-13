@@ -11,7 +11,9 @@ const {
 } = Astro.props
 
 const site = 'https://manhwaindex.com'
-const canonicalUrl = new URL(canonical, site).href
+// build.format 'file' leaves '.html' on Astro.url.pathname; public URLs never carry it.
+const cleanPath = canonical.replace(/\.html$/, '').replace(/^\/index$/, '/') || '/'
+const canonicalUrl = new URL(cleanPath, site).href
 const nav = [
   { href: '/manhwa', label: 'Manhwa' },
   { href: '/manga', label: 'Manga' },
