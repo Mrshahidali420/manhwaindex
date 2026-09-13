@@ -314,6 +314,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
         heading={isComic ? 'Read it on' : 'Watch it on'}
         links={links}
         count={`${links.length} official ${links.length === 1 ? 'place' : 'places'}`}
+        verb={isComic ? 'read' : 'watch'}
       >
         <Fragment slot="empty">
           <p>

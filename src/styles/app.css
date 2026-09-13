@@ -1077,6 +1077,77 @@ main:has(.title-page) {
   border-radius: 4px;
   transition: background-color 140ms var(--ease-dawn);
 }
+
+/* ---------- the comparison: how you pay, what is free, where it works ------ */
+
+/* On a phone the header row is useless, so each cell carries its own label.
+   From 760px up the labels hide and the header row lines the columns up. */
+.compare__head {
+  display: none;
+}
+
+.platform__fact {
+  grid-column: 2;
+  display: flex;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  color: var(--dawn);
+  margin-top: 0.3rem;
+}
+.platform__fact b {
+  font-weight: 600;
+  color: var(--dawn-faint);
+  min-width: 7.5rem;
+}
+
+.compare__checked {
+  margin: 0.9rem 0 0;
+  color: var(--dawn-faint);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+@media (min-width: 760px) {
+  .compare__head {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 0 1rem;
+    padding: 0 0.5rem 0.5rem;
+    border-bottom: 1px solid rgb(36 65 143 / 0.45);
+    font-family: var(--stencil);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--dawn-faint);
+  }
+  .compare__head span:first-child {
+    grid-column: 2;
+  }
+
+  .platform a {
+    grid-template-columns: 18px minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+  .platform__fact {
+    margin-top: 0;
+    align-self: center;
+    grid-row: 1 / span 2;
+  }
+  .platform__fact:nth-of-type(1) {
+    grid-column: 3;
+  }
+  .platform__fact:nth-of-type(2) {
+    grid-column: 4;
+  }
+  .platform__fact:nth-of-type(3) {
+    grid-column: 5;
+  }
+  .platform__fact b {
+    display: none;
+  }
+  .platform__go {
+    grid-column: 6;
+  }
+}
 .platform a:hover {
   background: var(--night-raised);
 }
@@ -1097,7 +1168,7 @@ main:has(.title-page) {
   letter-spacing: -0.01em;
 }
 
-.platform__note {
+.platform__sub {
   grid-column: 2;
   color: var(--dawn-faint);
   font-size: 0.85rem;

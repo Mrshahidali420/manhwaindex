@@ -1,7 +1,29 @@
 ---
+/**
+ * The answer box. It is the reason a reader came to the page, so it is a real
+ * comparison and not a list of logos: for every official platform it says how
+ * you pay, what you get without paying, and where the service works.
+ *
+ * The facts come from platform-facts.js and belong to the PLATFORM, so a title
+ * added tomorrow gets a filled table tomorrow with no extra step.
+ */
 import { platform } from '../lib/format.js'
+import { factsFor } from '../lib/platform-facts.js'
+import shards from '../../data/shards.json'
 
-const { heading, links, empty, count } = Astro.props
+const { heading, links, empty, count, verb = 'read' } = Astro.props
+
+// "Free to read" / "Free to watch" — the reader's own word for what they want.
+const freeLabel = `Free to ${verb}`
+
+// Every build rewrites builtAt, so this date is never stale by more than a day.
+const checkedAt = new Date(shards.builtAt || Date.now())
+const checkedText = checkedAt.toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+const checkedISO = checkedAt.toISOString().slice(0, 10)
 ---
 
 <section class="answer">
@@ -12,23 +34,54 @@ const { heading, links, empty, count } = Astro.props
 
   {
     links.length > 0 ? (
-      <ul class="platforms">
-        {links.map((link) => {
-          const brand = platform(link.site)
-          return (
-            <li class="platform" style={`--mark:${brand.color}`}>
-              <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
-                <i class="platform__edge" aria-hidden="true" />
-                <span class="platform__name">{link.site}</span>
-                <span class="platform__note">
-                  {[brand.note, link.language].filter(Boolean).join(' — ') || 'Official'}
-                </span>
-                <span class="platform__go">Open</span>
-              </a>
-            </li>
-          )
-        })}
-      </ul>
+      <div class="compare">
+        <div class="compare__head" aria-hidden="true">
+          <span>Platform</span>
+          <span>How you pay</span>
+          <span>{freeLabel}</span>
+          <span>Works in</span>
+        </div>
+
+        <ul class="platforms">
+          {links.map((link) => {
+            const brand = platform(link.site)
+            const facts = factsFor(link.site)
+            return (
+              <li class="platform" style={`--mark:${brand.color}`}>
+                <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
+                  <i class="platform__edge" aria-hidden="true" />
+                  <span class="platform__name">{link.site}</span>
+                  <span class="platform__sub">
+                    {[link.language, facts.account ? 'Sign-in needed' : null]
+                      .filter(Boolean)
+                      .join(' · ') || 'Official'}
+                  </span>
+
+                  <span class="platform__fact">
+                    <b>How you pay</b>
+                    {facts.pay || brand.note || 'Official'}
+                  </span>
+                  <span class="platform__fact">
+                    <b>{freeLabel}</b>
+                    {facts.free || '—'}
+                  </span>
+                  <span class="platform__fact">
+                    <b>Works in</b>
+                    {facts.region || '—'}
+                  </span>
+
+                  <span class="platform__go">Open</span>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+
+        <p class="compare__checked">
+          We checked these on <time datetime={checkedISO}>{checkedText}</time>. Platforms
+          change their terms, so the platform's own page is the last word.
+        </p>
+      </div>
     ) : (
       <div class="empty"><slot name="empty">{empty}</slot></div>
     )
