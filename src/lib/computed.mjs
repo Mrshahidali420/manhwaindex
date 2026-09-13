@@ -188,3 +188,68 @@ export function readingOrder(item, kind) {
         : `${item.title} is part ${at + 1} of ${chain.length}. There ${at === 1 ? 'is 1 part' : `are ${at} parts`} before it and ${chain.length - at - 1} after.`
   return { heading: `The order to ${verb} it in`, line, chain, word }
 }
+
+/**
+ * What is coming next for this title.
+ *
+ * Four cases, in order of how much a reader cares:
+ *   1. An anime page whose own next episode is still ahead.
+ *   2. A comic page whose anime has an episode still ahead.
+ *   3. A comic page whose anime is announced but not out yet.
+ *   4. Any page whose next part in the reading order is not out yet.
+ *
+ * An episode whose time has passed is never shown. The record is only as
+ * fresh as the last daily build, so a past timestamp proves nothing.
+ */
+export function upcoming(item, kind, nowSec = Date.now() / 1000) {
+  const ahead = (ep) => ep && ep.at > nowSec
+
+  if (kind === 'anime') {
+    if (ahead(item.nextEpisode)) {
+      return {
+        tag: 'Next episode',
+        label: `Episode ${item.nextEpisode.number}`,
+        at: item.nextEpisode.at,
+        href: '/schedule',
+        linkText: 'See the full week',
+      }
+    }
+  } else {
+    const shows = (item.adapt && item.adapt.shows) || []
+    const airing = shows
+      .filter((show) => ahead(show.nextEpisode))
+      .sort((a, b) => a.nextEpisode.at - b.nextEpisode.at)[0]
+    if (airing) {
+      return {
+        tag: 'The anime is airing',
+        label: `${airing.title} episode ${airing.nextEpisode.number}`,
+        at: airing.nextEpisode.at,
+        href: `/anime/${airing.slug}`,
+        linkText: 'Where to watch it',
+      }
+    }
+    const soon = shows.find((show) => show.status === 'NOT_YET_RELEASED')
+    if (soon) {
+      return {
+        tag: 'An anime is coming',
+        label: `${soon.title} is announced. No air date yet.`,
+        href: `/anime/${soon.slug}`,
+        linkText: 'See the show',
+      }
+    }
+  }
+
+  // The next part of the story, when the catalog knows one is on the way.
+  const chain = item.chain || []
+  const at = chain.findIndex((part) => part.self)
+  const next = at >= 0 ? chain[at + 1] : null
+  if (next && next.status === 'NOT_YET_RELEASED') {
+    return {
+      tag: kind === 'anime' ? 'A new season is coming' : 'A new part is coming',
+      label: `${next.title} is announced but not out yet.`,
+      href: `/${next.kind}/${next.slug}`,
+      linkText: 'See it',
+    }
+  }
+  return null
+}

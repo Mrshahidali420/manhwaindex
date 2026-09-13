@@ -150,7 +150,16 @@ export async function gql(query, variables, attempt = 1) {
     await sleep(15_000)
     return gql(query, variables, attempt + 1)
   }
-  if (body.errors) throw new Error(`GraphQL: ${JSON.stringify(body.errors).slice(0, 300)}`)
+  if (body.errors) {
+    const text = JSON.stringify(body.errors).slice(0, 300)
+    // A GraphQL error is usually AniList itself having a bad minute, not a bad
+    // query. We ask again with a growing wait before we let the run die.
+    if (attempt > MAX_RETRIES) throw new Error(`GraphQL: ${text}`)
+    const wait = Math.min(10 * attempt, 60)
+    console.warn(`  GraphQL error (${text}). retrying in ${wait}s (attempt ${attempt})`)
+    await sleep(wait * 1000)
+    return gql(query, variables, attempt + 1)
+  }
   return body.data
 }
 

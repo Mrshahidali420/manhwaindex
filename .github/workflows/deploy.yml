@@ -36,8 +36,11 @@ jobs:
       # fetches those records. A push deploy skips it and builds from the
       # data already in the repo. The one-time full backfill is a separate
       # workflow (backfill.yml), because it takes hours.
+      # If AniList has a bad day, we still build and deploy from the data
+      # already in the repo. A stale site beats a dead site.
       - name: Pull changed data
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         run: node --max-old-space-size=6000 scripts/ingest-daily.mjs
 
       - name: Commit refreshed data

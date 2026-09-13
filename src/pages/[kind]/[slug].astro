@@ -15,7 +15,7 @@ import {
 } from '../../lib/format.js'
 import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
-import { coverage, adaptationAnswer, readingOrder } from '../../lib/computed.mjs'
+import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -256,6 +256,9 @@ if (similar.length >= 4) {
 // Facts this site works out for itself: how wide the official coverage is,
 // how the anime and the comic line up, and the order to read the series in.
 // See src/lib/computed.mjs.
+// What is coming next: an episode, an announced anime, or an announced part.
+// It is worked out at request time, so a date that has passed never shows.
+const ahead = upcoming(item, kind)
 const reach = coverage(links, kind)
 const bridge = adaptationAnswer(item, kind)
 const order = readingOrder(item, kind)
@@ -335,12 +338,12 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
       </p>
 
       {
-        nextEp && (
+        ahead && (
           <p class="next-ep">
-            <span class="next-ep__tag">Next episode</span>
-            <span class="next-ep__num">Episode {item.nextEpisode.number}</span>
-            <Countdown at={item.nextEpisode.at} local />
-            <a class="next-ep__all" href="/schedule">See the full week</a>
+            <span class="next-ep__tag">{ahead.tag}</span>
+            <span class="next-ep__num">{ahead.label}</span>
+            {ahead.at && <Countdown at={ahead.at} local />}
+            <a class="next-ep__all" href={ahead.href}>{ahead.linkText}</a>
           </p>
         )
       }

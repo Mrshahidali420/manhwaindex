@@ -182,6 +182,9 @@ function adaptationOf(item, byId) {
       episodes: show.episodes || null,
       status: show.status,
       startYear: show.startYear || null,
+      // The airing clock travels with the show, so a comic page can say when
+      // its own anime airs next without loading the anime record.
+      nextEpisode: show.nextEpisode || null,
     }))
     shows.sort((a, b) => (a.startYear || 9999) - (b.startYear || 9999))
     return shows.length ? { shows } : null
