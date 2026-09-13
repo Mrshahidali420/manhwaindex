@@ -1287,6 +1287,23 @@ main:has(.title-page) {
   white-space: pre-line;
 }
 
+/* Our own overview. It is the main text of a title page, so it reads a step
+   brighter and looser than the publisher blurb below it. */
+.overview {
+  color: var(--dawn);
+  line-height: 1.7;
+  max-width: 68ch;
+}
+.overview + .overview {
+  margin-top: 0.85rem;
+}
+
+.synopsis__credit {
+  margin-top: 0.6rem;
+  color: var(--dawn-faint);
+  font-size: 0.85rem;
+}
+
 /* ---------- hero (plain, e.g. 404) ----------------------------------------- */
 
 .hero {

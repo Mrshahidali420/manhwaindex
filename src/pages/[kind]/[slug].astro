@@ -50,6 +50,17 @@ const nextEp = item.nextEpisode
 // One title can have several language editions on the same platform, so
 // the same name must not be listed twice.
 const platformNames = [...new Set(links.map((l) => l.site))]
+
+// Our own words, written at build time from the facts in the record. This is
+// the main text of the page. See src/lib/prose.mjs.
+const overview = item.overview || { lede: '', paragraphs: [] }
+
+// The publisher blurb is somebody else's writing, so it sits under our own
+// text and keeps its credit. AniList puts that credit inside the blurb.
+const rawSynopsis = (item.description || '').replace(/\n{2,}/g, '\n\n').trim()
+const creditMatch = rawSynopsis.match(/\(Source:\s*([^)]+)\)/i)
+const synopsisCredit = creditMatch ? creditMatch[1].trim() : null
+const synopsis = rawSynopsis.replace(/\(Source:[^)]*\)/gi, '').trim()
 const description = links.length
   ? `${item.title} is officially ${isComic ? 'readable' : 'streaming'} on ${platformNames
       .slice(0, 3)
@@ -93,7 +104,7 @@ const jsonld = {
   name: item.title,
   alternateName: item.titleNative || item.titleRomaji,
   image: item.cover,
-  description: truncate(item.description, 400),
+  description: truncate(overview.lede || item.description, 400),
   genre: item.genres,
   ...(isComic ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
   ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
@@ -349,12 +360,26 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
       }
 
       {
-        item.description && (
+        overview.paragraphs.length > 0 && (
           <section class="answer">
             <div class="answer__head">
-              <h2>What it is about</h2>
+              <h2>{item.title} in short</h2>
             </div>
-            <p class="synopsis">{item.description.replace(/\n{2,}/g, '\n\n').trim()}</p>
+            {overview.paragraphs.map((line) => (
+              <p class="overview">{line}</p>
+            ))}
+          </section>
+        )
+      }
+
+      {
+        synopsis && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>The publisher synopsis</h2>
+            </div>
+            <p class="synopsis">{synopsis}</p>
+            {synopsisCredit && <p class="synopsis__credit">Synopsis by {synopsisCredit}.</p>}
           </section>
         )
       }

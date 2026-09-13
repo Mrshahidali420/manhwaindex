@@ -19,6 +19,8 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLES_PER_SHARD, CHARACTERS_PER_SHARD } from '../src/lib/shard-key.js'
 import { reslugAll } from '../src/lib/reslug.mjs'
+import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
+import { buildOverview } from '../src/lib/prose.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -97,6 +99,31 @@ function precompute(titles) {
         ? { kind: found.kind === 'anime' ? 'anime' : 'comic', item: { slug: found.slug, country: found.country } }
         : null
     }
+  }
+
+  // The original overview. It is written here, on every build, so a title
+  // added tomorrow gets its own prose tomorrow with no extra step.
+  writeOverviews(titles, pools)
+}
+
+const noteOf = (site) => (PLATFORMS[site] || FALLBACK).note
+
+/**
+ * Works out where a title stands against its own group, then hands the facts
+ * to the prose writer. The rank needs the whole catalog, so it cannot be done
+ * in the Worker.
+ */
+function writeOverviews(titles, pools) {
+  const rankOf = new Map()
+  for (const [group, list] of pools) {
+    const scored = list.filter((p) => p.score).sort((a, b) => b.score - a.score)
+    const label = group === 'anime' ? 'anime' : group
+    scored.forEach((item, i) => {
+      rankOf.set(item.id, { top: Math.max(1, Math.round(((i + 1) / scored.length) * 100)), label })
+    })
+  }
+  for (const item of titles) {
+    item.overview = buildOverview(item, kindOf(item), noteOf, rankOf.get(item.id) || null)
   }
 }
 
