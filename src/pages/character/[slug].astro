@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { charactersWithPages, kindOfAppearance, truncate } from '../../lib/catalog.js'
+import { charactersWithPages, kindOfAppearance, truncate, bioHtml } from '../../lib/catalog.js'
 
 export function getStaticPaths() {
   return charactersWithPages.map((person) => ({
@@ -96,7 +96,7 @@ const jsonld = {
         <div class="section__head">
           <h2>About {person.name}</h2>
         </div>
-        <div class="synopsis"><p>{person.description}</p></div>
+        <div class="synopsis" set:html={bioHtml(person.description)} />
       </section>
     )}
   </div>

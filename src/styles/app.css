@@ -917,7 +917,6 @@ img {
    line at cover height, and the cover stands on it like an actor */
 main:has(.title-page) {
   background:
-    linear-gradient(to bottom, transparent 216px, var(--cobalt-line) 216px, var(--cobalt-line) 219px, transparent 219px),
     linear-gradient(
       to bottom,
       #070a16 0px,
@@ -1944,6 +1943,13 @@ main:has(.title-page) {
   }
   .hero--home {
     overflow-x: clip;
+    background: linear-gradient(to bottom, #070a16 0%, #0d1d4a 55%, var(--night) 100%);
+  }
+  .hero--home::after {
+    display: none;
+  }
+  main:has(.title-page) {
+    background: none;
   }
   .hero__content {
     padding-block: 2.6rem 0;

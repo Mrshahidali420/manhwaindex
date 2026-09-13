@@ -145,6 +145,21 @@ export function genreIndex(items, minimum = 12) {
     .sort((a, b) => b.items.length - a.items.length)
 }
 
+// AniList character bios use a tiny markdown: __bold__, _italic_,
+// [name](url) links and ~!spoiler!~ blocks. Render them as safe HTML.
+export const bioHtml = (text) => {
+  const safe = String(text)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return safe
+    .replace(/~!([\s\S]*?)!~/g, '')
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '$1')
+    .replace(/__([^_\n]+)__/g, '<b>$1</b>')
+    .replace(/(^|[\s(])_([^_\n]+)_(?=[\s:.,)]|$)/gm, '$1<i>$2</i>')
+    .split(/\n{2,}/)
+    .map((para) => `<p>${para.trim().replace(/\n/g, '<br>')}</p>`)
+    .join('')
+}
+
 export const truncate = (text, length) =>
   !text ? '' : text.length <= length ? text : `${text.slice(0, length).replace(/\s+\S*$/, '')}…`
 
