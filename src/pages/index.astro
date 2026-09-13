@@ -55,7 +55,7 @@ const jsonld = {
 
 <Base
   title="manhwaindex — where to read manhwa and watch anime online, legally"
-  description="Look up any manhwa, manga, manhua or anime and see the official apps that carry it. No pirate mirrors, just the publishers and streaming services that hold the rights."
+  description="Look up any manhwa, manga, manhua or anime and see the official apps that carry it. No pirate mirrors, just the publishers and streaming platforms that hold the rights."
   jsonld={jsonld}
 >
   <section class="hero hero--home">
@@ -63,9 +63,9 @@ const jsonld = {
     <div class="shell hero__content">
       <h1>You found the series. Now find where it is.</h1>
       <p>
-        Someone recommends a manhwa and never says where to read it. Look it up here and
-        you get the official apps that carry it, what each one costs, and whether there is
-        an anime yet.
+        Find where to read your favorite manhwa, manga and manhua — and where to watch
+        the anime. Compare the official platforms, what each one costs, and whether
+        there is an adaptation yet. All in one place.
       </p>
     </div>
     <div class="skyline" aria-hidden="true">
@@ -159,7 +159,7 @@ const jsonld = {
                     <b>{a.title}</b>
                     <em>
                       Episode {a.nextEpisode.number} · {a.airDay}
-                      {a.watchLinks.length ? ` · on ${a.watchLinks.length} services` : ''}
+                      {a.watchLinks.length ? ` · on ${a.watchLinks.length} platforms` : ''}
                     </em>
                   </span>
                 </a>

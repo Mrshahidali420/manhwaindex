@@ -1136,6 +1136,103 @@ main:has(.title-page) {
   border-color: var(--dawn);
 }
 
+/* Filter chips: the active filter reads as the lit state. */
+.chips--filters {
+  margin-bottom: 1.4rem;
+}
+.chips a[aria-current='page'] {
+  color: var(--night);
+  background: var(--day);
+  border-color: var(--day);
+}
+
+/* Where to Read: three steps, then a ledger of platforms. */
+.how {
+  list-style: none;
+  counter-reset: step;
+  margin: 1.8rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+.how li {
+  counter-increment: step;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 4px;
+  padding: 1rem 1.1rem 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+.how li::before {
+  content: 'Step ' counter(step);
+  font-family: var(--stencil);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--rose);
+}
+.how b {
+  color: var(--day);
+  font-size: 1rem;
+}
+.how span {
+  color: var(--dawn-faint);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 0.5rem;
+}
+.ledger li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: 'mark name count' 'mark note count';
+  column-gap: 0.7rem;
+  align-items: center;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 4px;
+  padding: 0.6rem 0.85rem;
+}
+.ledger i {
+  grid-area: mark;
+  width: 0.55rem;
+  height: 2.1rem;
+  border-radius: 2px;
+  background: var(--mark, var(--cobalt-line));
+}
+.ledger b {
+  grid-area: name;
+  color: var(--day);
+  font-size: 0.95rem;
+}
+.ledger span {
+  grid-area: note;
+  color: var(--dawn-faint);
+  font-size: 0.8rem;
+}
+.ledger em {
+  grid-area: count;
+  font-style: normal;
+  font-family: var(--stencil);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dawn-dim);
+  white-space: nowrap;
+}
+.ledger__rest {
+  margin: 0.9rem 0 0;
+  color: var(--dawn-faint);
+  font-size: 0.85rem;
+}
+
 .genre-wall {
   list-style: none;
   margin: 0;

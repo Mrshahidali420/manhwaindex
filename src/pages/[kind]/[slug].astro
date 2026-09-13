@@ -202,7 +202,7 @@ const familyWord = (r) =>
             {' '}
             {isComic
               ? `No publisher has licensed ${item.title} in a language we track. That usually changes once a series gets popular, so it is worth checking back.`
-              : `${item.title} is not on a streaming service we track. It may be region-locked or not licensed yet.`}
+              : `${item.title} is not on a streaming platform we track. It may be region-locked or not licensed yet.`}
           </p>
         </Fragment>
       </Platforms>
@@ -228,7 +228,7 @@ const familyWord = (r) =>
                     <span class="crosslink__title">{rel.title}</span>
                     <span class="crosslink__lead">
                       {rel.episodes ? `${rel.episodes} episodes` : 'Episode count not confirmed'}
-                      {rel.watchCount ? ` · on ${rel.watchCount} services` : ''}
+                      {rel.watchCount ? ` · on ${rel.watchCount} platforms` : ''}
                     </span>
                   </div>
                 </a>

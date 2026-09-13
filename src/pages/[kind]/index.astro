@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
+import FilterChips from '../../components/FilterChips.astro'
 import { animeByPopularity, comicsOfCountry } from '../../lib/catalog.js'
 
 export const PER_PAGE = 60
@@ -35,7 +36,7 @@ export const KINDS = {
   anime: {
     label: 'Anime',
     blurb:
-      'Every series with the streaming services that actually hold it, and a link to the comic it came from.',
+      'Every series with the streaming platforms that actually hold it, and a link to the comic it came from.',
     title: 'Where to watch anime — official streaming for every series',
     description:
       'Find where to legally stream any anime. Official links to Crunchyroll, Netflix, Hulu, Prime Video, Disney+ and HIDIVE, plus where to read the original manga.',
@@ -62,6 +63,7 @@ const pageCount = Math.ceil(all.length / PER_PAGE)
         <p>{config.blurb}</p>
         <p class="answer__count">{all.length} titles in the index</p>
       </div>
+      <FilterChips kind={kind} />
       <CoverGrid items={items} base={`/${kind}`} />
     </section>
 

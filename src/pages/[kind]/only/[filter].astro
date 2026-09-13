@@ -1,0 +1,53 @@
+---
+import Base from '../../../layouts/Base.astro'
+import CoverGrid from '../../../components/CoverGrid.astro'
+import FilterChips from '../../../components/FilterChips.astro'
+import { KINDS, PER_PAGE } from '../index.astro'
+import { FILTERS } from '../../../lib/filters.js'
+
+export function getStaticPaths() {
+  const paths = []
+  for (const [kind, config] of Object.entries(KINDS)) {
+    for (const [filter, def] of Object.entries(FILTERS)) {
+      const items = config.items().filter((item) => def.keep(item, kind))
+      if (items.length === 0) continue
+      paths.push({ params: { kind, filter }, props: { config, def, items } })
+    }
+  }
+  return paths
+}
+
+const { kind, filter } = Astro.params
+const { config, def, items } = Astro.props
+const word = kind === 'anime' ? 'anime' : kind
+const pageCount = Math.ceil(items.length / PER_PAGE)
+---
+
+<Base
+  title={`${config.label}: ${def.label.toLowerCase()} — official platforms for every series`}
+  description={`${def.blurb(word)} ${items.length} titles, ranked by popularity.`}
+  canonical={`/${kind}/only/${filter}`}
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>{config.label} — {def.label.toLowerCase()}</h1>
+        <p>{def.blurb(word)}</p>
+        <p class="answer__count">{items.length} titles match</p>
+      </div>
+      <FilterChips kind={kind} active={filter} />
+      <CoverGrid items={items.slice(0, PER_PAGE)} base={`/${kind}`} />
+    </section>
+
+    {
+      pageCount > 1 && (
+        <nav class="pager" aria-label="Pagination">
+          <span>Page 1 of {pageCount}</span>
+          <a href={`/${kind}/only/${filter}/2`} rel="next">
+            Next {PER_PAGE} titles
+          </a>
+        </nav>
+      )
+    }
+  </div>
+</Base>

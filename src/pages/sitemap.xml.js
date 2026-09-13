@@ -1,4 +1,5 @@
-import { comics, anime, charactersWithPages, genres } from '../lib/catalog.js'
+import { comics, anime, charactersWithPages, genres, comicsOfCountry, animeByPopularity } from '../lib/catalog.js'
+import { FILTERS } from '../lib/filters.js'
 
 const SITE = 'https://manhwaindex.com'
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
@@ -13,7 +14,23 @@ export function GET() {
     { loc: `${SITE}/anime`, priority: '0.9' },
     { loc: `${SITE}/character`, priority: '0.9' },
     { loc: `${SITE}/genre`, priority: '0.9' },
+    { loc: `${SITE}/where-to-read`, priority: '0.9' },
   ]
+
+  // Filtered browse shelves, first page of each.
+  const shelves = {
+    manhwa: comicsOfCountry('KR'),
+    manga: comicsOfCountry('JP'),
+    manhua: comicsOfCountry('CN'),
+    anime: animeByPopularity,
+  }
+  for (const [kind, items] of Object.entries(shelves)) {
+    for (const [filter, def] of Object.entries(FILTERS)) {
+      if (items.some((item) => def.keep(item, kind))) {
+        urls.push({ loc: `${SITE}/${kind}/only/${filter}`, priority: '0.6' })
+      }
+    }
+  }
 
   for (const g of genres) {
     urls.push({ loc: `${SITE}/genre/${g.slug}`, priority: '0.7' })
