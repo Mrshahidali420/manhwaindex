@@ -102,11 +102,102 @@ function precompute(titles) {
         ? { kind: found.kind === 'anime' ? 'anime' : 'comic', item: { slug: found.slug, country: found.country } }
         : null
     }
+
+    // Computed facts. Both need the whole catalog, so they are worked out
+    // here and travel inside the record. See src/lib/computed.mjs.
+    item.chain = readingChain(item, byId)
+    item.adapt = adaptationOf(item, byId)
   }
 
   // The original overview. It is written here, on every build, so a title
   // added tomorrow gets its own prose tomorrow with no extra step.
   writeOverviews(titles, pools)
+}
+
+/** The same medium? A comic sequel is a comic, an anime sequel is an anime. */
+const sameMedium = (a, b) => (a.kind === 'anime') === (b.kind === 'anime')
+
+/** One step along the story, in one direction, inside the same medium. */
+function step(item, byId, relation) {
+  for (const rel of item.relations || []) {
+    if (rel.relation !== relation) continue
+    const found = byId.get(rel.id)
+    if (found && found.id !== item.id && sameMedium(item, found)) return found
+  }
+  return null
+}
+
+const part = (p, self) => ({
+  slug: p.slug,
+  title: p.title,
+  kind: kindOf(p),
+  status: p.status,
+  chapters: p.chapters || null,
+  episodes: p.episodes || null,
+  ...(self ? { self: true } : {}),
+})
+
+/**
+ * The order to read a series in.
+ *
+ * We walk back through PREQUEL until the story starts, then forward through
+ * SEQUEL until it ends. A `seen` set stops a loop, because AniList data does
+ * sometimes point in a circle. A single book gets an empty chain.
+ */
+function readingChain(item, byId) {
+  const seen = new Set([item.id])
+  const before = []
+  for (let at = step(item, byId, 'PREQUEL'); at && !seen.has(at.id); at = step(at, byId, 'PREQUEL')) {
+    seen.add(at.id)
+    before.unshift(part(at))
+  }
+  const after = []
+  for (let at = step(item, byId, 'SEQUEL'); at && !seen.has(at.id); at = step(at, byId, 'SEQUEL')) {
+    seen.add(at.id)
+    after.push(part(at))
+  }
+  if (before.length + after.length === 0) return null
+  return [...before, part(item, true), ...after]
+}
+
+const ADAPT_RELATIONS = new Set(['ADAPTATION', 'SOURCE'])
+
+/**
+ * How the anime and the comic line up. For a comic this is every anime made
+ * from it; for an anime it is the book it came from. Only titles that are in
+ * our own index are used, because we only ever link to a page we hold.
+ */
+function adaptationOf(item, byId) {
+  const isComic = item.kind !== 'anime'
+  const hits = (item.relations || [])
+    .filter((rel) => ADAPT_RELATIONS.has(rel.relation))
+    .map((rel) => byId.get(rel.id))
+    .filter((found) => found && !sameMedium(item, found))
+
+  if (isComic) {
+    const shows = hits.map((show) => ({
+      slug: show.slug,
+      title: show.title,
+      format: show.format || 'TV',
+      episodes: show.episodes || null,
+      status: show.status,
+      startYear: show.startYear || null,
+    }))
+    shows.sort((a, b) => (a.startYear || 9999) - (b.startYear || 9999))
+    return shows.length ? { shows } : null
+  }
+
+  const src = hits[0]
+  if (!src) return null
+  return {
+    source: {
+      slug: src.slug,
+      title: src.title,
+      kind: kindOf(src),
+      chapters: src.chapters || null,
+      status: src.status,
+    },
+  }
 }
 
 const noteOf = (site) => (PLATFORMS[site] || FALLBACK).note

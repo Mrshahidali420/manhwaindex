@@ -14,6 +14,7 @@ import {
 } from '../../lib/format.js'
 import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
+import { coverage, adaptationAnswer, readingOrder } from '../../lib/computed.mjs'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -246,6 +247,13 @@ if (similar.length >= 4) {
   })
 }
 
+// Facts this site works out for itself: how wide the official coverage is,
+// how the anime and the comic line up, and the order to read the series in.
+// See src/lib/computed.mjs.
+const reach = coverage(links, kind)
+const bridge = adaptationAnswer(item, kind)
+const order = readingOrder(item, kind)
+
 const updatedLong = new Date().toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
@@ -349,6 +357,25 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           </p>
         </Fragment>
       </Platforms>
+
+      {
+        reach && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>How wide is the official coverage?</h2>
+            </div>
+            <ul class="reach">
+              {reach.stats.map((stat) => (
+                <li class={stat.tone === 'good' ? 'reach__cell reach__cell--good' : 'reach__cell'}>
+                  <span class="reach__value">{stat.value}</span>
+                  <span class="reach__label">{stat.label}</span>
+                </li>
+              ))}
+            </ul>
+            <p class="overview">{reach.line}</p>
+          </section>
+        )
+      }
 
       {
         answerPages.length > 0 && (
@@ -548,6 +575,51 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
                 </div>
               </a>
             ))}
+          </section>
+        )
+      }
+
+      {
+        bridge && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>{bridge.heading}</h2>
+            </div>
+            {bridge.lines.map((line) => (
+              <p class="overview">{line}</p>
+            ))}
+          </section>
+        )
+      }
+
+      {
+        order && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>{order.heading}</h2>
+              <p>{order.line}</p>
+            </div>
+            <ol class="order">
+              {order.chain.map((partOf) => (
+                <li class={partOf.self ? 'order__step order__step--self' : 'order__step'}>
+                  <span class="order__name">
+                    {partOf.self ? (
+                      partOf.title
+                    ) : (
+                      <a href={`/${partOf.kind}/${partOf.slug}`}>{partOf.title}</a>
+                    )}
+                  </span>
+                  <span class="order__meta">
+                    {partOf.chapters
+                      ? `${partOf.chapters} chapters`
+                      : partOf.episodes
+                        ? `${partOf.episodes} episodes`
+                        : 'Count not confirmed'}
+                    {partOf.self ? ' · you are here' : ''}
+                  </span>
+                </li>
+              ))}
+            </ol>
           </section>
         )
       }

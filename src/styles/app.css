@@ -2304,3 +2304,85 @@ main:has(.title-page) {
     padding-left: 0.8rem;
   }
 }
+
+/* ---------- computed facts: the coverage strip and the reading order ------ */
+
+/* Four numbers the site works out for itself. They read as a dawn horizon:
+   the value bright, the label dim under it. */
+.reach {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--cobalt-line);
+  border: 1px solid var(--cobalt-line);
+}
+.reach__cell {
+  background: var(--night-raised);
+  padding: 0.85rem 0.95rem;
+  display: grid;
+  gap: 0.15rem;
+}
+.reach__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--dawn);
+  font-variant-numeric: tabular-nums;
+}
+.reach__cell--good .reach__value { color: var(--rose-soft); }
+.reach__label {
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  color: var(--dawn-faint);
+}
+
+/* The order to read a series in. The rose rule marks where you stand. */
+.order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: order;
+  display: grid;
+  gap: 0.5rem;
+}
+.order__step {
+  counter-increment: order;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.9rem 0.6rem 2.6rem;
+  position: relative;
+  border-left: 2px solid var(--cobalt);
+  background: linear-gradient(to right, rgb(22 51 125 / 0.16), transparent 70%);
+}
+.order__step::before {
+  content: counter(order);
+  position: absolute;
+  left: 0.9rem;
+  top: 0.6rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--cobalt-bright);
+}
+.order__step--self {
+  border-left-color: var(--rose);
+  background: linear-gradient(to right, rgb(224 104 138 / 0.14), transparent 70%);
+}
+.order__step--self::before { color: var(--rose-soft); }
+.order__name { color: var(--dawn); font-weight: 600; line-height: 1.35; }
+.order__name a { color: var(--dawn); text-decoration: none; }
+.order__name a:hover,
+.order__name a:focus-visible {
+  color: var(--day);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.order__meta { font-size: 0.84rem; color: var(--dawn-faint); }
+
+/* Wide screens fit every number on one line. A comic has five cells (it
+   also counts languages), an anime four, so the track count is not fixed. */
+@media (min-width: 720px) {
+  .reach { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
