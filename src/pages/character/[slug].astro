@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { charactersWithPages, kindOfAppearance, truncate, bioHtml } from '../../lib/catalog.js'
+import { charactersWithPages, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/catalog.js'
 
 export function getStaticPaths() {
   return charactersWithPages.map((person) => ({
@@ -28,7 +28,7 @@ const jsonld = {
   name: person.name,
   alternateName: person.native || undefined,
   image: person.image,
-  description: truncate(person.description || description, 300),
+  description: truncate(person.description ? bioText(person.description) : description, 300),
   subjectOf: person.appearsIn.map((a) => ({
     '@type': a.kind === 'anime' ? 'TVSeries' : 'Book',
     name: a.title,

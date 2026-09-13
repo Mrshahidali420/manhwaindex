@@ -160,6 +160,11 @@ export const bioHtml = (text) => {
     .join('')
 }
 
+// The same bio as plain text, for meta descriptions and structured data.
+export const bioText = (text) =>
+  bioHtml(text).replace(/<\/p><p>/g, ' ').replace(/<br>/g, ' ').replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim()
+
 export const truncate = (text, length) =>
   !text ? '' : text.length <= length ? text : `${text.slice(0, length).replace(/\s+\S*$/, '')}…`
 
