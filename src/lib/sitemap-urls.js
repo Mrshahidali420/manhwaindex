@@ -8,6 +8,7 @@ import {
   animeByPopularity,
 } from './catalog.js'
 import { FILTERS } from './filters.js'
+import { MOODS } from './moods.mjs'
 // Written by scripts/make-shards.mjs on every build. It holds only the answer
 // pages that passed their own gate, so the sitemap never offers a thin page.
 import answerUrls from '../../data/answer-urls.json'
@@ -37,6 +38,8 @@ function coreUrls() {
     { loc: `${SITE}/genre`, priority: '0.9' },
     { loc: `${SITE}/where-to-read`, priority: '0.9' },
     { loc: `${SITE}/schedule`, priority: '0.9' },
+    { loc: `${SITE}/mood`, priority: '0.9' },
+    ...MOODS.map((mood) => ({ loc: `${SITE}/mood/${mood.slug}`, priority: '0.8' })),
     { loc: `${SITE}/about`, priority: '0.5' },
     { loc: `${SITE}/contact`, priority: '0.4' },
     { loc: `${SITE}/privacy`, priority: '0.3' },

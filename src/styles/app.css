@@ -2529,3 +2529,114 @@ main:has(.title-page) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------- moods: the "what are you in the mood for" hub ----------------- */
+
+.moods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--cobalt-line);
+  border: 1px solid var(--cobalt-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mood__link {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--night-raised);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.18s var(--ease-dawn);
+}
+
+.mood__link:hover,
+.mood__link:focus-visible {
+  background: var(--cobalt);
+}
+
+/* The three covers overlap like a hand of cards: it reads as "a stack of
+   stories", and it costs no extra request because they are already loaded. */
+.mood__art {
+  display: flex;
+}
+
+.mood__art img {
+  width: 40px;
+  aspect-ratio: 40 / 57;
+  height: auto;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--night-sunk);
+}
+
+.mood__art img + img {
+  margin-left: -14px;
+}
+
+.mood__body {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.mood__ask {
+  font-family: var(--grotesque);
+  font-size: 1.02rem;
+  color: var(--dawn);
+}
+
+.mood__blurb {
+  font-style: normal;
+  font-size: 0.86rem;
+  color: var(--dawn-dim);
+  line-height: 1.45;
+}
+
+.mood__count {
+  font-family: var(--stencil);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rose-soft);
+}
+
+/* The "in a different mood?" strip at the foot of each mood page. */
+.moodlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.moodlist a {
+  display: block;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 999px;
+  background: var(--night-raised);
+  color: var(--dawn-dim);
+  font-size: 0.84rem;
+  text-decoration: none;
+  transition: color 0.18s var(--ease-dawn), border-color 0.18s var(--ease-dawn);
+}
+
+.moodlist a:hover,
+.moodlist a:focus-visible {
+  color: var(--dawn);
+  border-color: var(--cobalt-bright);
+}
+
+@media (min-width: 860px) {
+  .moods {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
