@@ -435,8 +435,8 @@ img {
 }
 .skyline img {
   width: clamp(60px, 6.5vw, 96px);
-  height: auto; /* the height="345" attribute must not beat the aspect-ratio */
-  aspect-ratio: 2 / 3;
+  /* tall cropped strips, deliberately — the covers read as a city skyline */
+  height: clamp(220px, 24vw, 345px);
   object-fit: cover;
   border: 1px solid rgb(245 236 221 / 0.28);
   border-bottom: 0;
@@ -1746,6 +1746,9 @@ main:has(.title-page) {
     width: 100%;
     justify-content: center;
     margin-top: 1.4rem;
+  }
+  .skyline img {
+    height: 170px;
   }
   .skyline img:nth-child(n + 6) {
     display: none;
