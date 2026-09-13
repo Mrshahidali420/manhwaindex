@@ -9,8 +9,8 @@ const manhua = comicsOfCountry('CN')
 const readable = comics.filter((c) => c.readLinks.length > 0).length
 const watchable = anime.filter((a) => a.watchLinks.length > 0).length
 
-// The nine most-read covers stand on the horizon line like a skyline.
-const skyline = manhwa.slice(0, 9)
+// The most-read covers stand on the horizon line, right of the copy.
+const skyline = manhwa.slice(0, 6)
 
 // The legend names the platforms whose colours appear most under the covers.
 const legendNames = [
@@ -68,15 +68,16 @@ const jsonld = {
       <img class="hero__banner" src={heroBanner} alt="" width="1900" height="760" loading="eager" fetchpriority="high" decoding="async" />
     )}
     <div class="hero__glow" aria-hidden="true"></div>
-    <div class="shell hero__content">
-      <h1>You found the series. Now find where it is.</h1>
-      <p>
-        Find where to read your favorite manhwa, manga and manhua — and where to watch
-        the anime. Compare the official platforms, what each one costs, and whether
-        there is an adaptation yet. All in one place.
-      </p>
-    </div>
-    <div class="skyline" aria-hidden="true">
+    <div class="shell hero__inner">
+      <div class="hero__content">
+        <h1>You found the series. Now find where it is.</h1>
+        <p>
+          Find where to read your favorite manhwa, manga and manhua — and where to watch
+          the anime. Compare the official platforms, what each one costs, and whether
+          there is an adaptation yet. All in one place.
+        </p>
+      </div>
+      <div class="skyline" aria-hidden="true">
       {
         skyline.map((item, i) => (
           <img
@@ -90,6 +91,7 @@ const jsonld = {
           />
         ))
       }
+      </div>
     </div>
   </section>
 
