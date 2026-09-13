@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import FilterChips from '../../components/FilterChips.astro'
 import { animeByPopularity, comicsOfCountry } from '../../lib/catalog.js'
+import { listingJsonld } from '../../lib/listing-jsonld.js'
 
 export const PER_PAGE = 60
 
@@ -53,9 +54,23 @@ const config = KINDS[kind]
 const all = config.items()
 const items = all.slice(0, PER_PAGE)
 const pageCount = Math.ceil(all.length / PER_PAGE)
+
+const jsonld = listingJsonld({
+  name: config.title,
+  description: config.description,
+  path: `/${kind}`,
+  items,
+  total: all.length,
+})
 ---
 
-<Base title={config.title} description={config.description} canonical={`/${kind}`}>
+<Base
+  title={config.title}
+  description={config.description}
+  canonical={`/${kind}`}
+  jsonld={jsonld}
+  crumbs={[{ name: config.label }]}
+>
   <div class="shell">
     <section class="section">
       <div class="section__head">

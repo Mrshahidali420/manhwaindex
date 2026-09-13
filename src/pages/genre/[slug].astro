@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import { genres, ofGenre } from '../../lib/catalog.js'
+import { listingJsonld } from '../../lib/listing-jsonld.js'
 
 export function getStaticPaths() {
   return genres.map((g) => {
@@ -16,12 +17,22 @@ const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' 
 // The grids link by kind, so split the comics up.
 const buckets = { manhwa: [], manga: [], manhua: [] }
 for (const c of comics) buckets[KIND_OF_COUNTRY[c.country] || 'manga'].push(c)
+
+const jsonld = listingJsonld({
+  name: `${genre.name} manhwa, manga and anime`,
+  description: `Every ${genre.name.toLowerCase()} title in the index, with the official platforms that carry it.`,
+  path: `/genre/${genre.slug}`,
+  items: [...comics, ...anime].slice(0, 40),
+  total: comics.length + anime.length,
+})
 ---
 
 <Base
   title={`${genre.name} manhwa, manga and anime — where to read and watch`}
   description={`The most-read ${genre.name.toLowerCase()} manhwa, manga, manhua and the most-watched ${genre.name.toLowerCase()} anime — each with official read and watch links.`}
   canonical={`/genre/${genre.slug}`}
+  jsonld={jsonld}
+  crumbs={[{ name: 'Genres', href: '/genre' }, { name: genre.name }]}
 >
   <div class="shell">
     <section class="section">
