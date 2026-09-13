@@ -12,6 +12,9 @@ import { FILTERS } from './filters.js'
 export const SITE = 'https://manhwaindex.com'
 
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
+// The listing routes stop building at page 100, so the sitemap must stop
+// there too. A URL we do not build is a 404 for every crawler that follows it.
+const MAX_PAGES = 100
 const PER_PAGE = 60
 const CHARACTERS_PER_PAGE = 120
 
@@ -61,11 +64,11 @@ function coreUrls() {
     anime: anime.length,
   }
   for (const [kind, total] of Object.entries(counts)) {
-    for (let page = 2; page <= Math.ceil(total / PER_PAGE); page++) {
+    for (let page = 2; page <= Math.min(MAX_PAGES, Math.ceil(total / PER_PAGE)); page++) {
       urls.push({ loc: `${SITE}/${kind}/page/${page}`, priority: '0.4' })
     }
   }
-  for (let page = 2; page <= Math.ceil(charactersWithPages.length / CHARACTERS_PER_PAGE); page++) {
+  for (let page = 2; page <= Math.min(MAX_PAGES, Math.ceil(charactersWithPages.length / CHARACTERS_PER_PAGE)); page++) {
     urls.push({ loc: `${SITE}/character/page/${page}`, priority: '0.4' })
   }
 
