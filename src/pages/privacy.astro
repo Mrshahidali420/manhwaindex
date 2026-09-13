@@ -1,0 +1,126 @@
+---
+import Base from '../layouts/Base.astro'
+
+const updated = 'September 13, 2026'
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: 'Privacy policy',
+  url: 'https://manhwaindex.com/privacy',
+  description: 'What manhwaindex collects, what it does not collect, and the third parties involved.',
+  dateModified: '2026-09-13',
+}
+---
+
+<Base
+  title="Privacy policy — manhwaindex"
+  description="manhwaindex has no accounts and no logins. This page explains the analytics and advertising cookies used, and how to opt out of them."
+  canonical="/privacy"
+  jsonld={jsonld}
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>Privacy policy</h1>
+        <p>Short version: no accounts, no logins, and nothing you type is stored.</p>
+      </div>
+
+      <div class="prose">
+        <p class="prose__updated">Last updated {updated}</p>
+
+        <h2>Who we are</h2>
+        <p>
+          manhwaindex is an independent catalog at
+          <a href="https://manhwaindex.com">manhwaindex.com</a>. Questions about this
+          policy go to <a class="mailto" href="mailto:hello@manhwaindex.com">hello@manhwaindex.com</a>.
+        </p>
+
+        <h2>What we do not collect</h2>
+        <ul>
+          <li>No accounts, sign-ups, passwords or profiles exist on this site.</li>
+          <li>We never ask for your name, address, phone number or payment details.</li>
+          <li>
+            Search terms typed into the site search stay in your browser. The search runs
+            on a static file inside your own device and is never sent to us.
+          </li>
+        </ul>
+
+        <h2>Analytics</h2>
+        <p>
+          We use <strong>Google Analytics 4</strong> to count visits and see which pages
+          are useful. It sets cookies and records a shortened version of your IP address,
+          your approximate country, your device type and the pages you open. It does not
+          tell us who you are.
+        </p>
+        <p>
+          You can block it with the
+          <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener nofollow">Google Analytics opt-out add-on</a>,
+          a tracker blocker, or your browser cookie controls.
+        </p>
+
+        <h2>Advertising</h2>
+        <p>
+          This site may display ads served by <strong>Google AdSense</strong> and other
+          third-party vendors.
+        </p>
+        <ul>
+          <li>
+            Third-party vendors, including Google, use cookies to serve ads based on a
+            prior visit to this website or other websites.
+          </li>
+          <li>
+            Google advertising cookies let Google and its partners serve ads based on your
+            visit to this site or other sites on the internet.
+          </li>
+          <li>
+            You may turn off personalised advertising at
+            <a href="https://www.google.com/settings/ads" rel="noopener nofollow">Google Ads Settings</a>,
+            or opt out of third-party vendor cookies at
+            <a href="https://www.aboutads.info/choices/" rel="noopener nofollow">aboutads.info</a>.
+          </li>
+        </ul>
+
+        <h2>Hosting and security logs</h2>
+        <p>
+          The site is served by <a href="https://www.cloudflare.com" rel="noopener nofollow">Cloudflare</a>.
+          Cloudflare keeps short-lived request logs, including IP addresses, to block
+          attacks and abuse. We do not read or use those logs for marketing. See the
+          <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener nofollow">Cloudflare privacy policy</a>.
+        </p>
+
+        <h2>External links and images</h2>
+        <p>
+          Cover art is loaded from AniList image servers, so your browser contacts them
+          when a page opens. Every reading and watching link sends you to a third-party
+          platform with its own privacy policy. Once you leave this site, we have no
+          control over and no visibility into what happens.
+        </p>
+
+        <h2>Email</h2>
+        <p>
+          Mail sent to our addresses is routed by Cloudflare Email Routing to a private
+          inbox. We keep your message only as long as it takes to answer it, and we never
+          add you to a mailing list.
+        </p>
+
+        <h2>Children</h2>
+        <p>
+          This site is not directed at children under 13, and we do not knowingly collect
+          personal information from them.
+        </p>
+
+        <h2>Your rights</h2>
+        <p>
+          Because we hold no personal accounts, there is usually nothing for us to delete.
+          If you believe we hold data about you, write to
+          <a class="mailto" href="mailto:hello@manhwaindex.com">hello@manhwaindex.com</a> and
+          we will respond within 30 days.
+        </p>
+
+        <h2>Changes</h2>
+        <p>If this policy changes, the date at the top of the page changes with it.</p>
+      </div>
+    </section>
+  </div>
+</Base>

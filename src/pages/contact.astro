@@ -1,0 +1,70 @@
+---
+import Base from '../layouts/Base.astro'
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'ContactPage',
+  name: 'Contact manhwaindex',
+  url: 'https://manhwaindex.com/contact',
+  description: 'How to reach manhwaindex about corrections, missing titles, takedowns or business.',
+  mainEntity: {
+    '@type': 'Organization',
+    name: 'manhwaindex',
+    url: 'https://manhwaindex.com',
+    email: 'hello@manhwaindex.com',
+    contactPoint: [
+      { '@type': 'ContactPoint', contactType: 'customer support', email: 'hello@manhwaindex.com', availableLanguage: 'English' },
+      { '@type': 'ContactPoint', contactType: 'legal', email: 'dmca@manhwaindex.com', availableLanguage: 'English' },
+    ],
+  },
+}
+---
+
+<Base
+  title="Contact manhwaindex — corrections, missing titles and takedowns"
+  description="Email manhwaindex about a wrong link, a missing platform, a copyright takedown, or a business enquiry. We reply to every message."
+  canonical="/contact"
+  jsonld={jsonld}
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>Contact</h1>
+        <p>Email is the only channel. We read everything and reply within a few days.</p>
+      </div>
+
+      <div class="prose">
+        <h2>General, corrections and missing titles</h2>
+        <p>
+          <a class="mailto" href="mailto:hello@manhwaindex.com">hello@manhwaindex.com</a>
+        </p>
+        <p>Use this address for:</p>
+        <ul>
+          <li>A reading or streaming link that is wrong, dead or region-locked.</li>
+          <li>An official platform we missed for a title.</li>
+          <li>A title that is not in the index yet.</li>
+          <li>Advertising, partnership or press enquiries.</li>
+        </ul>
+        <p class="prose__note">
+          Please include the page address. It makes the fix far faster.
+        </p>
+
+        <h2>Copyright and takedowns</h2>
+        <p>
+          <a class="mailto" href="mailto:dmca@manhwaindex.com">dmca@manhwaindex.com</a>
+        </p>
+        <p>
+          This site hosts no chapters and no episodes. If you are a rights holder and want
+          a cover image or a description removed, read the
+          <a href="/dmca">takedown page</a> first. It lists exactly what a notice needs.
+        </p>
+
+        <h2>What we cannot help with</h2>
+        <ul>
+          <li>Account or payment problems on WEBTOON, Crunchyroll or any other platform. Contact them directly.</li>
+          <li>Requests for unofficial or pirated copies. We do not link to them and never will.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</Base>
