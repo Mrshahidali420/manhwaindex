@@ -57,15 +57,15 @@ const checkedISO = checkedAt.toISOString().slice(0, 10)
                       .join(' · ') || 'Official'}
                   </span>
 
-                  <span class="platform__fact">
+                  <span class="platform__fact platform__fact--pay">
                     <b>How you pay</b>
                     {facts.pay || brand.note || 'Official'}
                   </span>
-                  <span class="platform__fact">
+                  <span class="platform__fact platform__fact--free">
                     <b>{freeLabel}</b>
                     {facts.free || '—'}
                   </span>
-                  <span class="platform__fact">
+                  <span class="platform__fact platform__fact--region">
                     <b>Works in</b>
                     {facts.region || '—'}
                   </span>
