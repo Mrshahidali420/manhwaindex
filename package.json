@@ -8,7 +8,9 @@
     "dev": "astro dev",
     "build": "node scripts/make-redirects.mjs && astro build",
     "preview": "astro preview",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "ingest:full": "node --max-old-space-size=6000 scripts/ingest-full.mjs",
+    "ingest:daily": "node --max-old-space-size=6000 scripts/ingest-daily.mjs"
   },
   "dependencies": {
     "astro": "^5.6.1",

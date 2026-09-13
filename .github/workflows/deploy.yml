@@ -29,11 +29,13 @@ jobs:
 
       - run: npm ci
 
-      # The daily run pulls fresh data from AniList. A push deploy
-      # skips the pull and builds from the data already in the repo.
-      - name: Pull fresh data
+      # The daily run only asks AniList what changed since yesterday and
+      # fetches those records. A push deploy skips it and builds from the
+      # data already in the repo. The one-time full backfill is a separate
+      # workflow (backfill.yml), because it takes hours.
+      - name: Pull changed data
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: node --max-old-space-size=3000 scripts/ingest.mjs
+        run: node --max-old-space-size=6000 scripts/ingest-daily.mjs
 
       - name: Commit refreshed data
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

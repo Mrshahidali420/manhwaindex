@@ -1,0 +1,72 @@
+name: Full AniList backfill
+
+# One-time (or top-up) walk of the whole AniList id space.
+# You start it by hand: Actions -> Full AniList backfill -> Run workflow.
+# It does NOT deploy. It commits the data with [skip ci] so you can look at
+# the numbers first and deploy when you are ready.
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_id:
+        description: 'First AniList id (blank = carry on where it stopped)'
+        required: false
+        default: ''
+      end_id:
+        description: 'Last AniList id (blank = the highest live id)'
+        required: false
+        default: ''
+      max_minutes:
+        description: 'Stop cleanly after this many minutes'
+        required: false
+        default: '300'
+      skip_seen:
+        description: 'Skip ids already in data/seen.json (1 = yes)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The raw dump is large and is not committed, so it is cached between
+      # runs. That lets a stopped walk carry on instead of starting again.
+      - name: Restore the raw walk
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: anilist-raw-${{ github.run_id }}
+          restore-keys: anilist-raw-
+
+      - name: Walk AniList
+        env:
+          START_ID: ${{ github.event.inputs.start_id }}
+          END_ID: ${{ github.event.inputs.end_id }}
+          MAX_MINUTES: ${{ github.event.inputs.max_minutes }}
+          SKIP_SEEN: ${{ github.event.inputs.skip_seen }}
+        run: node --max-old-space-size=6000 scripts/ingest-full.mjs
+
+      - name: Commit the data
+        run: |
+          git config user.name "manhwaindex-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "chore: AniList backfill [skip ci]"
+          git push
