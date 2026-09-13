@@ -44,7 +44,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       # The raw dump is large and is not committed, so it is cached between
       # runs. That lets a stopped walk carry on instead of starting again.

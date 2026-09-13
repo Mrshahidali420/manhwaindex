@@ -27,7 +27,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # Not `npm ci`: two copies of workerd live in the tree, and npm on
+      # Windows cannot record the Linux binary of the second one in the
+      # lock file. `npm install` resolves it on the runner instead.
+      - run: npm install --no-audit --no-fund
 
       # The daily run only asks AniList what changed since yesterday and
       # fetches those records. A push deploy skips it and builds from the
