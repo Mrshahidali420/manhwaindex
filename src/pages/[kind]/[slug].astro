@@ -309,6 +309,68 @@ const otherLanguages = languages.filter((l) => l !== 'English')
       }
 
       {
+        item.description && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>What it is about</h2>
+            </div>
+            <p class="synopsis">{item.description.replace(/\n{2,}/g, '\n\n').trim()}</p>
+          </section>
+        )
+      }
+
+      <section class="answer">
+        <div class="answer__head">
+          <h2>The facts</h2>
+        </div>
+        <dl class="facts">
+          {facts.map(([label, value]) => (
+            <div>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {
+        item.trailer && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Trailer</h2>
+            </div>
+            <div class="trailer" data-yt={item.trailer.id}>
+              {item.trailer.thumb && <img src={item.trailer.thumb} alt="" loading="lazy" />}
+              <button type="button">
+                <span>
+                  <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">
+                    <path
+                      d="M3 2l9 5-9 5z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Play trailer
+                </span>
+              </button>
+            </div>
+            <script>
+              // The iframe loads only on click, so YouTube costs nothing
+              // until someone actually wants the video.
+              document.querySelectorAll('.trailer').forEach((box) => {
+                box.querySelector('button').addEventListener('click', () => {
+                  const id = box.dataset.yt
+                  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="Trailer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+                })
+              })
+            </script>
+          </section>
+        )
+      }
+
+      {
         isComic && (
           <section class="answer">
             <div class="answer__head">
@@ -418,68 +480,6 @@ const otherLanguages = languages.filter((l) => l !== 'English')
                 </li>
               ))}
             </ul>
-          </section>
-        )
-      }
-
-      {
-        item.trailer && (
-          <section class="answer">
-            <div class="answer__head">
-              <h2>Trailer</h2>
-            </div>
-            <div class="trailer" data-yt={item.trailer.id}>
-              {item.trailer.thumb && <img src={item.trailer.thumb} alt="" loading="lazy" />}
-              <button type="button">
-                <span>
-                  <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">
-                    <path
-                      d="M3 2l9 5-9 5z"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                  Play trailer
-                </span>
-              </button>
-            </div>
-            <script>
-              // The iframe loads only on click, so YouTube costs nothing
-              // until someone actually wants the video.
-              document.querySelectorAll('.trailer').forEach((box) => {
-                box.querySelector('button').addEventListener('click', () => {
-                  const id = box.dataset.yt
-                  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1" title="Trailer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
-                })
-              })
-            </script>
-          </section>
-        )
-      }
-
-      <section class="answer">
-        <div class="answer__head">
-          <h2>The facts</h2>
-        </div>
-        <dl class="facts">
-          {facts.map(([label, value]) => (
-            <div>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      {
-        item.description && (
-          <section class="answer">
-            <div class="answer__head">
-              <h2>What it is about</h2>
-            </div>
-            <p class="synopsis">{item.description}</p>
           </section>
         )
       }
