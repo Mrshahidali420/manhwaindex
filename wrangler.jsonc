@@ -14,7 +14,10 @@
   ],
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "404-page",
+    // Must stay "none". With "404-page" the asset server answers every page
+    // navigation itself, and a title page that has no static file gets 404.html
+    // without the Worker ever running. The Worker owns the misses.
+    "not_found_handling": "none",
     "html_handling": "auto-trailing-slash",
     "binding": "ASSETS"
   },

@@ -73,6 +73,11 @@ export async function notFound(astro) {
   }
   return new Response(body, {
     status: 404,
-    headers: { 'content-type': 'text/html; charset=utf-8' },
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      // A 404 must never stick. A title added tomorrow has to work at once,
+      // even for a reader whose browser saw the miss today.
+      'cache-control': 'no-store',
+    },
   })
 }
