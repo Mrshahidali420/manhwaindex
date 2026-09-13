@@ -1144,7 +1144,9 @@ main:has(.title-page) {
   .platform__fact b {
     display: none;
   }
-  .platform__go {
+  /* .platform__go is defined further down the file, so it needs the extra
+     specificity to be moved into the last column. */
+  .platform a .platform__go {
     grid-column: 6;
   }
 }
