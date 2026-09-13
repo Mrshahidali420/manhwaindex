@@ -1,82 +1,15 @@
-import { comics, anime, charactersWithPages, genres, comicsOfCountry, animeByPopularity } from '../lib/catalog.js'
-import { FILTERS } from '../lib/filters.js'
+import { SITE, sitemapParts, today } from '../lib/sitemap-urls.js'
 
-const SITE = 'https://manhwaindex.com'
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
-const PER_PAGE = 60
-
+// The site has ~18,000 pages. One giant file is slow for a crawler to read,
+// so /sitemap.xml is an index that points at one file per section.
 export function GET() {
-  const urls = [
-    { loc: SITE, priority: '1.0' },
-    { loc: `${SITE}/manhwa`, priority: '0.9' },
-    { loc: `${SITE}/manga`, priority: '0.9' },
-    { loc: `${SITE}/manhua`, priority: '0.9' },
-    { loc: `${SITE}/anime`, priority: '0.9' },
-    { loc: `${SITE}/character`, priority: '0.9' },
-    { loc: `${SITE}/genre`, priority: '0.9' },
-    { loc: `${SITE}/where-to-read`, priority: '0.9' },
-  ]
-
-  // Filtered browse shelves, first page of each.
-  const shelves = {
-    manhwa: comicsOfCountry('KR'),
-    manga: comicsOfCountry('JP'),
-    manhua: comicsOfCountry('CN'),
-    anime: animeByPopularity,
-  }
-  for (const [kind, items] of Object.entries(shelves)) {
-    for (const [filter, def] of Object.entries(FILTERS)) {
-      if (items.some((item) => def.keep(item, kind))) {
-        urls.push({ loc: `${SITE}/${kind}/only/${filter}`, priority: '0.6' })
-      }
-    }
-  }
-
-  for (const g of genres) {
-    urls.push({ loc: `${SITE}/genre/${g.slug}`, priority: '0.7' })
-  }
-
-  const counts = {
-    manhwa: comics.filter((c) => c.country === 'KR').length,
-    manga: comics.filter((c) => c.country === 'JP').length,
-    manhua: comics.filter((c) => c.country === 'CN' || c.country === 'TW').length,
-    anime: anime.length,
-  }
-  for (const [kind, total] of Object.entries(counts)) {
-    for (let page = 2; page <= Math.ceil(total / PER_PAGE); page++) {
-      urls.push({ loc: `${SITE}/${kind}/page/${page}`, priority: '0.4' })
-    }
-  }
-
-  for (const item of comics) {
-    urls.push({
-      loc: `${SITE}/${KIND_OF_COUNTRY[item.country] || 'manga'}/${item.slug}`,
-      // Pages that answer the question get crawled first.
-      priority: item.readLinks.length > 0 ? '0.8' : '0.5',
-    })
-  }
-  for (const item of anime) {
-    urls.push({
-      loc: `${SITE}/anime/${item.slug}`,
-      priority: item.watchLinks.length > 0 ? '0.8' : '0.5',
-    })
-  }
-
-  for (let page = 2; page <= Math.ceil(charactersWithPages.length / 120); page++) {
-    urls.push({ loc: SITE + '/character/page/' + page, priority: '0.4' })
-  }
-  for (const person of charactersWithPages) {
-    urls.push({ loc: SITE + '/character/' + person.slug, priority: '0.6' })
-  }
-
-  const today = new Date().toISOString().slice(0, 10)
+  const day = today()
   const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map((u) => `  <url><loc>${u.loc}</loc><lastmod>${today}</lastmod><priority>${u.priority}</priority></url>`)
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapParts
+  .map((part) => `  <sitemap><loc>${SITE}/sitemap-${part.name}.xml</loc><lastmod>${day}</lastmod></sitemap>`)
   .join('\n')}
-</urlset>
+</sitemapindex>
 `
-
   return new Response(body, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } })
 }
