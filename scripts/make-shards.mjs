@@ -21,6 +21,7 @@ import { bucket, titleKey, TITLES_PER_SHARD, CHARACTERS_PER_SHARD } from '../src
 import { reslugAll } from '../src/lib/reslug.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
+import { freeSplit, linksOf } from '../src/lib/answers.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -87,11 +88,13 @@ function precompute(titles) {
     const mine = new Set(item.genres || [])
     item.similar = (pools.get(kindOf(item)) || [])
       .filter((p) => p.id !== item.id)
-      .map((p) => ({ p, hits: (p.genres || []).reduce((n, g) => n + (mine.has(g) ? 1 : 0), 0) }))
-      .filter((x) => x.hits >= 2)
-      .sort((a, b) => b.hits - a.hits || b.p.popularity - a.p.popularity)
+      .map((p) => ({ p, shared: (p.genres || []).filter((g) => mine.has(g)) }))
+      .filter((x) => x.shared.length >= 2)
+      .sort((a, b) => b.shared.length - a.shared.length || b.p.popularity - a.p.popularity)
       .slice(0, 6)
-      .map((x) => thin(x.p))
+      // The "like" page has to say WHY each pick belongs, so the shared
+      // genres travel with the pick instead of being worked out again.
+      .map((x) => ({ ...thin(x.p), shared: x.shared.slice(0, 3) }))
 
     for (const rel of item.relations || []) {
       const found = byId.get(rel.id)
@@ -160,6 +163,17 @@ function main() {
     JSON.stringify({ comics: comics.length, anime: anime.length, genres: topGenres }, null, 2),
   )
 
+  // Which titles have earned an answer page. A page that cannot answer its
+  // own question is a thin page, so the gates are strict and the sitemap
+  // only ever lists what passed them. The Worker still renders the rest.
+  const answerUrls = { free: [], like: [] }
+  for (const item of titles) {
+    const path = `/${kindOf(item)}/${item.slug}`
+    if (freeSplit(linksOf(item)).free.length > 0) answerUrls.free.push(`${path}/free`)
+    if ((item.similar || []).length >= 4) answerUrls.like.push(`${path}/like`)
+  }
+  writeFileSync(join(ROOT, 'data', 'answer-urls.json'), JSON.stringify(answerUrls))
+
   const manifest = { titleShards: t.count, characterShards: c.count, builtAt: Date.now() }
   writeFileSync(join(ROOT, 'data', 'shards.json'), JSON.stringify(manifest, null, 2))
 
@@ -167,6 +181,7 @@ function main() {
   console.log(`titles     ${titles.length} in ${t.count} shards, ${mb(t.bytes)}, biggest ${t.biggest} records`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`shard files ${t.count + c.count}  (the free plan allows 20,000 files in total)`)
+  console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like`)
 }
 
 main()

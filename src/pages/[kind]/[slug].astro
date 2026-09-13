@@ -13,6 +13,7 @@ import {
   genreSlug,
 } from '../../lib/format.js'
 import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
+import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -223,6 +224,28 @@ const answer = links.length
   : `${item.title} is a ${statusWord(item.status).toLowerCase()} ${word}${authorPart} with no official English ${isComic ? 'publisher' : 'streaming platform'} yet.` +
     `${countPart} When a licence appears, it is listed here. manhwaindex links only to official platforms and never to unlicensed copies.`
 
+// The questions people type instead of reading a table. Both the block and
+// the two answer pages below are built from this same record, so they can
+// never drift away from the table above them.
+const faq = titleFaq(item, kind)
+const answerPages = []
+if (freeSplit(links).free.length > 0) {
+  answerPages.push({
+    href: `/${kind}/${item.slug}/free`,
+    lead: isComic ? 'The free question' : 'The free question',
+    title: `Where to ${verb} ${item.title} free and legal`,
+    note: 'How much each platform gives away, and what the rest costs',
+  })
+}
+if (similar.length >= 4) {
+  answerPages.push({
+    href: `/${kind}/${item.slug}/like`,
+    lead: 'If you finished it',
+    title: `${kindLabel} like ${item.title}`,
+    note: `${similar.length} close matches, each with its official platforms`,
+  })
+}
+
 const updatedLong = new Date().toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
@@ -234,7 +257,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
   title={pageTitle}
   description={description}
   image={item.cover}
-  jsonld={jsonld}
+  jsonld={faq.length ? [jsonld, faqJsonld(faq)] : jsonld}
   crumbs={[{ name: kindLabel, href: kindBase }, { name: item.title }]}
 >
   <div class="shell title-page">
@@ -328,6 +351,22 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
       </Platforms>
 
       {
+        answerPages.length > 0 && (
+          <div class="more-answers">
+            {answerPages.map((page) => (
+              <a class="crosslink" href={page.href}>
+                <div>
+                  <span class="crosslink__lead">{page.lead}</span>
+                  <span class="crosslink__title">{page.title}</span>
+                  <span class="crosslink__lead">{page.note}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )
+      }
+
+      {
         isComic && languages.length > 0 && (
           <p class="langs">
             {hasEnglish && <b>✓ Official English release</b>}
@@ -398,6 +437,25 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           ))}
         </dl>
       </section>
+
+      {
+        faq.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Common questions</h2>
+              <p>Answered from the same facts as the table above.</p>
+            </div>
+            <dl class="qa">
+              {faq.map((row) => (
+                <div>
+                  <dt>{row.q}</dt>
+                  <dd>{row.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )
+      }
 
       {
         trailer && (

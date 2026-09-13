@@ -2178,3 +2178,128 @@ main:has(.title-page) {
 .genre-intro p + p {
   margin-top: 0.9rem;
 }
+
+/* ---------- answer pages: the Q&A list and the "like" picks --------------- */
+
+/* A question is a cue line; the answer is the light under it. The rose rule
+   on the left is the same horizon device the platform rows use. */
+.qa {
+  margin: 0;
+  display: grid;
+  gap: 1.1rem;
+}
+.qa > div {
+  border-left: 2px solid var(--cobalt);
+  padding-left: 0.95rem;
+}
+.qa > div:first-child {
+  border-left-color: var(--rose);
+}
+.qa dt {
+  font-weight: 700;
+  color: var(--dawn);
+  margin-bottom: 0.25rem;
+}
+.qa dd {
+  margin: 0;
+  color: var(--dawn-dim);
+  line-height: 1.65;
+  max-width: 68ch;
+}
+
+/* the crosslinks that point at the answer pages */
+.more-answers {
+  display: grid;
+  gap: 0.75rem;
+  margin-block: 1.5rem 2.5rem;
+}
+
+/* the "like" picks: cover on the horizon, reason and platforms beside it */
+.picks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+.pick {
+  display: flex;
+  gap: 0.95rem;
+  align-items: flex-start;
+  border: 1px solid var(--cobalt-line);
+  background: linear-gradient(to top, rgb(22 51 125 / 0.18), transparent 75%);
+  padding: 0.85rem 1rem;
+  transition: border-color 140ms var(--ease-dawn), box-shadow 140ms var(--ease-dawn);
+}
+.pick:hover,
+.pick:focus-within {
+  border-color: var(--rose);
+  box-shadow: 0 10px 30px -12px rgb(224 104 138 / 0.35);
+}
+.pick__art {
+  flex: none;
+  display: block;
+  line-height: 0;
+}
+.pick__art img {
+  width: 58px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--night-raised);
+}
+.pick__body {
+  min-width: 0;
+}
+.pick__body h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+.pick__body h3 a {
+  color: var(--dawn);
+  text-decoration: none;
+}
+.pick__body h3 a:hover,
+.pick__body h3 a:focus-visible {
+  color: var(--day);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pick__why {
+  margin: 0 0 0.3rem;
+  color: var(--dawn-faint);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.pick__where {
+  margin: 0;
+  color: var(--dawn-dim);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.pick__where b {
+  color: var(--rose-soft);
+  font-weight: 600;
+}
+.pick__where--none {
+  color: var(--dawn-faint) !important;
+  font-weight: 400 !important;
+  font-style: italic;
+}
+
+/* Phone: the cover shrinks, the words keep the width they need. */
+@media (max-width: 560px) {
+  .pick {
+    gap: 0.75rem;
+    padding: 0.75rem 0.8rem;
+  }
+  .pick__art img {
+    width: 46px;
+  }
+  .pick__body h3 {
+    font-size: 0.98rem;
+  }
+  .qa > div {
+    padding-left: 0.8rem;
+  }
+}

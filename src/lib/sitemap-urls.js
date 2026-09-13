@@ -8,6 +8,9 @@ import {
   animeByPopularity,
 } from './catalog.js'
 import { FILTERS } from './filters.js'
+// Written by scripts/make-shards.mjs on every build. It holds only the answer
+// pages that passed their own gate, so the sitemap never offers a thin page.
+import answerUrls from '../../data/answer-urls.json'
 
 export const SITE = 'https://manhwaindex.com'
 
@@ -119,6 +122,8 @@ export const sitemapParts = [
   ...split('manhua', comicUrls('CN')),
   ...split('anime', animeUrls()),
   ...split('character', characterUrls()),
+  ...split('answers-free', answerUrls.free.map((path) => ({ loc: `${SITE}${path}`, priority: '0.7' }))),
+  ...split('answers-like', answerUrls.like.map((path) => ({ loc: `${SITE}${path}`, priority: '0.6' }))),
 ]
 
 export const today = () => new Date().toISOString().slice(0, 10)
