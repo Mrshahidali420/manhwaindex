@@ -147,8 +147,16 @@ export function genreIndex(items, minimum = 12) {
 
 // AniList character bios use a tiny markdown: __bold__, _italic_,
 // [name](url) links and ~!spoiler!~ blocks. Render them as safe HTML.
+// A bio that was cut mid-sentence (older data) loses its last fragment.
+const wholeSentences = (text) => {
+  const t = String(text).trim()
+  if (/[.!?"'’”)\]]$/.test(t)) return t
+  const end = Math.max(t.lastIndexOf('. '), t.lastIndexOf('.\n'), t.lastIndexOf('\n\n'))
+  return end > 0 ? t.slice(0, end + 1) : t
+}
+
 export const bioHtml = (text) => {
-  const safe = String(text)
+  const safe = wholeSentences(text)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return safe
     .replace(/~!([\s\S]*?)!~/g, '')

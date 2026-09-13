@@ -149,6 +149,18 @@ const slugify = (value) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 80)
 
+
+// Bios end on a full sentence, never mid-word. Spoiler blocks ~!...!~ are
+// dropped whole, so a cut never lands inside one and leaks it.
+const BIO_MAX = 1500
+function cutBio(text) {
+  const clean = text.replace(/~![\s\S]*?!~/g, '').trim()
+  if (clean.length <= BIO_MAX) return clean
+  const head = clean.slice(0, BIO_MAX)
+  const end = Math.max(head.lastIndexOf('. '), head.lastIndexOf('.\n'), head.lastIndexOf('\n\n'))
+  return (end > 200 ? head.slice(0, end + 1) : head).trim()
+}
+
 function shape(media, kind) {
   const title = media.title.english || media.title.romaji || media.title.native
   const links = media.externalLinks || []
@@ -224,7 +236,7 @@ function shape(media, kind) {
         gender: e.node.gender || null,
         age: e.node.age || null,
         birthday: e.node.dateOfBirth?.month ? e.node.dateOfBirth.month + '/' + e.node.dateOfBirth.day : null,
-        description: (e.node.description || '').replace(/~!|!~/g, '').replace(/<[^>]+>/g, '').trim().slice(0, 600),
+        description: cutBio((e.node.description || '').replace(/<[^>]+>/g, '').trim()),
       },
     })),
   }
