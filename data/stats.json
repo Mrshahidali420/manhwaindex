@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-09-13T07:28:01.012Z",
-  "durationSeconds": 527,
-  "comics": 2500,
-  "comicsWithReadLinks": 2051,
+  "generatedAt": "2026-09-13T10:44:01.690Z",
+  "durationSeconds": 667,
+  "comics": 2499,
+  "comicsWithReadLinks": 2050,
   "comicsWithAnime": 792,
   "comicsLinkedToAnimeInIndex": 412,
   "anime": 1000,
   "animeWithWatchLinks": 955,
   "animeLinkedToComicInIndex": 540,
-  "characters": 14229,
+  "characters": 14189,
   "byCountry": {
     "KR": 1000,
     "JP": 1000,
-    "CN": 500
+    "CN": 499
   }
 }
