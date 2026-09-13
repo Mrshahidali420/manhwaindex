@@ -956,6 +956,74 @@ main:has(.title-page) {
   font-weight: 700;
 }
 
+/* ---------- track on AniList ----------------------------------------------- */
+
+.track-line {
+  margin: 0.7rem 0 0;
+  font-size: 0.85rem;
+  color: var(--dawn-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  align-items: baseline;
+}
+.track-line a {
+  color: var(--rose);
+  font-weight: 600;
+  text-decoration: none;
+}
+.track-line a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- family: prequels, sequels, spin-offs --------------------------- */
+
+.family {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.family a {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 0.3rem 1rem;
+  align-items: baseline;
+  text-decoration: none;
+  border: 1px solid var(--cobalt-line);
+  padding: 0.7rem 1.1rem;
+  transition: border-color 140ms var(--ease-dawn);
+}
+.family a:hover {
+  border-color: var(--rose);
+}
+.family b {
+  color: var(--dawn-faint);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.family__title {
+  color: var(--day);
+  font-weight: 600;
+}
+.family__kind {
+  color: var(--dawn-faint);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .family a {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .family__kind {
+    white-space: normal;
+  }
+}
+
 /* ---------- description ---------------------------------------------------- */
 
 .synopsis {

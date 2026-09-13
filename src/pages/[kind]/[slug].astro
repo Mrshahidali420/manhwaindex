@@ -11,6 +11,8 @@ import {
   statusWord,
   truncate,
   charactersOf,
+  inIndex,
+  pathOf,
 } from '../../lib/catalog.js'
 
 export function getStaticPaths() {
@@ -125,6 +127,28 @@ const similar = pool
   .slice(0, 6)
   .map((x) => x.p)
 const similarBase = isComic ? `/${word}` : '/anime'
+
+// The family tree: prequels, sequels, side stories, spin-offs.
+// Adaptations are left out — the anime/original sections above cover them.
+const RELATION_LABEL = {
+  PREQUEL: 'Prequel',
+  PARENT: 'Main story',
+  SEQUEL: 'Sequel',
+  SIDE_STORY: 'Side story',
+  SPIN_OFF: 'Spin-off',
+  ALTERNATIVE: 'Alternative version',
+}
+const RELATION_ORDER = Object.keys(RELATION_LABEL)
+const family = (item.relations || [])
+  .filter((r) => RELATION_LABEL[r.relation])
+  .map((r) => ({ ...r, hit: inIndex(r.id) }))
+  .sort((a, b) => RELATION_ORDER.indexOf(a.relation) - RELATION_ORDER.indexOf(b.relation))
+
+const FAMILY_WORDS = { TV: 'anime series', MOVIE: 'anime film', SPECIAL: 'anime special', OVA: 'OVA', ONA: 'ONA' }
+const familyWord = (r) =>
+  r.type === 'ANIME'
+    ? FAMILY_WORDS[r.format] || 'anime'
+    : { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }[r.country] || 'comic'
 ---
 
 <Base
@@ -183,6 +207,13 @@ const similarBase = isComic ? `/${word}` : '/anime'
         </Fragment>
       </Platforms>
 
+      <p class="track-line">
+        <a href={item.anilistUrl} target="_blank" rel="noopener">
+          Track your progress on AniList ↗
+        </a>
+        <span>free account · keeps your reading list in one place</span>
+      </p>
+
       {
         isComic && (
           <section class="answer">
@@ -237,6 +268,40 @@ const similarBase = isComic ? `/${word}` : '/anime'
                 </div>
               </a>
             ))}
+          </section>
+        )
+      }
+
+      {
+        family.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>The same story, elsewhere</h2>
+              <p>Every prequel, sequel, side story and spin-off AniList knows about.</p>
+            </div>
+            <ul class="family">
+              {family.map((rel) => (
+                <li>
+                  {rel.hit ? (
+                    <a href={pathOf(rel.hit.item, rel.hit.kind)}>
+                      <b>{RELATION_LABEL[rel.relation]}</b>
+                      <span class="family__title">{rel.title}</span>
+                      <span class="family__kind">{familyWord(rel)} · in the index</span>
+                    </a>
+                  ) : (
+                    <a
+                      href={`https://anilist.co/${rel.type.toLowerCase()}/${rel.id}`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      <b>{RELATION_LABEL[rel.relation]}</b>
+                      <span class="family__title">{rel.title}</span>
+                      <span class="family__kind">{familyWord(rel)} · on AniList ↗</span>
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
           </section>
         )
       }

@@ -102,6 +102,15 @@ export const comicsOfCountry = (code) =>
 export const findComic = (slug) => comics.find((c) => c.slug === slug)
 export const findAnime = (slug) => anime.find((a) => a.slug === slug)
 
+/** AniList media ids are one global space, so one map covers both shelves. */
+const itemById = new Map()
+for (const c of comics) itemById.set(c.id, { item: c, kind: 'comic' })
+for (const a of anime) itemById.set(a.id, { item: a, kind: 'anime' })
+export const inIndex = (id) => itemById.get(id)
+
+export const pathOf = (item, kind) =>
+  kind === 'anime' ? `/anime/${item.slug}` : `/${formatWord(item)}/${item.slug}`
+
 /** Genres worth giving their own page: enough titles to be useful. */
 export function genreIndex(items, minimum = 12) {
   const map = new Map()
