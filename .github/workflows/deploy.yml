@@ -50,7 +50,14 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add data
           git diff --cached --quiet || git commit -m "chore: daily data refresh [skip ci]"
-          git push
+          # A backfill or a hand push can land while the ingest runs. Rebase on
+          # top of it rather than losing the refreshed data to a rejected push.
+          for attempt in 1 2 3; do
+            if git push; then break; fi
+            echo "push rejected, rebasing (attempt $attempt)"
+            git pull --rebase --autostash origin master
+            sleep 5
+          done
 
       - run: npm run build
 

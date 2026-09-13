@@ -54,6 +54,9 @@ jobs:
           path: data/raw
           key: anilist-raw-${{ github.run_id }}
           restore-keys: anilist-raw-
+          # Keep the walk even when a later step fails. The walk costs hours;
+          # losing it to a one-line git error is not acceptable.
+          save-always: true
 
       - name: Walk AniList
         env:
@@ -69,4 +72,14 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add data
           git diff --cached --quiet || git commit -m "chore: AniList backfill [skip ci]"
-          git push
+          # This walk runs for hours, so master has almost always moved on by
+          # the time it finishes. A plain push is rejected and the whole walk
+          # is thrown away. Rebase on top of whatever landed, then try again.
+          for attempt in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            echo "push rejected, rebasing (attempt $attempt)"
+            git pull --rebase --autostash origin master
+            sleep 5
+          done
+          echo "could not push after 5 attempts"
+          exit 1
