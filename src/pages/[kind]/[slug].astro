@@ -54,7 +54,9 @@ const nextEp = item.nextEpisode
     })
   : null
 
-const platformNames = links.map((l) => l.site)
+// One title can have several language editions on the same platform, so
+// the same name must not be listed twice.
+const platformNames = [...new Set(links.map((l) => l.site))]
 const description = links.length
   ? `${item.title} is officially ${isComic ? 'readable' : 'streaming'} on ${platformNames
       .slice(0, 3)
@@ -76,9 +78,25 @@ const facts = [
   ...(item.favourites ? [['AniList favourites', item.favourites.toLocaleString()]] : []),
 ].filter(([, value]) => value !== '—' || true)
 
+// AniList sometimes returns the video id with trailing whitespace, which
+// would make every URL built from it invalid.
+const trailer = item.trailer
+  ? {
+      id: String(item.trailer.id).trim(),
+      thumb: item.trailer.thumb ? String(item.trailer.thumb).trim() : null,
+    }
+  : null
+
+// The index rebuilds every day, so every page is as fresh as the build.
+const updated = new Date().toISOString().slice(0, 10)
+
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': isComic ? 'Book' : 'TVSeries',
+  '@id': `https://manhwaindex.com/${Astro.params.kind}/${item.slug}#item`,
+  url: `https://manhwaindex.com/${Astro.params.kind}/${item.slug}`,
+  inLanguage: 'en',
+  dateModified: updated,
   name: item.title,
   alternateName: item.titleNative || item.titleRomaji,
   image: item.cover,
@@ -87,13 +105,14 @@ const jsonld = {
   ...(isComic ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
   ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
   ...(item.authors?.length ? { author: item.authors.map((a) => ({ '@type': 'Person', name: a.name })) } : {}),
-  ...(item.trailer
+  ...(trailer
     ? {
         trailer: {
           '@type': 'VideoObject',
           name: `${item.title} trailer`,
-          embedUrl: `https://www.youtube-nocookie.com/embed/${item.trailer.id}`,
-          thumbnailUrl: item.trailer.thumb || undefined,
+          description: `Official trailer for ${item.title}.`,
+          embedUrl: `https://www.youtube-nocookie.com/embed/${trailer.id}`,
+          thumbnailUrl: trailer.thumb || undefined,
         },
       }
     : {}),
@@ -184,6 +203,35 @@ const freeLinks = []
 const languages = isComic ? [...new Set(links.map((l) => l.language).filter(Boolean))] : []
 const hasEnglish = languages.includes('English')
 const otherLanguages = languages.filter((l) => l !== 'English')
+
+// One flowing sentence that answers the question the visitor arrived with.
+// Search engines and AI assistants quote a sentence like this; a table of
+// links alone gives them nothing to lift.
+const listWords = (names) =>
+  names.length === 1
+    ? names[0]
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+
+const verb = isComic ? 'read' : 'watch'
+const authorPart = item.authors?.length ? ` by ${item.authors.map((a) => a.name).join(', ')}` : ''
+const countPart = isComic
+  ? item.chapters ? ` It has ${item.chapters} chapters.` : ''
+  : item.episodes ? ` It has ${item.episodes} episodes.` : ''
+const freePart = freeLinks.length
+  ? ` ${listWords(freeLinks.map((l) => l.site))} ${freeLinks.length === 1 ? 'has' : 'have'} free chapters or a free tier.`
+  : ''
+
+const answer = links.length
+  ? `You can legally ${verb} ${item.title}, a ${statusWord(item.status).toLowerCase()} ${word}${authorPart}, on ${listWords(platformNames)}.` +
+    `${freePart}${countPart} Every link on this page goes straight to the platform that holds the licence. manhwaindex hosts no chapters and no episodes.`
+  : `${item.title} is a ${statusWord(item.status).toLowerCase()} ${word}${authorPart} with no official English ${isComic ? 'publisher' : 'streaming platform'} yet.` +
+    `${countPart} When a licence appears, it is listed here. manhwaindex links only to official platforms and never to unlicensed copies.`
+
+const updatedLong = new Date().toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+})
 ---
 
 <Base
@@ -191,6 +239,7 @@ const otherLanguages = languages.filter((l) => l !== 'English')
   description={description}
   image={item.cover}
   jsonld={jsonld}
+  crumbs={[{ name: kindLabel, href: kindBase }, { name: item.title }]}
 >
   <div class="shell title-page">
     <div class="cover-rail">
@@ -245,6 +294,12 @@ const otherLanguages = languages.filter((l) => l !== 'English')
     </header>
 
     <div class="title-body">
+
+      <p class="title-answer">
+        {answer}
+        {' '}
+        <span class="title-answer__stamp">Checked {updatedLong}.</span>
+      </p>
 
       {
         freeLinks.length > 0 && (
@@ -334,13 +389,13 @@ const otherLanguages = languages.filter((l) => l !== 'English')
       </section>
 
       {
-        item.trailer && (
+        trailer && (
           <section class="answer">
             <div class="answer__head">
               <h2>Trailer</h2>
             </div>
-            <div class="trailer" data-yt={item.trailer.id}>
-              {item.trailer.thumb && <img src={item.trailer.thumb} alt="" loading="lazy" />}
+            <div class="trailer" data-yt={trailer.id}>
+              {trailer.thumb && <img src={trailer.thumb} alt={`${item.title} trailer thumbnail`} width="640" height="360" loading="lazy" decoding="async" />}
               <button type="button">
                 <span>
                   <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">

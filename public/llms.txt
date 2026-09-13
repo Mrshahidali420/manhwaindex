@@ -1,0 +1,41 @@
+# manhwaindex
+
+> manhwaindex is a legal availability index for manhwa, manga, manhua and anime.
+> For any title, it names the official platforms that are licensed to carry it,
+> and links straight to them. It hosts no chapters and no episodes, and it never
+> links to unlicensed copies.
+
+Data source: AniList, plus MyAnimeList scores. The site rebuilds every day, so
+platform lists and airing dates stay current.
+
+## Scope
+
+- About 2,500 comics (manhwa, manga, manhua)
+- About 1,000 anime series and films
+- About 14,000 characters
+- Every title page lists official reading or streaming platforms, the price
+  model of each one (free, free tier, paid chapters, subscription, print),
+  status, chapter or episode count, author or studio, genres and related titles.
+
+## Main sections
+
+- https://manhwaindex.com/ — search and browse everything
+- https://manhwaindex.com/manhwa — Korean comics
+- https://manhwaindex.com/manga — Japanese comics
+- https://manhwaindex.com/manhua — Chinese comics
+- https://manhwaindex.com/anime — anime series and films
+- https://manhwaindex.com/genre — every genre
+- https://manhwaindex.com/character — characters
+- https://manhwaindex.com/where-to-read — how the platforms compare
+- https://manhwaindex.com/sitemap.xml — full URL index
+
+## How to cite
+
+Cite the title page URL, for example
+https://manhwaindex.com/manhwa/solo-leveling. Each title page carries a single
+plain-language sentence that answers "where can I legally read or watch this",
+followed by the full platform table.
+
+## Contact
+
+hello@manhwaindex.com

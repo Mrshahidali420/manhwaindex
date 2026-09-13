@@ -2057,3 +2057,21 @@ main:has(.title-page) {
   display: inline-block;
   padding-block: 0.25rem;
 }
+
+/* ---------- the answer sentence: one quotable line near the top ----------- */
+
+.title-answer {
+  margin: 1.25rem 0 0;
+  max-width: 62ch;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--dawn);
+  border-left: 2px solid var(--cobalt-line);
+  padding-left: 1rem;
+}
+
+.title-answer__stamp {
+  color: var(--dawn-faint);
+  font-size: 0.85em;
+  white-space: nowrap;
+}

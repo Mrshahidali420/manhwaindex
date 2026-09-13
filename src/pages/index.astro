@@ -43,18 +43,14 @@ const rows = [
 // that ships wide art. Masked so it dissolves into the cyc gradient.
 const heroBanner = manhwa.find((m) => m.banner)?.banner
 
+// The WebSite and Organization nodes live in the layout, on every page.
 const jsonld = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
+  '@type': 'CollectionPage',
   name: 'manhwaindex',
   url: 'https://manhwaindex.com',
   description:
     'Find the official place to read any manhwa, manga or manhua, and the official place to watch the anime.',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: 'https://manhwaindex.com/manhwa?q={search_term_string}',
-    'query-input': 'required name=search_term_string',
-  },
 }
 ---
 

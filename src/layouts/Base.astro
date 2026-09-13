@@ -8,6 +8,7 @@ const {
   canonical = Astro.url.pathname,
   image,
   jsonld,
+  crumbs = [],
   noindex = false,
 } = Astro.props
 
@@ -27,6 +28,58 @@ const nav = [
 const here = Astro.url.pathname
 const footGenres = genres.slice(0, 8)
 const year = new Date().getUTCFullYear()
+
+// One brand entity, on every page, so each page is a self-contained
+// answer for a search engine that only ever reads this one URL.
+const organization = {
+  '@type': 'Organization',
+  '@id': `${site}/#organization`,
+  name: 'manhwaindex',
+  url: site,
+  logo: `${site}/logo.svg`,
+  description:
+    'An index of manhwa, manga, manhua and anime that lists only the official platforms licensed to carry each title.',
+  email: 'hello@manhwaindex.com',
+}
+
+// Breadcrumbs. Home is always the first step, so pages pass only the
+// steps after it. The last step is the page itself and carries no link.
+const breadcrumbs =
+  crumbs.length > 0
+    ? {
+        '@type': 'BreadcrumbList',
+        itemListElement: [{ name: 'Home', href: '/' }, ...crumbs].map((step, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: step.name,
+          ...(step.href ? { item: new URL(step.href, site).href } : {}),
+        })),
+      }
+    : null
+
+// Everything the page declares travels in one @graph, so the parts can
+// reference each other by @id.
+const nodes = [
+  organization,
+  ...(jsonld ? (Array.isArray(jsonld) ? jsonld : [jsonld]) : []).map(({ '@context': _c, ...node }) => ({
+    ...node,
+    isPartOf: { '@id': `${site}/#website` },
+  })),
+  {
+    '@type': 'WebSite',
+    '@id': `${site}/#website`,
+    url: site,
+    name: 'manhwaindex',
+    publisher: { '@id': organization['@id'] },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${site}/manhwa?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  ...(breadcrumbs ? [breadcrumbs] : []),
+]
+const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': nodes } : null
 ---
 
 <!doctype html>
@@ -61,7 +114,9 @@ const year = new Date().getUTCFullYear()
     />
     <link rel="preconnect" href="https://s4.anilist.co" />
 
-    {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
+    {graph && <script type="application/ld+json" set:html={JSON.stringify(graph)} />}
+
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
 
     <!-- Google Analytics 4. Declared in /privacy. -->
     <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-R1V6DJN1L3"></script>

@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { charactersWithPages, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/catalog.js'
+import { charactersWithPages, characterIsThin, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/catalog.js'
 
 export function getStaticPaths() {
   return charactersWithPages.map((person) => ({
@@ -22,9 +22,17 @@ const facts = [
 
 const description = `${person.name} is a character in ${lead.title}. See every manhwa, manga and anime they appear in, and the official places to read or watch each one.`
 
+// A portrait with no bio says nothing worth indexing. The page stays
+// reachable and keeps passing links, but it is kept out of the index.
+const thin = characterIsThin(person)
+const updated = new Date().toISOString().slice(0, 10)
+
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': 'Person',
+  '@id': `https://manhwaindex.com/character/${person.slug}#person`,
+  url: `https://manhwaindex.com/character/${person.slug}`,
+  dateModified: updated,
   name: person.name,
   alternateName: person.native || undefined,
   image: person.image,
@@ -43,6 +51,8 @@ const jsonld = {
   canonical={`/character/${person.slug}`}
   image={person.image}
   jsonld={jsonld}
+  noindex={thin}
+  crumbs={[{ name: 'Characters', href: '/character' }, { name: person.name }]}
 >
   <div class="shell">
     <article class="person">
