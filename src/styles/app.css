@@ -2242,8 +2242,9 @@ main:has(.title-page) {
   line-height: 0;
 }
 .pick__art img {
-  width: 58px;
-  aspect-ratio: 2 / 3;
+  width: 64px;
+  height: auto; /* the height attribute must not beat the aspect-ratio */
+  aspect-ratio: 460 / 651;
   object-fit: cover;
   background: var(--night-raised);
 }
@@ -2294,7 +2295,7 @@ main:has(.title-page) {
     padding: 0.75rem 0.8rem;
   }
   .pick__art img {
-    width: 46px;
+    width: 52px;
   }
   .pick__body h3 {
     font-size: 0.98rem;
