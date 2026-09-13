@@ -13,6 +13,7 @@ import {
   charactersOf,
   inIndex,
   pathOf,
+  platform,
 } from '../../lib/catalog.js'
 
 export function getStaticPaths() {
@@ -153,6 +154,20 @@ const familyWord = (r) =>
 // Which languages have an official release. English leads: it is the
 // question most visitors are really asking. Anime links carry no
 // language data, so this stays comic-only.
+// Platforms with a free tier or free chapters — the answer most
+// visitors actually came for, so it gets its own line up top.
+const freeLinks = []
+{
+  const seen = new Set()
+  for (const link of links) {
+    if (seen.has(link.site)) continue
+    if ((platform(link.site).note || '').toLowerCase().includes('free')) {
+      seen.add(link.site)
+      freeLinks.push(link)
+    }
+  }
+}
+
 const languages = isComic ? [...new Set(links.map((l) => l.language).filter(Boolean))] : []
 const hasEnglish = languages.includes('English')
 const otherLanguages = languages.filter((l) => l !== 'English')
@@ -197,6 +212,19 @@ const otherLanguages = languages.filter((l) => l !== 'English')
           {item.genres.slice(0, 3).map((genre) => <li>{genre}</li>)}
         </ul>
       </div>
+
+      {
+        freeLinks.length > 0 && (
+          <p class="free-call">
+            <b>{isComic ? 'Read it free on' : 'Watch it free on'}</b>
+            {freeLinks.map((link) => (
+              <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
+                {link.site}
+              </a>
+            ))}
+          </p>
+        )
+      }
 
       <Platforms
         heading={isComic ? 'Read it on' : 'Watch it on'}

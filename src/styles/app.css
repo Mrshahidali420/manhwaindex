@@ -1227,6 +1227,36 @@ main:has(.title-page) {
   color: var(--dawn-dim);
   white-space: nowrap;
 }
+/* Free-platforms callout above the links list. */
+.free-call {
+  margin: 0 0 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  border: 1px solid var(--rose);
+  border-radius: 4px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.88rem;
+}
+.free-call b {
+  color: var(--rose);
+  font-family: var(--stencil);
+  font-weight: 400;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.free-call a {
+  color: var(--day);
+  text-decoration: none;
+  border-bottom: 1px solid var(--cobalt-line);
+}
+.free-call a:hover {
+  color: var(--rose);
+  border-bottom-color: var(--rose);
+}
+
 /* Language availability under the read-links list. */
 .langs {
   margin: 0.9rem 0 0;
