@@ -183,12 +183,16 @@ const here = Astro.url.pathname
         try {
           const res = await fetch('/search-index.json')
           index = await res.json()
+          if (input.value.trim()) search(input.value.trim())
         } catch {
           loading = false
         }
       }
 
+      let active = -1
+
       function render(matches) {
+        active = -1
         if (!matches.length) {
           list.hidden = true
           list.innerHTML = ''
@@ -203,25 +207,57 @@ const here = Astro.url.pathname
         list.hidden = false
       }
 
+      // Accents fold away so a loosely typed query still hits.
+      const fold = (text) =>
+        text
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+
+      // Every word of the query must appear; better matches float up:
+      // exact title, then title-starts-with, then word-starts-with,
+      // then substring. Ties go to the more popular title.
       function search(q) {
         if (!index || q.length < 2) return render([])
-        const needle = q.toLowerCase()
-        const out = []
+        const needle = fold(q)
+        const words = needle.split(/\s+/).filter(Boolean)
+        const scored = []
         for (const m of index) {
-          if (m.s.includes(needle)) {
-            out.push(m)
-            if (out.length === 8) break
-          }
+          if (!words.every((w) => m.s.includes(w))) continue
+          const title = fold(m.t)
+          let score = 1
+          if (title === needle) score = 4
+          else if (title.startsWith(needle)) score = 3
+          else if (m.s.includes(' ' + needle) || m.s.startsWith(needle)) score = 2
+          scored.push([score, m])
         }
-        render(out)
+        scored.sort((a, b) => b[0] - a[0] || (b[1].p || 0) - (a[1].p || 0))
+        render(scored.slice(0, 8).map((x) => x[1]))
+      }
+
+      function highlight(delta) {
+        const rows = list.querySelectorAll('li')
+        if (!rows.length) return
+        active = (active + delta + rows.length) % rows.length
+        rows.forEach((row, i) => row.classList.toggle('is-active', i === active))
+        rows[active].scrollIntoView({ block: 'nearest' })
       }
 
       input.addEventListener('focus', loadIndex, { once: false })
       input.addEventListener('input', () => search(input.value.trim()))
       input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          highlight(1)
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          highlight(-1)
+        }
         if (e.key === 'Enter') {
-          const first = list.querySelector('a')
-          if (first) location.href = first.href
+          const rows = list.querySelectorAll('a')
+          const pick = rows[active >= 0 ? active : 0]
+          if (pick) location.href = pick.href
         }
         if (e.key === 'Escape') render([])
       })

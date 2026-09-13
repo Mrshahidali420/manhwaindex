@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro'
 import CoverGrid from '../components/CoverGrid.astro'
-import { animeByPopularity, comics, comicsOfCountry, anime, genres, platform } from '../lib/catalog.js'
+import { animeByPopularity, comics, comicsOfCountry, anime, genres, platform, airingThisWeek } from '../lib/catalog.js'
 
 const manhwa = comicsOfCountry('KR')
 const manga = comicsOfCountry('JP')
@@ -24,6 +24,12 @@ const legendNames = [
   'Hulu',
 ]
 const legend = legendNames.map((name) => ({ name, color: platform(name).color }))
+
+// Airing schedule: episode day names are computed at build time (daily rebuild).
+const airing = airingThisWeek.slice(0, 8).map((a) => ({
+  ...a,
+  airDay: new Date(a.nextEpisode.at * 1000).toLocaleDateString('en-US', { weekday: 'long' }),
+}))
 
 const tabs = [
   { id: 'manhwa', label: 'Manhwa', items: manhwa.slice(0, 18), base: '/manhwa', all: manhwa.length, note: 'The colour bars under each cover show which platforms carry it.' },
@@ -136,6 +142,33 @@ const jsonld = {
         })
       </script>
     </section>
+
+    {
+      airing.length > 0 && (
+        <section class="section" data-phase="night">
+          <div class="section__head">
+            <h2>New episodes this week</h2>
+            <p>Fresh from the airing schedule. Every link goes to an official stream.</p>
+          </div>
+          <ul class="airing">
+            {airing.map((a) => (
+              <li>
+                <a href={`/anime/${a.slug}`}>
+                  <img src={a.cover} alt="" width="52" height="74" loading="lazy" decoding="async" />
+                  <span>
+                    <b>{a.title}</b>
+                    <em>
+                      Episode {a.nextEpisode.number} · {a.airDay}
+                      {a.watchLinks.length ? ` · on ${a.watchLinks.length} services` : ''}
+                    </em>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
     <section class="section legend" data-phase="first" aria-label="Platform colour legend">
       <p class="legend__lead">Every colour is one official platform:</p>

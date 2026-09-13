@@ -111,6 +111,14 @@ export const inIndex = (id) => itemById.get(id)
 export const pathOf = (item, kind) =>
   kind === 'anime' ? `/anime/${item.slug}` : `/${formatWord(item)}/${item.slug}`
 
+/** Anime with an episode airing in the next 7 days, soonest first.
+ *  The site rebuilds daily, so this list stays honest. */
+const WEEK = 7 * 86400
+const nowSec = Date.now() / 1000
+export const airingThisWeek = anime
+  .filter((a) => a.nextEpisode && a.nextEpisode.at > nowSec && a.nextEpisode.at < nowSec + WEEK)
+  .sort((a, b) => a.nextEpisode.at - b.nextEpisode.at)
+
 /** Genres worth giving their own page: enough titles to be useful. */
 export function genreIndex(items, minimum = 12) {
   const map = new Map()
