@@ -149,6 +149,13 @@ const familyWord = (r) =>
   r.type === 'ANIME'
     ? FAMILY_WORDS[r.format] || 'anime'
     : { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }[r.country] || 'comic'
+
+// Which languages have an official release. English leads: it is the
+// question most visitors are really asking. Anime links carry no
+// language data, so this stays comic-only.
+const languages = isComic ? [...new Set(links.map((l) => l.language).filter(Boolean))] : []
+const hasEnglish = languages.includes('English')
+const otherLanguages = languages.filter((l) => l !== 'English')
 ---
 
 <Base
@@ -206,6 +213,19 @@ const familyWord = (r) =>
           </p>
         </Fragment>
       </Platforms>
+
+      {
+        isComic && languages.length > 0 && (
+          <p class="langs">
+            {hasEnglish && <b>✓ Official English release</b>}
+            {otherLanguages.length > 0 && (
+              <span>
+                {hasEnglish ? 'Also officially in' : 'Officially in'} {otherLanguages.join(' · ')}
+              </span>
+            )}
+          </p>
+        )
+      }
 
       <p class="track-line">
         <a href={item.anilistUrl} target="_blank" rel="noopener">

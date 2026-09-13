@@ -1227,6 +1227,23 @@ main:has(.title-page) {
   color: var(--dawn-dim);
   white-space: nowrap;
 }
+/* Language availability under the read-links list. */
+.langs {
+  margin: 0.9rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+}
+.langs b {
+  color: var(--day);
+  font-weight: 600;
+}
+.langs span {
+  color: var(--dawn-faint);
+}
+
 .ledger__rest {
   margin: 0.9rem 0 0;
   color: var(--dawn-faint);
