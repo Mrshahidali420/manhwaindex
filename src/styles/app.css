@@ -512,6 +512,82 @@ img {
   text-decoration: underline;
 }
 
+/* ---------- trending tabs -------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.tabs [role='tab'] {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dawn-dim);
+  background: none;
+  border: 1px solid var(--cobalt);
+  border-radius: 4px;
+  padding: 0.4rem 0.95rem;
+  cursor: pointer;
+  transition: color 140ms var(--ease-dawn), border-color 140ms var(--ease-dawn),
+    background-color 140ms var(--ease-dawn);
+}
+.tabs [role='tab']:hover {
+  color: var(--day);
+  border-color: var(--cobalt-bright);
+}
+.tabs [role='tab'][aria-selected='true'] {
+  color: var(--day);
+  border-color: var(--rose);
+  background: rgb(224 104 138 / 0.12);
+}
+.tab-panel__more {
+  margin: 0.35rem 0 0;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .section__head--row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ---------- platform legend ------------------------------------------------ */
+
+.legend {
+  padding-block: 0;
+}
+.legend__lead {
+  margin: 0 0 0.55rem;
+  font-size: 0.85rem;
+  color: var(--dawn-dim);
+}
+.legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  font-size: 0.85rem;
+  color: var(--dawn);
+}
+.legend__list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.legend__list i {
+  width: 15px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--mark);
+  box-shadow: 0 3px 8px -1px color-mix(in srgb, var(--mark) 55%, transparent);
+}
+.legend__note {
+  color: var(--dawn-faint);
+}
+
 /* ---------- cover grid: actors standing on the band ----------------------- */
 
 .grid {
@@ -561,6 +637,23 @@ img {
 }
 .card a:hover .card__title {
   color: var(--day);
+}
+
+/* one quiet fact line: score, kind, status */
+.card__meta {
+  margin: 0.3rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: var(--dawn-faint);
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.card__meta b {
+  color: var(--rose);
+  font-weight: 600;
 }
 
 /* the gel strip: platform brand colours as scannable light */

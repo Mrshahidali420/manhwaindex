@@ -1,10 +1,17 @@
 ---
-import { platform } from '../lib/catalog.js'
+import { platform, formatWord, statusWord } from '../lib/catalog.js'
 
 const { items, base, shelf = false } = Astro.props
 
 /** Which marks to show under a cover: read links for comics, watch for anime. */
 const marksOf = (item) => (base === '/anime' ? item.watchLinks : item.readLinks)
+
+/** One quiet line of facts under the title: ★ 8.4 · Manhwa · Finished */
+const metaOf = (item) => {
+  const kind = item.kind === 'anime' ? 'Anime' : formatWord(item)
+  const bits = [kind.charAt(0).toUpperCase() + kind.slice(1), statusWord(item.status)]
+  return bits.join(' · ')
+}
 ---
 
 <ul class={shelf ? 'grid grid--shelf' : 'grid'}>
@@ -25,6 +32,10 @@ const marksOf = (item) => (base === '/anime' ? item.watchLinks : item.readLinks)
               decoding="async"
             />
             <p class="card__title">{item.title}</p>
+            <p class="card__meta">
+              {item.score ? <b>★ {(item.score / 10).toFixed(1)}</b> : null}
+              <span>{metaOf(item)}</span>
+            </p>
             <p class="card__marks">
               {shown.map((link) => (
                 <i style={`--mark:${platform(link.site).color}`} title={link.site} />

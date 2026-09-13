@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro'
 import Platforms from '../../components/Platforms.astro'
+import CoverGrid from '../../components/CoverGrid.astro'
 import {
   comics,
   anime,
@@ -112,6 +113,18 @@ const jsonld = {
     : {}),
 }
 const cast = charactersOf(item).slice(0, 12)
+
+// You may also like: same shelf, closest genre mix, most-read first.
+const pool = isComic ? comics.filter((p) => formatWord(p) === word) : anime
+const myGenres = new Set(item.genres)
+const similar = pool
+  .filter((p) => p.id !== item.id)
+  .map((p) => ({ p, hits: p.genres.reduce((n, g) => n + (myGenres.has(g) ? 1 : 0), 0) }))
+  .filter((x) => x.hits >= 2)
+  .sort((a, b) => b.hits - a.hits || b.p.popularity - a.p.popularity)
+  .slice(0, 6)
+  .map((x) => x.p)
+const similarBase = isComic ? `/${word}` : '/anime'
 ---
 
 <Base
@@ -308,6 +321,18 @@ const cast = charactersOf(item).slice(0, 12)
               <h2>What it is about</h2>
             </div>
             <p class="synopsis">{item.description}</p>
+          </section>
+        )
+      }
+
+      {
+        similar.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>You may also like</h2>
+              <p>Closest {word} by genre, most-read first.</p>
+            </div>
+            <CoverGrid items={similar} base={similarBase} />
           </section>
         )
       }

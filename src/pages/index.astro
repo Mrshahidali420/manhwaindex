@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro'
 import CoverGrid from '../components/CoverGrid.astro'
-import { animeByPopularity, comics, comicsOfCountry, anime, genres } from '../lib/catalog.js'
+import { animeByPopularity, comics, comicsOfCountry, anime, genres, platform } from '../lib/catalog.js'
 
 const manhwa = comicsOfCountry('KR')
 const manga = comicsOfCountry('JP')
@@ -11,6 +11,26 @@ const watchable = anime.filter((a) => a.watchLinks.length > 0).length
 
 // The nine most-read covers stand on the horizon line like a skyline.
 const skyline = manhwa.slice(0, 9)
+
+// The legend names the platforms whose colours appear most under the covers.
+const legendNames = [
+  'WEBTOON',
+  'Tappytoon',
+  'Tapas',
+  'Lezhin',
+  'Manta',
+  'Crunchyroll',
+  'Netflix',
+  'Hulu',
+]
+const legend = legendNames.map((name) => ({ name, color: platform(name).color }))
+
+const tabs = [
+  { id: 'manhwa', label: 'Manhwa', items: manhwa.slice(0, 18), base: '/manhwa', all: manhwa.length, note: 'The colour bars under each cover show which platforms carry it.' },
+  { id: 'anime', label: 'Anime', items: animeByPopularity.slice(0, 18), base: '/anime', all: anime.length, note: 'Each one links back to the manga or manhwa it came from.' },
+  { id: 'manga', label: 'Manga', items: manga.slice(0, 18), base: '/manga', all: manga.length, note: '' },
+  { id: 'manhua', label: 'Manhua', items: manhua.slice(0, 18), base: '/manhua', all: manhua.length, note: '' },
+]
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -72,43 +92,64 @@ const jsonld = {
     <section class="section" data-phase="night">
       <div class="section__head section__head--row">
         <div>
-          <h2>Trending manhwa</h2>
-          <p>The colour bars under each cover show which platforms carry it.</p>
+          <h2>Trending now</h2>
+          <p>Pick a shelf. The colour bars under each cover are platform lights.</p>
         </div>
-        <a class="section__more" href="/manhwa">All {manhwa.length.toLocaleString()} →</a>
+        <div class="tabs" role="tablist" aria-label="Trending shelves">
+          {
+            tabs.map((tab, i) => (
+              <button
+                type="button"
+                role="tab"
+                id={`tab-${tab.id}`}
+                aria-controls={`panel-${tab.id}`}
+                aria-selected={i === 0 ? 'true' : 'false'}
+              >
+                {tab.label}
+              </button>
+            ))
+          }
+        </div>
       </div>
-      <CoverGrid items={manhwa.slice(0, 18)} base="/manhwa" shelf />
+      {
+        tabs.map((tab, i) => (
+          <div class="tab-panel" id={`panel-${tab.id}`} role="tabpanel" aria-labelledby={`tab-${tab.id}`} hidden={i !== 0}>
+            <CoverGrid items={tab.items} base={tab.base} shelf />
+            <p class="tab-panel__more">
+              <a class="section__more" href={tab.base}>
+                All {tab.all.toLocaleString()} {tab.label.toLowerCase()} →
+              </a>
+            </p>
+          </div>
+        ))
+      }
+      <script>
+        const tablist = document.querySelector('.tabs')
+        tablist.addEventListener('click', (e) => {
+          const btn = e.target.closest('[role="tab"]')
+          if (!btn) return
+          for (const t of tablist.querySelectorAll('[role="tab"]')) {
+            const on = t === btn
+            t.setAttribute('aria-selected', String(on))
+            document.getElementById(t.getAttribute('aria-controls')).hidden = !on
+          }
+        })
+      </script>
     </section>
 
-    <section class="section" data-phase="first">
-      <div class="section__head section__head--row">
-        <div>
-          <h2>Trending anime</h2>
-          <p>Each one links back to the manga or manhwa it came from.</p>
-        </div>
-        <a class="section__more" href="/anime">All {anime.length.toLocaleString()} →</a>
-      </div>
-      <CoverGrid items={animeByPopularity.slice(0, 18)} base="/anime" shelf />
-    </section>
-
-    <section class="section" data-phase="dawn">
-      <div class="section__head section__head--row">
-        <div>
-          <h2>Trending manga</h2>
-        </div>
-        <a class="section__more" href="/manga">All {manga.length.toLocaleString()} →</a>
-      </div>
-      <CoverGrid items={manga.slice(0, 18)} base="/manga" shelf />
-    </section>
-
-    <section class="section" data-phase="hold">
-      <div class="section__head section__head--row">
-        <div>
-          <h2>Trending manhua</h2>
-        </div>
-        <a class="section__more" href="/manhua">All {manhua.length.toLocaleString()} →</a>
-      </div>
-      <CoverGrid items={manhua.slice(0, 18)} base="/manhua" shelf />
+    <section class="section legend" data-phase="first" aria-label="Platform colour legend">
+      <p class="legend__lead">Every colour is one official platform:</p>
+      <ul class="legend__list">
+        {
+          legend.map((l) => (
+            <li>
+              <i style={`--mark:${l.color}`} aria-hidden="true" />
+              {l.name}
+            </li>
+          ))
+        }
+        <li class="legend__note">…and more. Open a title to see its full list.</li>
+      </ul>
     </section>
 
     <section class="section" data-phase="day">
