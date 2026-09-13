@@ -1,3 +1,4 @@
+export const prerender = true
 import { sitemapParts, urlsetXml } from '../lib/sitemap-urls.js'
 
 // One file per section, listed by /sitemap.xml.

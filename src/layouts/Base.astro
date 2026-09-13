@@ -1,6 +1,8 @@
 ---
 import '../styles/app.css'
-import { genres, comics, anime } from '../lib/catalog.js'
+// The shell shows only three numbers and eight genre names, so it reads a
+// tiny file instead of the catalog. That keeps the Worker bundle small.
+import stats from '../../data/site-stats.json'
 
 const {
   title,
@@ -27,7 +29,7 @@ const nav = [
   { href: '/character', label: 'Characters' },
 ]
 const here = Astro.url.pathname
-const footGenres = genres.slice(0, 8)
+const footGenres = stats.genres
 const year = new Date().getUTCFullYear()
 
 // One brand entity, on every page, so each page is a self-contained
@@ -215,7 +217,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
             no episodes — every link goes to the rights holder.
           </p>
           <p class="colophon__count">
-            {comics.length.toLocaleString()} comics · {anime.length.toLocaleString()} anime · refreshed daily
+            {stats.comics.toLocaleString()} comics · {stats.anime.toLocaleString()} anime · refreshed daily
           </p>
         </div>
         <div>

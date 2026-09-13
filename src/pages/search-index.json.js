@@ -1,3 +1,4 @@
+export const prerender = true
 import { comics, anime } from '../lib/catalog.js'
 
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }

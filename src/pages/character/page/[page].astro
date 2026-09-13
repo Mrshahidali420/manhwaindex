@@ -1,10 +1,11 @@
 ---
+export const prerender = true
 import Base from '../../../layouts/Base.astro'
 import { kindOfAppearance } from '../../../lib/catalog.js'
-import { PEOPLE, PER_PAGE } from '../index.astro'
+import { PEOPLE, PER_PAGE, MAX_PAGES } from '../index.astro'
 
 export function getStaticPaths() {
-  const pageCount = Math.ceil(PEOPLE.length / PER_PAGE)
+  const pageCount = Math.min(MAX_PAGES, Math.ceil(PEOPLE.length / PER_PAGE))
   const paths = []
   for (let page = 2; page <= pageCount; page++) {
     paths.push({

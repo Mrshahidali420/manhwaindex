@@ -3,38 +3,31 @@ import Base from '../../layouts/Base.astro'
 import Platforms from '../../components/Platforms.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import {
-  comics,
-  anime,
-  findAnime,
-  findComic,
   formatWord,
   statusWord,
   truncate,
   charactersOf,
-  inIndex,
   pathOf,
   platform,
   enrichOf,
   genreSlug,
-} from '../../lib/catalog.js'
+} from '../../lib/format.js'
+import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
 
-export function getStaticPaths() {
-  const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
+// This page is rendered by the Worker when someone asks for it. It is not
+// built as a file, so the number of titles has no ceiling.
+const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
+const KINDS = new Set(['manhwa', 'manga', 'manhua', 'anime'])
 
-  const comicPaths = comics.map((item) => ({
-    params: { kind: KIND_OF_COUNTRY[item.country] || 'manga', slug: item.slug },
-    props: { item, isComic: true },
-  }))
+const { kind, slug } = Astro.params
+if (!KINDS.has(kind)) return notFound(Astro)
 
-  const animePaths = anime.map((item) => ({
-    params: { kind: 'anime', slug: item.slug },
-    props: { item, isComic: false },
-  }))
+const item = await loadTitle(envOf(Astro), kind, slug)
+if (!item) return notFound(Astro)
 
-  return [...comicPaths, ...animePaths]
-}
-
-const { item, isComic } = Astro.props
+const isComic = item.kind !== 'anime'
+// The slug alone is not proof: a manhwa must not answer on /manga/.
+if (isComic && (KIND_OF_COUNTRY[item.country] || 'manga') !== kind) return notFound(Astro)
 
 const word = isComic ? formatWord(item) : 'anime'
 const links = isComic ? item.readLinks : item.watchLinks
@@ -138,16 +131,9 @@ const jsonld = {
 }
 const cast = charactersOf(item).slice(0, 12)
 
-// You may also like: same shelf, closest genre mix, most-read first.
-const pool = isComic ? comics.filter((p) => formatWord(p) === word) : anime
-const myGenres = new Set(item.genres)
-const similar = pool
-  .filter((p) => p.id !== item.id)
-  .map((p) => ({ p, hits: p.genres.reduce((n, g) => n + (myGenres.has(g) ? 1 : 0), 0) }))
-  .filter((x) => x.hits >= 2)
-  .sort((a, b) => b.hits - a.hits || b.p.popularity - a.p.popularity)
-  .slice(0, 6)
-  .map((x) => x.p)
+// You may also like: worked out at build time and stored in the record,
+// so the Worker does no searching at request time.
+const similar = item.similar || []
 const similarBase = isComic ? `/${word}` : '/anime'
 const kindBase = similarBase
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
@@ -165,7 +151,6 @@ const RELATION_LABEL = {
 const RELATION_ORDER = Object.keys(RELATION_LABEL)
 const family = (item.relations || [])
   .filter((r) => RELATION_LABEL[r.relation])
-  .map((r) => ({ ...r, hit: inIndex(r.id) }))
   .sort((a, b) => RELATION_ORDER.indexOf(a.relation) - RELATION_ORDER.indexOf(b.relation))
 
 const FAMILY_WORDS = { TV: 'anime series', MOVIE: 'anime film', SPECIAL: 'anime special', OVA: 'OVA', ONA: 'ONA' }

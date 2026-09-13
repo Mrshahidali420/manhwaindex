@@ -1,8 +1,9 @@
 ---
+export const prerender = true
 import Base from '../../../../layouts/Base.astro'
 import CoverGrid from '../../../../components/CoverGrid.astro'
 import FilterChips from '../../../../components/FilterChips.astro'
-import { KINDS, PER_PAGE } from '../../index.astro'
+import { KINDS, PER_PAGE, MAX_PAGES } from '../../index.astro'
 import { FILTERS } from '../../../../lib/filters.js'
 
 export function getStaticPaths() {
@@ -10,7 +11,7 @@ export function getStaticPaths() {
   for (const [kind, config] of Object.entries(KINDS)) {
     for (const [filter, def] of Object.entries(FILTERS)) {
       const all = config.items().filter((item) => def.keep(item, kind))
-      const pageCount = Math.ceil(all.length / PER_PAGE)
+      const pageCount = Math.min(MAX_PAGES, Math.ceil(all.length / PER_PAGE))
       for (let page = 2; page <= pageCount; page++) {
         paths.push({
           params: { kind, filter, page: String(page) },

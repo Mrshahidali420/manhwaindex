@@ -1,12 +1,16 @@
 ---
+export const prerender = true
 import Base from '../../layouts/Base.astro'
 import { charactersWithPages, kindOfAppearance } from '../../lib/catalog.js'
 
 export const PER_PAGE = 120
+
+// Same cap as the title listings: page 100 is the last one built.
+export const MAX_PAGES = 100
 export const PEOPLE = charactersWithPages
 
 const items = PEOPLE.slice(0, PER_PAGE)
-const pageCount = Math.ceil(PEOPLE.length / PER_PAGE)
+const pageCount = Math.min(MAX_PAGES, Math.ceil(PEOPLE.length / PER_PAGE))
 ---
 
 <Base

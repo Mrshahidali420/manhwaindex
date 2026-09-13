@@ -1,13 +1,14 @@
 ---
+export const prerender = true
 import Base from '../../../layouts/Base.astro'
 import CoverGrid from '../../../components/CoverGrid.astro'
-import { KINDS, PER_PAGE } from '../index.astro'
+import { KINDS, PER_PAGE, MAX_PAGES } from '../index.astro'
 
 export function getStaticPaths() {
   const paths = []
   for (const [kind, config] of Object.entries(KINDS)) {
     const all = config.items()
-    const pageCount = Math.ceil(all.length / PER_PAGE)
+    const pageCount = Math.min(MAX_PAGES, Math.ceil(all.length / PER_PAGE))
     for (let page = 2; page <= pageCount; page++) {
       paths.push({
         params: { kind, page: String(page) },

@@ -1,3 +1,4 @@
+export const prerender = true
 import { SITE, sitemapParts, today } from '../lib/sitemap-urls.js'
 
 // The site has ~18,000 pages. One giant file is slow for a crawler to read,

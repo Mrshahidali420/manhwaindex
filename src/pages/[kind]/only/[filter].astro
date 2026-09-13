@@ -1,8 +1,9 @@
 ---
+export const prerender = true
 import Base from '../../../layouts/Base.astro'
 import CoverGrid from '../../../components/CoverGrid.astro'
 import FilterChips from '../../../components/FilterChips.astro'
-import { KINDS, PER_PAGE } from '../index.astro'
+import { KINDS, PER_PAGE, MAX_PAGES } from '../index.astro'
 import { FILTERS } from '../../../lib/filters.js'
 
 export function getStaticPaths() {
@@ -20,7 +21,7 @@ export function getStaticPaths() {
 const { kind, filter } = Astro.params
 const { config, def, items } = Astro.props
 const word = kind === 'anime' ? 'anime' : kind
-const pageCount = Math.ceil(items.length / PER_PAGE)
+const pageCount = Math.min(MAX_PAGES, Math.ceil(items.length / PER_PAGE))
 ---
 
 <Base

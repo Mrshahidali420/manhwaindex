@@ -9,3 +9,8 @@ data/raw/
 data/raw-v1/
 .impeccable/
 data/redirects.json
+
+# Built by scripts/make-shards.mjs on every build, like the redirects.
+public/d/
+data/shards.json
+data/site-stats.json

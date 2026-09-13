@@ -1,4 +1,5 @@
 ---
+export const prerender = true
 import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import FilterChips from '../../components/FilterChips.astro'
@@ -6,6 +7,10 @@ import { animeByPopularity, comicsOfCountry } from '../../lib/catalog.js'
 import { listingJsonld } from '../../lib/listing-jsonld.js'
 
 export const PER_PAGE = 60
+// A listing is only built as far as page 100. Deeper pages help nobody: the
+// sitemaps link every title directly, and the free plan counts files.
+export const MAX_PAGES = 100
+
 
 export const KINDS = {
   manhwa: {
@@ -53,7 +58,7 @@ const { kind } = Astro.params
 const config = KINDS[kind]
 const all = config.items()
 const items = all.slice(0, PER_PAGE)
-const pageCount = Math.ceil(all.length / PER_PAGE)
+const pageCount = Math.min(MAX_PAGES, Math.ceil(all.length / PER_PAGE))
 
 const jsonld = listingJsonld({
   name: config.title,

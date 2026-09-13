@@ -1,15 +1,12 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { charactersWithPages, characterIsThin, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/catalog.js'
+import { characterIsThin, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/format.js'
+import { loadCharacter, envOf, notFound } from '../../lib/runtime.js'
 
-export function getStaticPaths() {
-  return charactersWithPages.map((person) => ({
-    params: { slug: person.slug },
-    props: { person },
-  }))
-}
+// Rendered by the Worker on request, so the cast list has no ceiling.
+const person = await loadCharacter(envOf(Astro), Astro.params.slug)
+if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
 
-const { person } = Astro.props
 const main = person.appearsIn.filter((a) => a.role === 'MAIN')
 const lead = main[0] || person.appearsIn[0]
 const leadKind = kindOfAppearance(lead)
