@@ -42,7 +42,7 @@ const current = Number(page)
           Showing {(current - 1) * PER_PAGE + 1}–{Math.min(current * PER_PAGE, total)} of {total}
         </p>
       </div>
-      <CoverGrid items={items} base={`/${kind}`} />
+      <CoverGrid items={items} base={`/${kind}`} eager={6} />
     </section>
 
     <nav class="pager" aria-label="Pagination">

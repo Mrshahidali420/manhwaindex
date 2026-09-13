@@ -2075,3 +2075,16 @@ main:has(.title-page) {
   font-size: 0.85em;
   white-space: nowrap;
 }
+
+/* ---------- genre index: the copy above the wall ------------------------- */
+
+.genre-intro {
+  max-width: 68ch;
+  margin-bottom: 2rem;
+  color: var(--dawn-dim);
+  line-height: 1.7;
+}
+
+.genre-intro p + p {
+  margin-top: 0.9rem;
+}

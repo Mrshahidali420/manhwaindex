@@ -48,12 +48,12 @@ const jsonld = listingJsonld({
     {
       Object.entries(buckets)
         .filter(([, items]) => items.length > 0)
-        .map(([kind, items]) => (
+        .map(([kind, items], i) => (
           <section class="section">
             <div class="section__head">
               <h2>{genre.name} {kind}</h2>
             </div>
-            <CoverGrid items={items.slice(0, 24)} base={`/${kind}`} />
+            <CoverGrid items={items.slice(0, 24)} base={`/${kind}`} eager={i === 0 ? 6 : 0} />
           </section>
         ))
     }

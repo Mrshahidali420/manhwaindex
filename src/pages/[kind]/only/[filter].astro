@@ -36,7 +36,7 @@ const pageCount = Math.ceil(items.length / PER_PAGE)
         <p class="answer__count">{items.length} titles match</p>
       </div>
       <FilterChips kind={kind} active={filter} />
-      <CoverGrid items={items.slice(0, PER_PAGE)} base={`/${kind}`} />
+      <CoverGrid items={items.slice(0, PER_PAGE)} base={`/${kind}`} eager={6} />
     </section>
 
     {

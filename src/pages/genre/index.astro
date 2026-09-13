@@ -1,18 +1,64 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { genres } from '../../lib/catalog.js'
+import { genres, comics, anime } from '../../lib/catalog.js'
+
+// The biggest genres get named in the copy, so the page says something
+// real instead of only carrying a wall of links.
+const top = genres.slice(0, 6).map((g) => g.name)
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': 'https://manhwaindex.com/genre#collection',
+  url: 'https://manhwaindex.com/genre',
+  name: 'Every manhwa, manga, manhua and anime genre',
+  dateModified: new Date().toISOString().slice(0, 10),
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: genres.length,
+    itemListElement: genres.map((g, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: g.name,
+      url: `https://manhwaindex.com/genre/${g.slug}`,
+    })),
+  },
+}
 ---
 
 <Base
   title="Browse by genre — every manhwa, manga and anime genre"
   description="Pick a genre and see every manhwa, manga, manhua and anime in it, each with the official places to read or watch."
   canonical="/genre"
+  jsonld={jsonld}
+  crumbs={[{ name: 'Genres' }]}
 >
   <div class="shell">
     <section class="section">
       <div class="section__head">
         <h1>Genres</h1>
         <p>Every list is sorted by how many people are reading or watching.</p>
+      </div>
+
+      <div class="genre-intro">
+        <p>
+          A genre page is the fastest way to find your next series when you know
+          the feeling you want but not the title. Each one holds every
+          {' '}{comics.length.toLocaleString()} comics and {anime.length.toLocaleString()} anime
+          in this index that carry that tag, split into manhwa, manga, manhua and
+          anime, and sorted so the most-read titles come first.
+        </p>
+        <p>
+          Every title in every list shows the official platforms that are
+          licensed to carry it, and what each one costs: free and ad-supported,
+          a free tier, paid chapters, a subscription, or print. Open a title and
+          the links go straight to the publisher or the streaming service.
+          manhwaindex hosts nothing itself and never links to unlicensed copies.
+        </p>
+        <p>
+          The largest genres here are {top.slice(0, -1).join(', ')} and {top[top.length - 1]}.
+          Genres come from AniList, and the counts below rebuild every day, so a
+          series that started this week appears in its genre the next morning.
+        </p>
       </div>
       <ul class="genre-wall">
         {

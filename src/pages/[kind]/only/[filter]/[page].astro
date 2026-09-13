@@ -49,7 +49,7 @@ const backOne = current === 2 ? `/${kind}/only/${filter}` : `/${kind}/only/${fil
         </p>
       </div>
       <FilterChips kind={kind} active={filter} />
-      <CoverGrid items={items} base={`/${kind}`} />
+      <CoverGrid items={items} base={`/${kind}`} eager={6} />
     </section>
 
     <nav class="pager" aria-label="Pagination">

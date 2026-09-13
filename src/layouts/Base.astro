@@ -9,6 +9,7 @@ const {
   image,
   jsonld,
   crumbs = [],
+  preloadImage,
   noindex = false,
 } = Astro.props
 
@@ -113,6 +114,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       href="https://fonts.googleapis.com/css2?family=Saira:wght@400;600;700;800&family=Saira+Stencil+One&display=swap"
     />
     <link rel="preconnect" href="https://s4.anilist.co" />
+    {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
 
     {graph && <script type="application/ld+json" set:html={JSON.stringify(graph)} />}
 

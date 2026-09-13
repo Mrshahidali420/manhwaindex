@@ -79,7 +79,7 @@ const jsonld = listingJsonld({
         <p class="answer__count">{all.length} titles in the index</p>
       </div>
       <FilterChips kind={kind} />
-      <CoverGrid items={items} base={`/${kind}`} />
+      <CoverGrid items={items} base={`/${kind}`} eager={6} />
     </section>
 
     {
