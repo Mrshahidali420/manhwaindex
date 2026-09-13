@@ -4,10 +4,16 @@
 //   3. everything else goes to Astro, which serves a static file or
 //      renders a title or character page from a shard
 import redirects from '../data/redirects.json'
+import shards from '../data/shards.json'
 import astro from '../dist/_worker.js/index.js'
 
 // How long the edge keeps a rendered page. The data changes once a day.
 const CACHE_SECONDS = 86400
+
+// Every build writes a new builtAt. It goes in the cache key, so a page kept
+// by the last build can never be found again after a deploy. Without this a
+// template change stays invisible for a full day.
+const BUILD = String(shards.builtAt || 0)
 
 export default {
   async fetch(request, env, ctx) {
@@ -22,7 +28,9 @@ export default {
     }
 
     const cache = caches.default
-    const hit = await cache.match(request)
+    // Always GET: the cache API refuses to store a HEAD request.
+    const cacheKey = new Request(`${url.origin}${url.pathname}?_b=${BUILD}`, { method: 'GET' })
+    const hit = await cache.match(cacheKey)
     if (hit) return hit
 
     const response = await astro.fetch(request, env, ctx)
@@ -32,7 +40,7 @@ export default {
     if (response.status === 200 && type.includes('text/html')) {
       const kept = new Response(response.body, response)
       kept.headers.set('cache-control', `public, max-age=0, s-maxage=${CACHE_SECONDS}`)
-      ctx.waitUntil(cache.put(request, kept.clone()))
+      ctx.waitUntil(cache.put(cacheKey, kept.clone()))
       return kept
     }
     return response
