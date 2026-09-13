@@ -1,0 +1,157 @@
+---
+export const prerender = true
+/**
+ * "What anime airs this week."
+ *
+ * The one page on this site that is genuinely different every day, because
+ * the airing calendar moves on its own. It is built from the same daily
+ * ingest as everything else, so it needs no extra step and no extra cost.
+ */
+import Base from '../layouts/Base.astro'
+import Countdown from '../components/Countdown.astro'
+import { airingThisWeek } from '../lib/catalog.js'
+import { airingDays, scheduleLede } from '../lib/schedule.mjs'
+import { faqJsonld, listWords } from '../lib/answers.mjs'
+
+const days = airingDays(airingThisWeek)
+const lede = scheduleLede(days)
+const total = days.reduce((sum, day) => sum + day.shows.length, 0)
+
+/** Only the platform names, once each, so one show is never listed twice. */
+const sitesOf = (show) => [...new Set((show.watchLinks || []).map((l) => l.site))]
+
+const today = days.find((day) => day.label === 'Today')
+
+const faq = [
+  {
+    q: 'What anime airs today?',
+    a: today
+      ? `${today.shows.length} ${today.shows.length === 1 ? 'episode airs' : 'episodes air'} today: ${listWords(today.shows.slice(0, 6).map((s) => s.title))}. Each one is listed above with the platforms that carry it.`
+      : 'Nothing is scheduled for today. The next airing day is listed at the top of this page.',
+  },
+  {
+    q: 'Where can I watch these episodes legally?',
+    a: 'Every show on this page links to its own page, and that page lists only platforms that hold a licence for it — Crunchyroll, Netflix, Hulu, Disney+ and the rest. We host nothing and we link to no scan or stream mirror.',
+  },
+  {
+    q: 'What time zone are these times in?',
+    a: 'The days are grouped by UTC, because this page is the same for every reader. The clock next to each episode is your own local time, worked out by your browser.',
+  },
+  {
+    q: 'How often is this page updated?',
+    a: 'Once a day. The index refetches the airing calendar from AniList at 02:00 UTC and rebuilds itself, so an episode that moved is corrected within a day.',
+  },
+]
+
+const jsonld = [
+  {
+    '@type': 'WebPage',
+    '@id': 'https://manhwaindex.com/schedule#page',
+    url: 'https://manhwaindex.com/schedule',
+    name: 'Anime airing this week',
+    description: 'Every anime episode airing in the next seven days, with the official platforms that stream each one.',
+    inLanguage: 'en',
+    dateModified: new Date().toISOString().slice(0, 10),
+  },
+  ...(total
+    ? [
+        {
+          '@type': 'ItemList',
+          name: 'Anime airing this week',
+          numberOfItems: total,
+          itemListElement: days
+            .flatMap((day) => day.shows)
+            .map((show, i) => ({
+              '@type': 'ListItem',
+              position: i + 1,
+              url: `https://manhwaindex.com/anime/${show.slug}`,
+              name: `${show.title} episode ${show.nextEpisode.number}`,
+            })),
+        },
+      ]
+    : []),
+  faqJsonld(faq),
+]
+---
+
+<Base
+  title="Anime Airing This Week — Episode Schedule & Where to Watch"
+  description="Every anime episode airing in the next seven days, day by day, with a live countdown and the official platforms that legally stream each one."
+  canonical="/schedule"
+  jsonld={jsonld}
+  crumbs={[{ name: 'Schedule' }]}
+>
+  <div class="shell">
+    <section class="section" data-phase="night">
+      <div class="section__head">
+        <h1>Anime airing this week</h1>
+        <p>{lede}</p>
+      </div>
+
+      {
+        days.length === 0 && (
+          <p class="overview">
+            Nothing is on the calendar right now. That happens between seasons. Browse
+            <a href="/anime"> every anime in the index</a> in the meantime.
+          </p>
+        )
+      }
+
+      {
+        days.map((day) => (
+          <div class="sched">
+            <h2 class="sched__day">
+              <span class="sched__label">{day.label}</span>
+              <span class="sched__date">{day.date} (UTC)</span>
+              <span class="sched__count">
+                {day.shows.length} {day.shows.length === 1 ? 'episode' : 'episodes'}
+              </span>
+            </h2>
+            <ul class="sched__list">
+              {day.shows.map((show) => (
+                <li class="sched__row">
+                  <a class="sched__art" href={`/anime/${show.slug}`} tabindex="-1" aria-hidden="true">
+                    <img src={show.cover} alt="" width="60" height="85" loading="lazy" decoding="async" />
+                  </a>
+                  <div class="sched__body">
+                    <h3 class="sched__name">
+                      <a href={`/anime/${show.slug}`}>{show.title}</a>
+                    </h3>
+                    <p class="sched__ep">
+                      Episode {show.nextEpisode.number} · <Countdown at={show.nextEpisode.at} local />
+                    </p>
+                    <p class="sched__where">
+                      {sitesOf(show).length > 0 ? (
+                        <>
+                          <b>Streams on</b> {listWords(sitesOf(show).slice(0, 4))}
+                        </>
+                      ) : (
+                        <b class="sched__where--none">No official stream listed yet</b>
+                      )}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </section>
+
+    <section class="section" data-phase="dawn">
+      <div class="section__head">
+        <h2>Common questions</h2>
+      </div>
+      <dl class="qa">
+        {
+          faq.map((row) => (
+            <div>
+              <dt>{row.q}</dt>
+              <dd>{row.a}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </section>
+  </div>
+</Base>

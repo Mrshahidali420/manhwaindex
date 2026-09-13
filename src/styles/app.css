@@ -2386,3 +2386,146 @@ main:has(.title-page) {
 @media (min-width: 720px) {
   .reach { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 }
+
+/* ---------- the airing clock: countdown, next-episode strip, schedule ----- */
+.countdown {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.countdown--soon {
+  color: var(--rose-soft);
+}
+
+.next-ep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.7rem;
+  margin: 0 0 1.25rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--cobalt-line);
+  border-left: 3px solid var(--rose);
+  background: linear-gradient(to right, rgb(224 104 138 / 0.12), transparent 70%);
+  font-size: 0.95rem;
+  color: var(--dawn-dim);
+}
+.next-ep__tag {
+  font-family: var(--stencil);
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--rose-soft);
+}
+.next-ep__num {
+  font-weight: 700;
+  color: var(--dawn);
+}
+.next-ep__all {
+  margin-left: auto;
+  color: var(--cobalt-bright);
+  text-decoration: none;
+}
+.next-ep__all:hover,
+.next-ep__all:focus-visible {
+  color: var(--day);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sched {
+  margin: 0 0 1.75rem;
+}
+.sched__day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.7rem;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--cobalt-line);
+  font-size: 1.05rem;
+}
+.sched__label {
+  font-family: var(--stencil);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dawn);
+}
+.sched__date {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--dawn-faint);
+}
+.sched__count {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--dawn-faint);
+}
+
+.sched__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  background: var(--cobalt-line);
+  border: 1px solid var(--cobalt-line);
+}
+.sched__row {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--night-raised);
+}
+.sched__art img {
+  display: block;
+  width: 60px;
+  height: auto;
+  aspect-ratio: 60 / 85;
+  object-fit: cover;
+  background: var(--night-sunk);
+}
+.sched__body {
+  display: grid;
+  gap: 0.2rem;
+  align-content: center;
+}
+.sched__name {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+.sched__name a {
+  color: var(--dawn);
+  text-decoration: none;
+}
+.sched__name a:hover,
+.sched__name a:focus-visible {
+  color: var(--day);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sched__ep,
+.sched__where {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--dawn-dim);
+}
+.sched__where b {
+  color: var(--dawn-faint);
+  font-weight: 600;
+}
+.sched__where--none {
+  color: var(--dawn-faint);
+  font-weight: 400;
+}
+
+/* Wider screens can carry two shows side by side without crowding. */
+@media (min-width: 780px) {
+  .sched__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -36,6 +36,7 @@ function coreUrls() {
     { loc: `${SITE}/character`, priority: '0.9' },
     { loc: `${SITE}/genre`, priority: '0.9' },
     { loc: `${SITE}/where-to-read`, priority: '0.9' },
+    { loc: `${SITE}/schedule`, priority: '0.9' },
     { loc: `${SITE}/about`, priority: '0.5' },
     { loc: `${SITE}/contact`, priority: '0.4' },
     { loc: `${SITE}/privacy`, priority: '0.3' },

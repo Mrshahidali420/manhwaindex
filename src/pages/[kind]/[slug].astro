@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro'
 import Platforms from '../../components/Platforms.astro'
+import Countdown from '../../components/Countdown.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import {
   formatWord,
@@ -41,13 +42,18 @@ const pageTitle = isComic
   : `Watch ${item.title} Online — Official Streaming Sites`
 
 // Airing helper: turn the next-episode timestamp into a readable date.
-const nextEp = item.nextEpisode
-  ? new Date(item.nextEpisode.at * 1000).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    })
-  : null
+// This page is rendered by the Worker on request, so "now" is the reader's
+// own moment. An episode whose time has already passed is dropped: the data
+// is only as fresh as the last daily build, and a stale countdown is a lie.
+const nextEp =
+  item.nextEpisode && item.nextEpisode.at * 1000 > Date.now()
+    ? new Date(item.nextEpisode.at * 1000).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      })
+    : null
 
 // One title can have several language editions on the same platform, so
 // the same name must not be listed twice.
@@ -327,6 +333,17 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
         {' '}
         <span class="title-answer__stamp">Checked {updatedLong}.</span>
       </p>
+
+      {
+        nextEp && (
+          <p class="next-ep">
+            <span class="next-ep__tag">Next episode</span>
+            <span class="next-ep__num">Episode {item.nextEpisode.number}</span>
+            <Countdown at={item.nextEpisode.at} local />
+            <a class="next-ep__all" href="/schedule">See the full week</a>
+          </p>
+        )
+      }
 
       {
         freeLinks.length > 0 && (

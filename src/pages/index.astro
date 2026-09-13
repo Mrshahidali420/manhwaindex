@@ -1,6 +1,7 @@
 ---
 export const prerender = true
 import Base from '../layouts/Base.astro'
+import Countdown from '../components/Countdown.astro'
 import CoverGrid from '../components/CoverGrid.astro'
 import { animeByPopularity, comics, comicsOfCountry, anime, genres, platform, airingThisWeek } from '../lib/catalog.js'
 
@@ -26,11 +27,9 @@ const legendNames = [
 ]
 const legend = legendNames.map((name) => ({ name, color: platform(name).color }))
 
-// Airing schedule: episode day names are computed at build time (daily rebuild).
-const airing = airingThisWeek.slice(0, 8).map((a) => ({
-  ...a,
-  airDay: new Date(a.nextEpisode.at * 1000).toLocaleDateString('en-US', { weekday: 'long' }),
-}))
+// Airing schedule. The countdown itself is drawn in the reader's browser, so
+// the list carries only the raw timestamp. See components/Countdown.astro.
+const airing = airingThisWeek.slice(0, 8)
 
 // One shelf per catalog, all visible at once. Arrows scroll each shelf.
 const rows = [
@@ -165,7 +164,10 @@ const jsonld = {
         <section class="section" data-phase="night">
           <div class="section__head">
             <h2>New episodes this week</h2>
-            <p>Fresh from the airing schedule. Every link goes to an official stream.</p>
+            <p>
+              Fresh from the airing schedule. Every link goes to an official stream.
+              <a href="/schedule">See the full week</a>.
+            </p>
           </div>
           <ul class="airing">
             {airing.map((a) => (
@@ -175,7 +177,7 @@ const jsonld = {
                   <span>
                     <b>{a.title}</b>
                     <em>
-                      Episode {a.nextEpisode.number} · {a.airDay}
+                      Episode {a.nextEpisode.number} · <Countdown at={a.nextEpisode.at} />
                       {a.watchLinks.length ? ` · on ${a.watchLinks.length} platforms` : ''}
                     </em>
                   </span>
