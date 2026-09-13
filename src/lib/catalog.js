@@ -1,6 +1,7 @@
 import comicsRaw from '../../data/comics.json'
 import animeRaw from '../../data/anime.json'
 import characterData from '../../data/characters.json'
+import enrichRaw from '../../data/enrich.json'
 import { reslugAll } from './reslug.mjs'
 
 // Public URLs carry clean slugs, never database ids (see reslug.mjs).
@@ -8,6 +9,12 @@ reslugAll(comicsRaw, animeRaw, characterData)
 
 export const comics = comicsRaw
 export const anime = animeRaw
+
+// Extra data pulled by scripts/enrich-mal.mjs: MAL score via Jikan, and
+// cross-site links via anime-offline-database. Keyed by AniList id, so
+// reslugging never breaks the lookup. Empty object when not yet pulled.
+export const enrichOf = (item) =>
+  enrichRaw[`${item.kind === 'anime' ? 'anime' : 'comic'}:${item.id}`] || {}
 
 /**
  * Brand marks for every platform we link to.

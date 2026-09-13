@@ -104,6 +104,13 @@ const jsonld = {
     </p>
   </div>
 
+  <nav class="shell kinds" aria-label="Browse by type">
+    <a href="/manhwa"><b>Manhwa</b><span>Korean comics · {comicsOfCountry('KR').length.toLocaleString()} titles</span></a>
+    <a href="/manga"><b>Manga</b><span>Japanese comics · {comicsOfCountry('JP').length.toLocaleString()} titles</span></a>
+    <a href="/manhua"><b>Manhua</b><span>Chinese comics · {(comicsOfCountry('CN').length + comicsOfCountry('TW').length).toLocaleString()} titles</span></a>
+    <a href="/anime"><b>Anime</b><span>Series and films · {anime.length.toLocaleString()} titles</span></a>
+  </nav>
+
   <div class="shell">
     {
       rows.map((row) => (

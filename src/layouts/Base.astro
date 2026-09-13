@@ -1,5 +1,6 @@
 ---
 import '../styles/app.css'
+import { genres, comics, anime } from '../lib/catalog.js'
 
 const {
   title,
@@ -24,6 +25,8 @@ const nav = [
   { href: '/character', label: 'Characters' },
 ]
 const here = Astro.url.pathname
+const footGenres = genres.slice(0, 8)
+const year = new Date().getUTCFullYear()
 ---
 
 <!doctype html>
@@ -138,12 +141,15 @@ const here = Astro.url.pathname
 
     <footer class="colophon">
       <div class="shell colophon__grid">
-        <div>
+        <div class="colophon__brand">
           <a class="wordmark" href="/">manhwa<span>index</span></a>
           <p>
-            The official-sources index. Look up a manhwa, manga, manhua or anime and get
-            the apps and platforms that legally carry it. We host no chapters and no
-            episodes — every link goes to the rights holder.
+            The official-sources index. Look up a manhwa, manga, manhua or anime and
+            get the apps and platforms that legally carry it. We host no chapters and
+            no episodes — every link goes to the rights holder.
+          </p>
+          <p class="colophon__count">
+            {comics.length.toLocaleString()} comics · {anime.length.toLocaleString()} anime · refreshed daily
           </p>
         </div>
         <div>
@@ -153,23 +159,36 @@ const here = Astro.url.pathname
             <li><a href="/manga">Manga</a></li>
             <li><a href="/manhua">Manhua</a></li>
             <li><a href="/anime">Anime</a></li>
-            <li><a href="/where-to-read">Where to Read</a></li>
-            <li><a href="/genre">Genres</a></li>
             <li><a href="/character">Characters</a></li>
+            <li><a href="/where-to-read">Where to read</a></li>
           </ul>
         </div>
         <div>
-          <h3>About</h3>
+          <h3>Genres</h3>
+          <ul>
+            {footGenres.map((g) => (
+              <li><a href={`/genre/${g.slug}`}>{g.name}</a></li>
+            ))}
+            <li><a href="/genre">All genres</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>About the data</h3>
           <p>
-            Title data and cover art come from
-            <a href="https://anilist.co" rel="noopener">AniList</a>. Availability changes
-            often — when a link looks wrong, check the platform directly. Found a broken
-            link? It will fix itself: the index refreshes every day.
+            Title data, scores and cover art come from
+            <a href="https://anilist.co" rel="noopener">AniList</a>. Cover art belongs to
+            its publishers. Availability changes often — when a link looks wrong, check
+            the platform directly. The index rebuilds itself every day at 02:00 UTC, so
+            broken links fix themselves.
+          </p>
+          <p>
+            manhwaindex is not affiliated with any publisher or streaming service.
           </p>
         </div>
       </div>
-      <div class="shell colophon__cue">
-        <span class="cue">The index refreshes daily at 02:00 UTC</span>
+      <div class="shell colophon__bar">
+        <span>© {year} manhwaindex</span>
+        <span>Official sources only. No mirrors, no scans.</span>
       </div>
     </footer>
 
