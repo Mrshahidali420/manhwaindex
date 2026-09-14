@@ -132,6 +132,16 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       gtag('js', new Date())
       gtag('config', 'G-R1V6DJN1L3')
     </script>
+
+    <!-- Google AdSense. Declared in /privacy. The tag is loaded on every page,
+         but nothing is shown until Google approves the site, and no ad slot is
+         placed in the markup yet. `async` keeps it off the critical path. -->
+    <meta name="google-adsense-account" content="ca-pub-2789392733984505" />
+    <script
+      is:inline
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2789392733984505"
+      crossorigin="anonymous"></script>
   </head>
 
   <body>
