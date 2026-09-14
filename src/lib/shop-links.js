@@ -13,6 +13,10 @@
  * carries only the title we already own, works on all ~104,000 pages the day it
  * ships, and can never rot into a dead listing or a wrong price.
  *
+ * Each row names its own icon and its own button words. A row that says
+ * "Shop figures" is worth more than three rows that all say "Shop", because
+ * the reader knows what is behind it before they spend the tap.
+ *
  * It imports nothing.
  */
 
@@ -59,27 +63,35 @@ export function shopLinks(item) {
   const rows = isAnime
     ? [
         {
+          icon: 'disc',
           label: 'Blu-ray and DVD',
           note: 'The disc release, if one was made',
+          cta: 'Shop discs',
           url: shopUrl(`${name} anime`, VIDEO),
         },
         {
+          icon: 'book',
           label: 'The manga it came from',
           note: 'Printed volumes of the original',
+          cta: 'Shop books',
           url: shopUrl(`${name} manga`, BOOKS),
         },
       ]
     : [
         {
+          icon: 'book',
           label: 'Printed volumes',
-          note: 'The official English print run, if there is one',
+          note: 'The official English print run',
+          cta: 'Shop books',
           url: shopUrl(`${name} manga`, BOOKS),
         },
       ]
 
   rows.push({
+    icon: 'figure',
     label: 'Figures and merch',
     note: 'Figures, art books, posters and apparel',
+    cta: 'Shop merch',
     url: shopUrl(`${name} anime`, TOYS),
   })
 
@@ -117,18 +129,24 @@ export function characterShopLinks(person, seriesTitle) {
 
   return [
     {
+      icon: 'figure',
       label: 'Figures',
-      note: `Statues and figures of ${who}`,
+      note: `Statues and scale figures of ${who}`,
+      cta: 'Shop figures',
       url: shopUrl(`${both} figure`, TOYS),
     },
     {
+      icon: 'poster',
       label: 'Posters and prints',
-      note: 'Wall art and art books',
+      note: 'Wall art, art books and canvases',
+      cta: 'Shop prints',
       url: shopUrl(`${both} poster`, TOYS),
     },
     {
+      icon: 'shirt',
       label: 'Apparel',
       note: 'Shirts, hoodies and accessories',
+      cta: 'Shop apparel',
       url: shopUrl(`${both} shirt`, TOYS),
     },
   ]

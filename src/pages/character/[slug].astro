@@ -2,7 +2,8 @@
 import Base from '../../layouts/Base.astro'
 import { characterIsThin, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/format.js'
 import { loadCharacter, envOf, notFound } from '../../lib/runtime.js'
-import { characterShopLinks, AMAZON_DISCLOSURE } from '../../lib/shop-links.js'
+import { characterShopLinks } from '../../lib/shop-links.js'
+import BuyBox from '../../components/BuyBox.astro'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
 const person = await loadCharacter(envOf(Astro), Astro.params.slug)
@@ -83,6 +84,14 @@ const jsonld = {
       </div>
     </article>
 
+    {buys.length > 0 && (
+      <BuyBox
+        heading={`Own a piece of ${person.name}`}
+        sub="Figures, prints and apparel, straight from Amazon."
+        rows={buys}
+      />
+    )}
+
     <section class="section">
       <div class="section__head">
         <h2>Where {person.name} shows up</h2>
@@ -103,30 +112,6 @@ const jsonld = {
         ))}
       </ul>
     </section>
-
-    {buys.length > 0 && (
-      <section class="section answer--buy">
-        <div class="answer__head">
-          <h2>{person.name} merchandise</h2>
-          <p class="answer__count">Buy on Amazon</p>
-        </div>
-        <ul class="buys">
-          {buys.map((row) => (
-            <li class="buy">
-              <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
-                <span class="buy__label">{row.label}</span>
-                <span class="buy__note">{row.note}</span>
-                <span class="buy__go">Shop</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-        <p class="buys__note">
-          We hold no stock and ship nothing. Each link opens Amazon, so you see what
-          is really on sale today. {AMAZON_DISCLOSURE}
-        </p>
-      </section>
-    )}
 
     {person.description && (
       <section class="section">

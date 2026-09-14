@@ -16,7 +16,8 @@ import {
 import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
-import { shopLinks, AMAZON_DISCLOSURE } from '../../lib/shop-links.js'
+import { shopLinks } from '../../lib/shop-links.js'
+import BuyBox from '../../components/BuyBox.astro'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -387,27 +388,11 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
 
       {
         buys.length > 0 && (
-          <section class="answer answer--buy">
-            <div class="answer__head">
-              <h2>Own a copy</h2>
-              <p class="answer__count">Buy on Amazon</p>
-            </div>
-            <ul class="buys">
-              {buys.map((row) => (
-                <li class="buy">
-                  <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
-                    <span class="buy__label">{row.label}</span>
-                    <span class="buy__note">{row.note}</span>
-                    <span class="buy__go">Shop</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <p class="buys__note">
-              We hold no stock and ship nothing. Each link opens Amazon, so
-              you see what is actually in print today. {AMAZON_DISCLOSURE}
-            </p>
-          </section>
+          <BuyBox
+            heading="Own a copy"
+            sub={`Books, discs and figures for ${item.title}, straight from Amazon.`}
+            rows={buys}
+          />
         )
       }
 
