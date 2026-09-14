@@ -117,3 +117,63 @@ export function ofGenre(name) {
     anime: anime.filter((a) => (a.genres || []).includes(name)),
   }
 }
+
+// --- platform hubs ----------------------------------------------------------
+/** How many titles a platform must carry before it earns its own page. */
+const HUB_MINIMUM = 12
+
+/**
+ * One entry per platform that carries enough titles to be worth a page.
+ *
+ * These hubs answer a search a title page cannot: "what can I read on WEBTOON",
+ * "is Tapas free", "what anime is on HIDIVE". The list, the order and the
+ * plain-English cost line are our own work, so the page repeats nothing that
+ * AniList publishes.
+ *
+ * Aliases merge by slug. AniList writes both "MANGA Plus" and "Manga Plus";
+ * they are one platform and they get one page.
+ */
+export const platformHubs = (() => {
+  const map = new Map()
+
+  const collect = (items, linkKey, bucket) => {
+    for (const item of items) {
+      // One title counts once per platform, even when it links four editions.
+      const seen = new Set()
+      for (const link of item[linkKey] || []) {
+        if (!link || !link.site) continue
+        const slug = genreSlug(link.site)
+        if (!slug || seen.has(slug)) continue
+        seen.add(slug)
+        let row = map.get(slug)
+        if (!row) {
+          row = { slug, name: link.site, comics: [], anime: [] }
+          map.set(slug, row)
+        }
+        row[bucket].push(item)
+      }
+    }
+  }
+
+  collect(comics, 'readLinks', 'comics')
+  collect(anime, 'watchLinks', 'anime')
+
+  return [...map.values()]
+    .filter((row) => row.comics.length + row.anime.length >= HUB_MINIMUM)
+    .map((row) => ({
+      ...row,
+      comics: row.comics.sort(byPopularity),
+      anime: row.anime.sort(byPopularity),
+      total: row.comics.length + row.anime.length,
+    }))
+    .sort((a, b) => b.total - a.total)
+})()
+
+/** Quick lookup for the "Where to read" ledger, which links to these pages. */
+export const hubSlugOf = (() => {
+  const bySlug = new Set(platformHubs.map((row) => row.slug))
+  return (site) => {
+    const slug = genreSlug(site || '')
+    return bySlug.has(slug) ? slug : null
+  }
+})()

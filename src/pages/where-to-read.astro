@@ -1,7 +1,7 @@
 ---
 export const prerender = true
 import Base from '../layouts/Base.astro'
-import { comics, anime, platform } from '../lib/catalog.js'
+import { comics, anime, platform, hubSlugOf } from '../lib/catalog.js'
 
 // One row per platform we link to, with how many titles it carries here.
 function tally(items, key) {
@@ -15,7 +15,9 @@ function tally(items, key) {
     }
   }
   return [...map.entries()]
-    .map(([name, count]) => ({ name, count, ...platform(name) }))
+    // A platform with its own hub page becomes a link. The rest stay plain
+    // text, because a link to a page we do not build is a 404.
+    .map(([name, count]) => ({ name, count, hub: hubSlugOf(name), ...platform(name) }))
     .sort((a, b) => b.count - a.count)
 }
 
@@ -79,7 +81,7 @@ const jsonld = {
           reading.map((p) => (
             <li style={`--mark:${p.color}`}>
               <i aria-hidden="true" />
-              <b>{p.name}</b>
+              <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
               <span>{p.note || 'Official'}</span>
               <em>{p.count.toLocaleString()} titles</em>
             </li>
@@ -99,7 +101,7 @@ const jsonld = {
           streaming.map((p) => (
             <li style={`--mark:${p.color}`}>
               <i aria-hidden="true" />
-              <b>{p.name}</b>
+              <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
               <span>{p.note || 'Official'}</span>
               <em>{p.count.toLocaleString()} anime</em>
             </li>

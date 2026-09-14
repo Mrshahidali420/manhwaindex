@@ -6,6 +6,7 @@ import {
   genres,
   comicsOfCountry,
   animeByPopularity,
+  platformHubs,
 } from './catalog.js'
 import { FILTERS } from './filters.js'
 import { MOODS } from './moods.mjs'
@@ -58,6 +59,12 @@ function coreUrls() {
         urls.push({ loc: `${SITE}/${kind}/only/${filter}`, priority: '0.6' })
       }
     }
+  }
+
+  // One hub per official platform. These are the pages that answer
+  // "what can I read on X", so they sit high in the crawl order.
+  for (const hub of platformHubs) {
+    urls.push({ loc: `${SITE}/platform/${hub.slug}`, priority: '0.8' })
   }
 
   for (const g of genres) {

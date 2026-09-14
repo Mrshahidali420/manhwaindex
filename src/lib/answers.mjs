@@ -457,3 +457,107 @@ export const faqJsonld = (faq) => ({
     acceptedAnswer: { '@type': 'Answer', text: row.a },
   })),
 })
+
+/* ----------------------------------------------------- the platform itself */
+
+/**
+ * The platform hub pages describe a PLATFORM, not a title, so they need their
+ * own sentences. These turn the same four facts the comparison table uses into
+ * plain English a reader can act on.
+ *
+ * `unit` is "chapters" for a reading platform and "episodes" for a streaming
+ * one, so one set of sentences covers both shelves.
+ */
+const PAY_SENTENCE = {
+  [PAY.ADS]: 'You pay nothing. Advertising pays for it.',
+  [PAY.COINS]: 'You buy coins first, then spend the coins on single UNITS.',
+  [PAY.BUY]: 'You buy each UNIT on its own.',
+  [PAY.SUB]: 'You pay a fee every month.',
+  [PAY.SUB_FREE]: 'There is a free level. A monthly fee opens the rest.',
+  [PAY.PRINT]: 'You buy the book, in print or as an ebook.',
+  [PAY.LIBRARY]: 'It costs nothing if you have a library card.',
+}
+
+const FREE_SENTENCE = {
+  [FREE.ALL]: 'Every UNIT is free.',
+  [FREE.MOST]: 'Most UNITS are free.',
+  [FREE.EARLY]: 'Every UNIT is free except the newest ones.',
+  [FREE.SOME]: 'The first chapters of each series are free.',
+  [FREE.SOME_EP]: 'The first episodes of each series are free.',
+  [FREE.TIMER]: 'You get one free UNIT at a time. Then you wait, or you pay.',
+  [FREE.TRIAL]: 'There is a free trial, and nothing more.',
+  [FREE.NONE]: 'Nothing is free here.',
+}
+
+const fill = (sentence, unit) =>
+  sentence.split('UNITS').join(unit).split('UNIT').join(unit.slice(0, -1))
+
+/**
+ * Where the service works. The region strings are already written for a
+ * reader, so they are used as they stand; only "Some countries" needs help,
+ * because on its own it tells nobody anything.
+ */
+const regionSentence = (region) => {
+  if (region === 'Worldwide') return 'It works in almost every country.'
+  if (region === 'Some countries') {
+    return 'It only works in some countries. Its own page lists which ones.'
+  }
+  return `It only works in ${region}.`
+}
+
+/**
+ * Three to five short sentences saying what this platform asks of a reader.
+ * Returns null when we hold no facts for it, because a guess is worse than
+ * silence.
+ */
+export function platformHow(name, facts, unit) {
+  if (!facts || !facts.pay) return null
+  const lines = [`${name} works like this.`]
+  if (PAY_SENTENCE[facts.pay]) lines.push(fill(PAY_SENTENCE[facts.pay], unit))
+  if (FREE_SENTENCE[facts.free]) lines.push(fill(FREE_SENTENCE[facts.free], unit))
+  if (facts.region) lines.push(regionSentence(facts.region))
+  lines.push(facts.account ? 'You must make an account.' : 'You do not need an account.')
+  return lines.join(' ')
+}
+
+/**
+ * The questions a person types before they open a platform. Answered from the
+ * same four facts, so the answer can never drift from the table.
+ */
+export function platformFaq(name, facts, unit, verb, counts) {
+  const rows = []
+  if (facts && facts.free) {
+    rows.push({
+      q: `Is ${name} free?`,
+      a: `${fill(FREE_SENTENCE[facts.free] || '', unit)} ${
+        PAY_SENTENCE[facts.pay] ? fill(PAY_SENTENCE[facts.pay], unit) : ''
+      }`.trim(),
+    })
+  }
+  if (facts && facts.region) {
+    rows.push({
+      q: `Does ${name} work in my country?`,
+      a:
+        facts.region === 'Worldwide'
+          ? `${name} works in almost every country. A few series are still blocked in some places, because the licence is sold country by country.`
+          : facts.region === 'Some countries'
+            ? `${name} is only open in some countries. Its own page lists which ones. Outside that list most of the library is blocked.`
+            : `${name} is made for ${facts.region}. Outside that area most of the library is blocked.`,
+    })
+  }
+  if (facts && facts.account !== null && facts.account !== undefined) {
+    rows.push({
+      q: `Do I need an account for ${name}?`,
+      a: facts.account
+        ? `Yes. You must sign in before you can ${verb}.`
+        : `No. You can start to ${verb} without signing in. An account only saves your place.`,
+    })
+  }
+  if (counts && counts.total > 0) {
+    rows.push({
+      q: `How many titles on this site are on ${name}?`,
+      a: `${counts.total.toLocaleString()} of them. That is what this index has found so far, and it grows every day.`,
+    })
+  }
+  return rows
+}
