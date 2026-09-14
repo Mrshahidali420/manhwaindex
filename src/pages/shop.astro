@@ -1,0 +1,199 @@
+---
+/**
+ * The shop shelf.
+ *
+ * Every title page already says where to buy that one series. This page is the
+ * other direction: a reader who wants merch but has not picked a series yet.
+ *
+ * It is built from the same catalog as everything else, so the daily ingest
+ * refreshes the shelf with no extra step. A title that climbs in popularity
+ * appears here the next morning, and one that fades drops off.
+ *
+ * We stock nothing and we hold no product data. Every link opens Amazon.
+ */
+export const prerender = true
+import Base from '../layouts/Base.astro'
+import { comicsOfCountry, animeByPopularity, genres } from '../lib/catalog.js'
+import { shelfLinks, shopUrl, AMAZON_DISCLOSURE, BOOKS, TOYS } from '../lib/shop-links.js'
+
+// How many covers a shelf shows. Enough to browse, few enough that the page
+// still loads fast on a phone.
+const PER_SHELF = 18
+
+// Chinese titles come from two places, and a reader does not care which.
+const manhua = [...comicsOfCountry('CN'), ...comicsOfCountry('TW')].sort(
+  (a, b) => b.popularity - a.popularity
+)
+
+const shelves = [
+  {
+    id: 'manhwa',
+    heading: 'Manhwa merchandise',
+    blurb:
+      'Korean webtoons. Most run as digital-first, so the printed volumes are the thing collectors hunt for.',
+    base: '/manhwa',
+    items: comicsOfCountry('KR').slice(0, PER_SHELF),
+    more: '/manhwa',
+  },
+  {
+    id: 'manga',
+    heading: 'Manga merchandise',
+    blurb:
+      'Japanese comics. These have the deepest print runs, the box sets and the widest figure lines.',
+    base: '/manga',
+    items: comicsOfCountry('JP').slice(0, PER_SHELF),
+    more: '/manga',
+  },
+  {
+    id: 'manhua',
+    heading: 'Manhua merchandise',
+    blurb:
+      'Chinese comics. English print is thinner here, so the merch shelf is often better stocked than the book shelf.',
+    base: '/manhua',
+    items: manhua.slice(0, PER_SHELF),
+    more: '/manhua',
+  },
+  {
+    id: 'anime',
+    heading: 'Anime discs and figures',
+    blurb:
+      'Series with a disc release, a soundtrack, or a figure line. Start here if you want something on a shelf.',
+    base: '/anime',
+    items: animeByPopularity.slice(0, PER_SHELF),
+    more: '/anime',
+  },
+].filter((shelf) => shelf.items.length > 0)
+
+// Genre doors. The catalog decides which genres are big enough to show, so
+// this row keeps itself honest without anybody editing a list.
+const genreRows = genres.slice(0, 14).map((g) => ({
+  name: g.name,
+  books: shopUrl(`${g.name} manga`, BOOKS),
+  merch: shopUrl(`${g.name} anime`, TOYS),
+}))
+
+// Broad doors for a reader with no series in mind yet.
+const starters = [
+  { label: 'Manga box sets', url: shopUrl('manga box set', BOOKS) },
+  { label: 'Manhwa in print', url: shopUrl('manhwa', BOOKS) },
+  { label: 'Light novels', url: shopUrl('light novel', BOOKS) },
+  { label: 'Art books', url: shopUrl('anime art book', BOOKS) },
+  { label: 'Anime figures', url: shopUrl('anime figure', TOYS) },
+  { label: 'Wall scrolls and posters', url: shopUrl('anime poster', TOYS) },
+  { label: 'Plushies', url: shopUrl('anime plush', TOYS) },
+  { label: 'Apparel', url: shopUrl('anime shirt', TOYS) },
+]
+
+const description =
+  'Where to buy manhwa, manga and anime merchandise: printed volumes, box sets, Blu-ray, figures, art books and posters, sorted by what readers here actually read.'
+---
+
+<Base
+  title="Shop manhwa, manga and anime merchandise"
+  description={description}
+  canonical="/shop"
+  crumbs={[{ name: 'Shop' }]}
+>
+  <div class="shell">
+    <header class="section__head">
+      <h1>Shop manhwa, manga and anime merchandise</h1>
+      <p>
+        Books, box sets, discs and figures for the series in this index. We hold no
+        stock and ship nothing. Every link opens Amazon, so you see what is really
+        in print today. {AMAZON_DISCLOSURE}
+      </p>
+    </header>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Start here</h2>
+        <p>Broad shelves, for when you want to browse rather than hunt one series.</p>
+      </div>
+      <ul class="chips">
+        {
+          starters.map((row) => (
+            <li>
+              <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+                {row.label} →
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    {
+      shelves.map((shelf) => (
+        <section class="section" id={shelf.id}>
+          <div class="section__head">
+            <h2>{shelf.heading}</h2>
+            <p>{shelf.blurb}</p>
+          </div>
+          <ul class="shop-shelf">
+            {shelf.items.map((item, i) => (
+              <li class="shop-card">
+                <a class="shop-card__cover" href={`${shelf.base}/${item.slug}`}>
+                  <img
+                    src={item.cover}
+                    alt={`Cover of ${item.title}`}
+                    width="230"
+                    height="345"
+                    loading={i < 6 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                  <span class="shop-card__title">{item.title}</span>
+                </a>
+                <p class="shop-card__buy">
+                  {shelfLinks(item).map((row) => (
+                    <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+                      {row.label}
+                    </a>
+                  ))}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p class="shop-shelf__more">
+            <a href={shelf.more}>See every title in this shelf →</a>
+          </p>
+        </section>
+      ))
+    }
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Shop by genre</h2>
+        <p>The genres this index carries most of. Books on the left, merch on the right.</p>
+      </div>
+      <ul class="shop-genres">
+        {
+          genreRows.map((row) => (
+            <li>
+              <b>{row.name}</b>
+              <a href={row.books} rel="noopener nofollow sponsored" target="_blank">
+                Books
+              </a>
+              <a href={row.merch} rel="noopener nofollow sponsored" target="_blank">
+                Merch
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>How this page works</h2>
+      </div>
+      <p class="shop-note">
+        We are an index, not a shop. We hold no stock, take no payment and ship
+        nothing. Each link opens Amazon with the title already filled in, so the
+        price, the stock and the edition you see are Amazon's own and are correct
+        at the moment you look. A series that was never printed in English will
+        show an empty shelf, and that is the honest answer.
+        {' '}{AMAZON_DISCLOSURE}
+      </p>
+    </section>
+  </div>
+</Base>

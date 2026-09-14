@@ -1000,6 +1000,108 @@ main:has(.title-page) {
 /* Own a copy. These are search links, not products, so each row reads as a
    door and not as a price tag. Same shape as the platform rows above, because
    a reader has already learned to read that shape by the time they get here. */
+/* The shop shelf. A cover here is still a door into the index, so the image
+   and the title link inward and only the two small words link out. That keeps
+   the page a catalog page and not a storefront pretending to hold stock. */
+.shop-shelf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1.25rem 1rem;
+}
+.shop-card__cover {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.shop-card__cover img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--cobalt-line);
+  background: var(--night-sunk);
+  transition: border-color 160ms ease;
+}
+.shop-card__cover:hover img,
+.shop-card__cover:focus-visible img {
+  border-color: var(--rose);
+}
+.shop-card__title {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.shop-card__buy {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.45rem 0 0;
+}
+.shop-card__buy a {
+  flex: 1;
+  text-align: center;
+  padding: 0.3rem 0.2rem;
+  border: 1px solid var(--rose-soft);
+  border-radius: 999px;
+  color: var(--rose);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+.shop-card__buy a:hover,
+.shop-card__buy a:focus-visible {
+  background: var(--night-raised);
+}
+.shop-shelf__more {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+}
+
+/* Genre doors: one row per genre, the two shops sitting at the end of it. */
+.shop-genres {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.5rem;
+}
+.shop-genres li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 12px;
+  background: var(--night-sunk);
+}
+.shop-genres b {
+  flex: 1;
+  font-size: 0.9rem;
+}
+.shop-genres a {
+  color: var(--rose);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.shop-genres a:hover,
+.shop-genres a:focus-visible {
+  text-decoration: underline;
+}
+.shop-note {
+  color: var(--dawn-dim);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 68ch;
+}
 /* The buy box sits above the read table, so it has to look like a real offer
    and not like an advert bolted on. The rose edge and the lifted ground give
    it weight without shouting over the answer the reader actually came for. */
