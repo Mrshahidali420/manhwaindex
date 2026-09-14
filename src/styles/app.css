@@ -1181,14 +1181,9 @@ main:has(.title-page) {
   background: var(--night-raised);
 }
 
-/* the gel: this platform's colour, mounted like a lighting filter */
+/* the gel: this platform's tile, mounted like a lighting filter */
 .platform__edge {
   grid-row: 1 / span 2;
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
-  background: var(--mark, var(--dawn-faint));
-  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--mark, #888) 60%, transparent);
 }
 
 .platform__name {
@@ -1512,6 +1507,48 @@ main:has(.title-page) {
   line-height: 1.5;
 }
 
+/* The platform tile. One shape for every platform on the site: the brand
+   colour, and inside it the real mark when we may legally ship it, or the
+   platform's initials when we may not. Same size, same weight, so a row of
+   them reads as a set and not as a pile of logos. */
+.mark {
+  --mark: var(--cobalt-line);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--mark-size, 2.1rem);
+  block-size: var(--mark-size, 2.1rem);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--mark) 15%, var(--night-sunk));
+  border: 1px solid color-mix(in srgb, var(--mark) 45%, transparent);
+  box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--mark) 70%, transparent);
+}
+.mark svg {
+  inline-size: 54%;
+  block-size: 54%;
+  fill: var(--mark);
+}
+.mark b {
+  font-family: var(--stencil);
+  font-size: calc(var(--mark-size, 2.1rem) * 0.36);
+  line-height: 1;
+  color: var(--mark);
+}
+
+/* Hub page header: the tile sits beside the headline, not above it. */
+.section__head--mark {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 1rem;
+  align-items: center;
+}
+.section__head--mark > h1 {
+  margin: 0;
+}
+.section__head--mark > p {
+  grid-column: 2;
+}
+
 .ledger {
   list-style: none;
   margin: 0;
@@ -1530,12 +1567,8 @@ main:has(.title-page) {
   border-radius: 4px;
   padding: 0.6rem 0.85rem;
 }
-.ledger i {
+.ledger .mark {
   grid-area: mark;
-  width: 0.55rem;
-  height: 2.1rem;
-  border-radius: 2px;
-  background: var(--mark, var(--cobalt-line));
 }
 .ledger b {
   grid-area: name;

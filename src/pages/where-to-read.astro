@@ -2,6 +2,7 @@
 export const prerender = true
 import Base from '../layouts/Base.astro'
 import { comics, anime, platform, hubSlugOf } from '../lib/catalog.js'
+import Mark from '../components/Mark.astro'
 
 // One row per platform we link to, with how many titles it carries here.
 function tally(items, key) {
@@ -80,7 +81,7 @@ const jsonld = {
         {
           reading.map((p) => (
             <li style={`--mark:${p.color}`}>
-              <i aria-hidden="true" />
+              <Mark site={p.name} />
               <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
               <span>{p.note || 'Official'}</span>
               <em>{p.count.toLocaleString()} titles</em>
@@ -100,7 +101,7 @@ const jsonld = {
         {
           streaming.map((p) => (
             <li style={`--mark:${p.color}`}>
-              <i aria-hidden="true" />
+              <Mark site={p.name} />
               <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
               <span>{p.note || 'Official'}</span>
               <em>{p.count.toLocaleString()} anime</em>

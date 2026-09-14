@@ -2,6 +2,7 @@
 // safe for the Worker to import at request time. Anything that needs the
 // whole catalog lives in catalog.js and is build-time only.
 import { PLATFORMS, FALLBACK } from './platforms.js'
+import { LOGOS } from './platform-logos.js'
 
 export const platform = (site) => PLATFORMS[site] || FALLBACK
 
@@ -94,3 +95,29 @@ export function kindOfAppearance(appearance) {
 // shard record, and the Worker reads it off the record it already loaded.
 // Empty object when nothing has been pulled for this title yet.
 export const enrichOf = (item) => item.extra || {}
+
+/* ------------------------------------------------------------ brand marks */
+/**
+ * Every platform gets the same square tile. The tile is the brand colour.
+ * Inside it there is either the real brand mark, or the platform's initials.
+ *
+ * We only ship a real mark when the brand is in simple-icons, which is CC0.
+ * The other platforms would need a logo we have no licence for, so they get
+ * letters instead. One shape for all of them means the page still looks made
+ * on purpose, and a platform added next year works with no extra step.
+ */
+const initialsOf = (site) => {
+  const words = site.trim().split(/\s+/).filter(Boolean)
+  if (words.length > 1) return words[0][0] + words[1][0]
+  // One word can still be two words joined: WebComics, WeTV, KakaoPage. Using
+  // the second capital keeps them apart, which "We" three times would not.
+  const inner = site.slice(1).search(/[A-Z]/)
+  if (inner > -1) return site[0] + site[inner + 1]
+  return site.slice(0, 2)
+}
+
+export const markOf = (site) => ({
+  ...platform(site),
+  path: LOGOS[site] || null,
+  initials: initialsOf(site || '?'),
+})

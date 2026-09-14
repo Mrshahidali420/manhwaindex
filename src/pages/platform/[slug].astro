@@ -10,6 +10,7 @@
 export const prerender = true
 import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
+import Mark from '../../components/Mark.astro'
 import { platformHubs, platform, genreSlug } from '../../lib/catalog.js'
 import { factsFor } from '../../lib/platform-facts.js'
 import { platformHow, platformFaq, faqJsonld } from '../../lib/answers.mjs'
@@ -88,7 +89,8 @@ if (faq.length) jsonld.push(faqJsonld(faq))
 >
   <div class="shell">
     <section class="section">
-      <div class="section__head">
+      <div class="section__head section__head--mark">
+        <Mark site={hub.name} size="3.2rem" />
         <h1>{headline}</h1>
         <p>{summary} Sorted by readers, most read first.</p>
       </div>
