@@ -997,6 +997,56 @@ main:has(.title-page) {
 
 /* The other names this title goes by. A reader often knows only the fan name,
    so the page says it out loud instead of hiding it in the markup. */
+/* Own a copy. These are search links, not products, so each row reads as a
+   door and not as a price tag. Same shape as the platform rows above, because
+   a reader has already learned to read that shape by the time they get here. */
+.buys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.buy a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.15rem 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 12px;
+  background: var(--night-sunk);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.buy a:hover,
+.buy a:focus-visible {
+  border-color: var(--rose);
+  background: var(--night-raised);
+}
+.buy__label {
+  font-weight: 600;
+}
+.buy__note {
+  grid-column: 1;
+  color: var(--dawn-dim);
+  font-size: 0.85rem;
+}
+.buy__go {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--rose);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.buys__note {
+  color: var(--dawn-dim);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin: 0.75rem 0 0;
+}
 .title-head__aka {
   color: var(--dawn-dim);
   margin: 0.35rem 0 0;

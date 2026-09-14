@@ -16,6 +16,7 @@ import {
 import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
+import { shopLinks, AMAZON_DISCLOSURE } from '../../lib/shop-links.js'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -114,6 +115,10 @@ const alsoKnown = [...new Set((item.synonyms || []).filter((n) => /^[ -~À-ɏ'�
   .filter((n) => n.toLowerCase() !== (item.titleRomaji || '').toLowerCase())
   .slice(0, 5)
 
+// A reader who finished a series often wants to own it. We sell nothing and
+// stock nothing, so these open a search on Amazon and let the reader see what
+// is really in print.
+const buys = shopLinks(item)
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': isComic ? 'Book' : 'TVSeries',
@@ -397,6 +402,32 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           </p>
         </Fragment>
       </Platforms>
+
+      {
+        buys.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Own a copy</h2>
+              <p class="answer__count">Search Amazon</p>
+            </div>
+            <ul class="buys">
+              {buys.map((row) => (
+                <li class="buy">
+                  <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+                    <span class="buy__label">{row.label}</span>
+                    <span class="buy__note">{row.note}</span>
+                    <span class="buy__go">Search</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p class="buys__note">
+              We hold no stock and ship nothing. Each link opens a search on Amazon, so
+              you see what is actually in print today. {AMAZON_DISCLOSURE}
+            </p>
+          </section>
+        )
+      }
 
       {
         reach && (
