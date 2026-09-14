@@ -58,6 +58,11 @@ export function loadCharacter(env, slug) {
 /** The Cloudflare runtime, whatever Astro version put it there. */
 export const envOf = (astro) => astro.locals?.runtime?.env
 
+// Cloudflare stamps every request with the reader's country. It is used to
+// pick their own Amazon store. An empty answer is fine: the shop links fall
+// back to the US store on their own.
+export const countryOf = (astro) => astro.request.headers.get('cf-ipcountry') || ''
+
 /**
  * The real 404 page, with a real 404 status. Astro cannot rewrite to a
  * page that was built as a file, so the file is served directly.

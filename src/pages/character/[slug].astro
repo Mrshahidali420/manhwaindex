@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro'
 import { characterIsThin, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/format.js'
-import { loadCharacter, envOf, notFound } from '../../lib/runtime.js'
+import { loadCharacter, envOf, countryOf, notFound } from '../../lib/runtime.js'
 import { characterShopLinks } from '../../lib/shop-links.js'
 import BuyBox from '../../components/BuyBox.astro'
 
@@ -22,7 +22,7 @@ const facts = [
 // A character is what a figure is actually made of, so this is the page where
 // merch is the honest answer. The series name goes in the query too, because a
 // first name on its own matches half the shop.
-const buys = characterShopLinks(person, lead.title)
+const buys = characterShopLinks(person, lead.title, countryOf(Astro))
 
 const description = `${person.name} is a character in ${lead.title}. See every manhwa, manga and anime they appear in, and the official places to read or watch each one.`
 

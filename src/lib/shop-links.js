@@ -20,22 +20,113 @@
  * It imports nothing.
  */
 
-// Amazon hands out one tag per site. Tracking lives here so switching it, or
-// dropping it, is one line and not a sweep through the templates.
-const TAG = 'manhwaindex-20'
+/**
+ * The Amazon stores we can be paid by.
+ *
+ * Amazon runs one programme per country and gives a different tag to each, so
+ * a UK reader sent to amazon.com with the US tag earns nothing for either of
+ * us. Cloudflare tells us the reader's country, so we can send them to their
+ * own store instead.
+ *
+ * An empty `tag` means "we have not been approved there yet". Such a store is
+ * never used: the reader falls back to the US store on the US tag, which is
+ * exactly what happens today. So a country switches on the moment its tag is
+ * pasted in, and nothing breaks while it is missing.
+ *
+ * `dept` holds each store's own department ids, because they are NOT the same
+ * everywhere: the US calls its film department `movies-tv` and the UK calls it
+ * `dvd`. A department we are unsure of is simply left out, and the link then
+ * searches the whole store on the same words. That finds slightly more noise,
+ * never an error page.
+ */
+const STORES = {
+  us: {
+    host: 'www.amazon.com',
+    tag: 'manhwaindex-20',
+    dept: { books: 'stripbooks', video: 'movies-tv', toys: 'toys-and-games' },
+  },
+  uk: {
+    host: 'www.amazon.co.uk',
+    tag: 'manhwaindex-21',
+    dept: { books: 'stripbooks', video: 'dvd' },
+  },
+  de: {
+    host: 'www.amazon.de',
+    tag: '',
+    dept: { books: 'stripbooks', video: 'dvd' },
+  },
+  fr: {
+    host: 'www.amazon.fr',
+    tag: '',
+    dept: { books: 'stripbooks', video: 'dvd' },
+  },
+  it: {
+    host: 'www.amazon.it',
+    tag: '',
+    dept: { books: 'stripbooks', video: 'dvd' },
+  },
+  es: {
+    host: 'www.amazon.es',
+    tag: '',
+    dept: { books: 'stripbooks', video: 'dvd' },
+  },
+  ca: {
+    host: 'www.amazon.ca',
+    tag: '',
+    dept: { books: 'stripbooks', video: 'movies-tv' },
+  },
+  jp: {
+    host: 'www.amazon.co.jp',
+    tag: '',
+    dept: { books: 'english-books', video: 'dvd' },
+  },
+}
 
-// Amazon's own department ids. Shopping inside a department is the difference
-// between "the manga" and every phone case with the name printed on it.
-export const BOOKS = 'stripbooks'
-export const VIDEO = 'movies-tv'
-export const TOYS = 'toys-and-games'
+// Which store serves which country. A country that is not listed, or one whose
+// store has no tag yet, gets the US store. Neighbours that genuinely shop on
+// another country's Amazon are pointed at it, because Amazon has no store of
+// their own: Austria buys on amazon.de, Belgium on amazon.fr.
+const COUNTRY_STORE = {
+  GB: 'uk',
+  IE: 'uk',
+  DE: 'de',
+  AT: 'de',
+  CH: 'de',
+  FR: 'fr',
+  BE: 'fr',
+  LU: 'fr',
+  MC: 'fr',
+  IT: 'it',
+  ES: 'es',
+  PT: 'es',
+  CA: 'ca',
+  JP: 'jp',
+}
+
+// Logical department names. The real Amazon id is looked up per store.
+export const BOOKS = 'books'
+export const VIDEO = 'video'
+export const TOYS = 'toys'
 
 /**
- * An Amazon shop link inside one department, carrying our tag.
+ * The store to use for one reader. Falls back to the US store whenever we have
+ * no approved tag for their country, so a link is never built without a tag.
  */
-export function shopUrl(terms, department) {
-  const params = new URLSearchParams({ k: terms, i: department, tag: TAG })
-  return `https://www.amazon.com/s?${params.toString()}`
+export function storeFor(country) {
+  const picked = STORES[COUNTRY_STORE[String(country || '').toUpperCase()]]
+  return picked && picked.tag ? picked : STORES.us
+}
+
+/**
+ * An Amazon shop link in the reader's own store, carrying the tag for it.
+ */
+export function shopUrl(terms, department, country) {
+  const store = storeFor(country)
+  const params = new URLSearchParams({ k: terms })
+  const dept = store.dept[department]
+  if (dept) params.set('i', dept)
+  params.set('tag', store.tag)
+  return `https://${store.host}/s?${params.toString()}`
 }
 
 /**
@@ -54,7 +145,7 @@ export function shopName(item) {
 /**
  * The buy rows for one title page. Empty when we have no usable name.
  */
-export function shopLinks(item) {
+export function shopLinks(item, country) {
   const name = shopName(item)
   if (name.length < 2) return []
 
@@ -67,14 +158,14 @@ export function shopLinks(item) {
           label: 'Blu-ray and DVD',
           note: 'The disc release, if one was made',
           cta: 'Shop discs',
-          url: shopUrl(`${name} anime`, VIDEO),
+          url: shopUrl(`${name} anime`, VIDEO, country),
         },
         {
           icon: 'book',
           label: 'The manga it came from',
           note: 'Printed volumes of the original',
           cta: 'Shop books',
-          url: shopUrl(`${name} manga`, BOOKS),
+          url: shopUrl(`${name} manga`, BOOKS, country),
         },
       ]
     : [
@@ -83,7 +174,7 @@ export function shopLinks(item) {
           label: 'Printed volumes',
           note: 'The official English print run',
           cta: 'Shop books',
-          url: shopUrl(`${name} manga`, BOOKS),
+          url: shopUrl(`${name} manga`, BOOKS, country),
         },
       ]
 
@@ -92,7 +183,7 @@ export function shopLinks(item) {
     label: 'Figures and merch',
     note: 'Figures, art books, posters and apparel',
     cta: 'Shop merch',
-    url: shopUrl(`${name} anime`, TOYS),
+    url: shopUrl(`${name} anime`, TOYS, country),
   })
 
   return rows
@@ -101,6 +192,9 @@ export function shopLinks(item) {
 /**
  * The two short links printed under a cover on the shop page. Same idea as
  * shopLinks, cut down to what fits beside a thumbnail.
+ *
+ * The shop page is built ahead of time, so there is no reader to have a
+ * country yet. These stay on the US store.
  */
 export function shelfLinks(item) {
   const name = shopName(item)
@@ -121,7 +215,7 @@ export function shelfLinks(item) {
  * finds the wrong shelf. The series is still added as a second word, because a
  * first name on its own matches half the shop.
  */
-export function characterShopLinks(person, seriesTitle) {
+export function characterShopLinks(person, seriesTitle, country) {
   const who = String(person?.name || '').replace(/\s+/g, ' ').trim()
   if (who.length < 2) return []
   const series = String(seriesTitle || '').replace(/\s*[([].*$/, '').trim()
@@ -133,21 +227,21 @@ export function characterShopLinks(person, seriesTitle) {
       label: 'Figures',
       note: `Statues and scale figures of ${who}`,
       cta: 'Shop figures',
-      url: shopUrl(`${both} figure`, TOYS),
+      url: shopUrl(`${both} figure`, TOYS, country),
     },
     {
       icon: 'poster',
       label: 'Posters and prints',
       note: 'Wall art, art books and canvases',
       cta: 'Shop prints',
-      url: shopUrl(`${both} poster`, TOYS),
+      url: shopUrl(`${both} poster`, TOYS, country),
     },
     {
       icon: 'shirt',
       label: 'Apparel',
       note: 'Shirts, hoodies and accessories',
       cta: 'Shop apparel',
-      url: shopUrl(`${both} shirt`, TOYS),
+      url: shopUrl(`${both} shirt`, TOYS, country),
     },
   ]
 }

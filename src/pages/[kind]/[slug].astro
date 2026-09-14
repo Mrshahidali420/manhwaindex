@@ -13,7 +13,7 @@ import {
   enrichOf,
   genreSlug,
 } from '../../lib/format.js'
-import { loadTitle, envOf, notFound } from '../../lib/runtime.js'
+import { loadTitle, envOf, countryOf, notFound } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
 import { shopLinks } from '../../lib/shop-links.js'
@@ -119,7 +119,7 @@ const alsoKnown = [...new Set((item.synonyms || []).filter((n) => /^[ -~À-ɏ'�
 // A reader who finished a series often wants to own it. We sell nothing and
 // stock nothing, so these open a search on Amazon and let the reader see what
 // is really in print.
-const buys = shopLinks(item)
+const buys = shopLinks(item, countryOf(Astro))
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': isComic ? 'Book' : 'TVSeries',

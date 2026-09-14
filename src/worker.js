@@ -28,8 +28,16 @@ export default {
     }
 
     const cache = caches.default
+    // The buy links point at the reader's own Amazon store, so a page cached
+    // for one country must never be served to another. The country joins the
+    // key. This costs almost nothing: an edge cache is per data centre, and a
+    // data centre already serves mostly one country.
+    const country = request.headers.get('cf-ipcountry') || 'zz'
     // Always GET: the cache API refuses to store a HEAD request.
-    const cacheKey = new Request(`${url.origin}${url.pathname}?_b=${BUILD}`, { method: 'GET' })
+    const cacheKey = new Request(
+      `${url.origin}${url.pathname}?_b=${BUILD}&_c=${country}`,
+      { method: 'GET' }
+    )
     const hit = await cache.match(cacheKey)
     if (hit) return hit
 
