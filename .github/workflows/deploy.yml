@@ -86,3 +86,30 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 735d0fbab0757142b2c29917563e0626
+
+      # IndexNow tells Bing, Yandex, Seznam and Naver about new pages the same
+      # day. Google ignores it and reads the sitemaps instead. This runs after
+      # the deploy, never before: announcing a page that is not live yet is how
+      # a site teaches a crawler to distrust it.
+      #
+      # The record of what has already been announced lives in its own cache
+      # entry, separate from the catalog, because it is written after the
+      # catalog has already been saved.
+      - name: Restore the IndexNow record
+        uses: actions/cache/restore@v4
+        with:
+          path: data/indexnow-sent.json
+          key: indexnow-sent-${{ github.run_id }}
+          restore-keys: indexnow-sent-
+
+      # A search engine being unreachable must never fail a good deploy.
+      - name: Announce new pages
+        continue-on-error: true
+        run: node scripts/indexnow.mjs
+
+      - name: Save the IndexNow record
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/indexnow-sent.json
+          key: indexnow-sent-${{ github.run_id }}

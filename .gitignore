@@ -23,3 +23,6 @@ data/comics.json
 data/anime.json
 data/characters.json
 data/seen.json
+
+# Written by scripts/indexnow.mjs. Lives in the Actions cache, not in git.
+data/indexnow-sent.json
