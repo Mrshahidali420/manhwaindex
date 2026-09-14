@@ -1,7 +1,6 @@
 // Pure formatting helpers. NOTHING in this file loads the catalog, so it is
 // safe for the Worker to import at request time. Anything that needs the
 // whole catalog lives in catalog.js and is build-time only.
-import enrichRaw from '../../data/enrich.json'
 import { PLATFORMS, FALLBACK } from './platforms.js'
 
 export const platform = (site) => PLATFORMS[site] || FALLBACK
@@ -86,7 +85,12 @@ export function kindOfAppearance(appearance) {
 }
 
 // Extra data pulled by scripts/enrich-mal.mjs: MAL score via Jikan, and
-// cross-site links via anime-offline-database. Keyed by AniList id, so
-// reslugging never breaks the lookup. Empty object when not yet pulled.
-export const enrichOf = (item) =>
-  enrichRaw[`${item.kind === 'anime' ? 'anime' : 'comic'}:${item.id}`] || {}
+// cross-site links via anime-offline-database.
+//
+// It used to be imported here as one JSON file. That file is packed INTO the
+// Worker, and Cloudflare allows 3 MB of Worker code in total. At 2,610 titles
+// it was 463 KB; at all 107,036 titles it would break every deploy. So
+// scripts/make-shards.mjs now folds each title's entry into that title's own
+// shard record, and the Worker reads it off the record it already loaded.
+// Empty object when nothing has been pulled for this title yet.
+export const enrichOf = (item) => item.extra || {}

@@ -28,6 +28,33 @@ const OUT = join(ROOT, 'public', 'd')
 
 const read = (name) => JSON.parse(readFileSync(join(ROOT, 'data', name), 'utf8'))
 
+/**
+ * The MAL score and cross-site links for one title, folded into its record.
+ *
+ * This file used to be imported by src/lib/format.js, which the Worker loads
+ * on every request. That packs it into the Worker CODE, and Cloudflare allows
+ * 3 MB of that in total. At 2,610 enriched titles it was 463 KB; at all
+ * 107,036 it would break every deploy. Folding it into the shards instead
+ * costs the Worker nothing: the record is already being read.
+ */
+function attachEnrich(titles) {
+  let enrich = {}
+  try {
+    enrich = read('enrich.json')
+  } catch {
+    // No pull has run yet. Every page still builds, just without the extras.
+    console.log('  no data/enrich.json. Building without MAL extras.')
+  }
+  let hits = 0
+  for (const item of titles) {
+    const found = enrich[`${item.kind === 'anime' ? 'anime' : 'comic'}:${item.id}`]
+    if (!found) continue
+    item.extra = found
+    hits++
+  }
+  return hits
+}
+
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
 export const kindOf = (item) =>
   item.kind === 'anime' ? 'anime' : KIND_OF_COUNTRY[item.country] || 'manga'
@@ -284,6 +311,9 @@ function main() {
   reslugAll(comics, anime, characters)
   since('reslug')
 
+  const titlesWithExtras = attachEnrich([...comics, ...anime])
+  since('enrich')
+
   rmSync(OUT, { recursive: true, force: true })
 
   const titles = [...comics, ...anime]
@@ -329,6 +359,7 @@ function main() {
 
   const mb = (n) => `${(n / 1048576).toFixed(1)} MB`
   console.log(`titles     ${titles.length} in ${t.count} shards, ${mb(t.bytes)}, biggest ${t.biggest} records`)
+  console.log(`MAL extras folded into ${titlesWithExtras} of ${titles.length} records`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`shard files ${t.count + c.count}  (the free plan allows 20,000 files in total)`)
   console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like`)
