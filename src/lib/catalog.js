@@ -1,10 +1,25 @@
 // BUILD TIME ONLY. This module loads the whole catalog (26 MB of JSON), so a
 // page that imports it can never be rendered by the Worker. Pages that the
 // Worker renders import lib/format.js and lib/runtime.js instead.
-import comicsRaw from '../../data/comics.json'
-import animeRaw from '../../data/anime.json'
-import characterData from '../../data/characters.json'
+// The three files are read with plain Node, NOT with `import ... from
+// '*.json'`. An ESM JSON import hands the file to Vite/Rollup, which turns it
+// into a JavaScript module and keeps it in the bundle graph. At 2,499 comics
+// that was free. At 86,294 comics comics.json is 147 MB and that transform
+// alone pushed the build past 50 minutes. readFileSync skips the bundler.
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { reslugAll } from './reslug.mjs'
+
+// Resolved from the working directory, not from import.meta.url: this module is
+// bundled into dist/_worker.js before the prerender step runs it, so a path
+// relative to the file itself would point inside dist. Every build (npm run
+// build, and the CI job) starts at the project root.
+const readJson = (name) =>
+  JSON.parse(readFileSync(join(process.cwd(), 'data', `${name}.json`), 'utf8'))
+
+const comicsRaw = readJson('comics')
+const animeRaw = readJson('anime')
+const characterData = readJson('characters')
 import { characterHasPage, characterIsThin, genreSlug } from './format.js'
 
 // Public URLs carry clean slugs, never database ids (see reslug.mjs).
@@ -23,8 +38,17 @@ const byPopularity = (a, b) => b.popularity - a.popularity
 export const comicsByPopularity = [...comics].sort(byPopularity)
 export const animeByPopularity = [...anime].sort(byPopularity)
 
-export const comicsOfCountry = (code) =>
-  comicsByPopularity.filter((c) => c.country === code)
+// Memoised on purpose. Every browse page calls this, and there are ~1,500 of
+// them. Without the cache each call walks all 86,000 comics again.
+const byCountry = new Map()
+export const comicsOfCountry = (code) => {
+  let list = byCountry.get(code)
+  if (!list) {
+    list = comicsByPopularity.filter((c) => c.country === code)
+    byCountry.set(code, list)
+  }
+  return list
+}
 
 export const findComic = (slug) => comics.find((c) => c.slug === slug)
 export const findAnime = (slug) => anime.find((a) => a.slug === slug)
