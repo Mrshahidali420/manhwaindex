@@ -118,9 +118,12 @@ const initialsOf = (site) => {
 }
 
 export const markOf = (site) => {
+  // The logo files are named by slug, so any platform gets its logo without
+  // being listed anywhere by hand: drop the file in, and it appears.
+  const slug = (site || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   // A leading "!" is the build script telling us this mark is drawn dark and
   // needs a pale plate under it. See scripts/make-brand.mjs.
-  const entry = LOGOS[site] || null
+  const entry = LOGOS[slug] || null
   const dark = entry ? entry.startsWith('!') : false
   return {
     ...platform(site),
