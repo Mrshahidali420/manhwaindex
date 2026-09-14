@@ -28,11 +28,24 @@ function entry(item, kind) {
   }
 }
 
+/**
+ * How many titles the header search box knows about.
+ *
+ * The catalog holds 107,036 titles. All of them in one file is 28 MB, which
+ * Cloudflare refuses to serve at all (its asset limit is 25 MB) and which no
+ * phone should ever download to type in a search box. The cap keeps the most
+ * popular titles, which is what people actually search for. Everything else is
+ * still reachable through the browse pages, the genre pages and Google.
+ */
+const MAX_ROWS = 12000
+
 export function GET() {
   const rows = [
     ...comics.map((c) => entry(c, KIND_OF_COUNTRY[c.country] || 'manga')),
     ...anime.map((a) => entry(a, 'anime')),
-  ] // catalog order already puts the most popular first within each block
+  ]
+    .sort((a, b) => b.p - a.p)
+    .slice(0, MAX_ROWS)
 
   return new Response(JSON.stringify(rows), {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
