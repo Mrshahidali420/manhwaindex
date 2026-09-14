@@ -995,6 +995,15 @@ main:has(.title-page) {
   font-size: 1rem;
 }
 
+/* The other names this title goes by. A reader often knows only the fan name,
+   so the page says it out loud instead of hiding it in the markup. */
+.title-head__aka {
+  color: var(--dawn-dim);
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .title-head__meta {
   display: flex;
   flex-wrap: wrap;

@@ -105,6 +105,15 @@ const trailer = item.trailer
 // The index rebuilds every day, so every page is as fresh as the build.
 const updated = new Date().toISOString().slice(0, 10)
 
+// The names a reader may already know this by. AniList keeps them, and a
+// reader who only knows the fan name should still land on the right page.
+// Only Latin-script names are shown: the native name has its own line above,
+// and a Russian or Chinese alias helps nobody reading this page in English.
+const alsoKnown = [...new Set((item.synonyms || []).filter((n) => /^[ -~À-ɏ'’!?.,:&()-]+$/.test(n)))]
+  .filter((n) => n.toLowerCase() !== (item.title || '').toLowerCase())
+  .filter((n) => n.toLowerCase() !== (item.titleRomaji || '').toLowerCase())
+  .slice(0, 5)
+
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': isComic ? 'Book' : 'TVSeries',
@@ -113,7 +122,7 @@ const jsonld = {
   inLanguage: 'en',
   dateModified: updated,
   name: item.title,
-  alternateName: item.titleNative || item.titleRomaji,
+  alternateName: [item.titleNative, item.titleRomaji, ...alsoKnown].filter(Boolean),
   image: item.cover,
   description: truncate(overview.lede || item.description, 400),
   genre: item.genres,
@@ -323,6 +332,9 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
       </nav>
       <h1>{item.title}</h1>
       {item.titleNative && <p class="title-head__native">{item.titleNative}</p>}
+      {alsoKnown.length > 0 && (
+        <p class="title-head__aka">Also known as {alsoKnown.join(' · ')}</p>
+      )}
       <ul class="title-head__meta">
         <li>{statusWord(item.status)}</li>
         {item.startYear && <li>{item.startYear}</li>}
