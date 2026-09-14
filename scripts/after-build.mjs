@@ -29,6 +29,27 @@ function walk(dir) {
   return tooBig
 }
 
+// The search slices are the one part of dist that grows with the catalog, so
+// their weight is printed on every build. A surprise here is worth catching in
+// the log rather than in a visitor's data plan.
+const SEARCH = join(DIST, 'search')
+try {
+  const files = readdirSync(SEARCH)
+  let total = 0
+  let biggest = ['', 0]
+  for (const name of files) {
+    const size = statSync(join(SEARCH, name)).size
+    total += size
+    if (size > biggest[1]) biggest = [name, size]
+  }
+  const mb = (n) => (n / 1024 / 1024).toFixed(1)
+  console.log(
+    `search slices: ${files.length} files, ${mb(total)} MB, biggest ${biggest[0]} ${(biggest[1] / 1024).toFixed(0)} KB`
+  )
+} catch {
+  console.log('search slices: none')
+}
+
 const oversized = walk(DIST)
 if (oversized.length) {
   for (const [path, size] of oversized) {

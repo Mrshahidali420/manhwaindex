@@ -281,27 +281,55 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
     </footer>
 
     <script>
-      // Header search. The index is one static JSON file, fetched the
-      // first time the box is focused, then filtered in memory.
+      // Header search. The index is cut into slices named after the first two
+      // letters of a word, so typing "to" downloads /search/to.json and
+      // nothing else. One slice is a few hundred kilobytes; the whole index
+      // would be 28 MB. A slice stays in memory once it has been fetched.
       const input = document.getElementById('finder-input')
       const list = document.getElementById('finder-results')
-      let index = null
-      let loading = false
 
-      async function loadIndex() {
-        if (index || loading) return
-        loading = true
-        try {
-          const res = await fetch('/search-index.json')
-          index = await res.json()
-          if (input.value.trim()) search(input.value.trim())
-        } catch {
-          loading = false
+      // prefix -> a promise for that slice's records.
+      const slices = new Map()
+
+      // Records carry only the cover file name. Every cover of the same kind
+      // shares this address, so repeating it on every record would be waste.
+      const COVER_BASE = 'https://s4.anilist.co/file/anilistcdn/media/'
+
+      // Accents fold away so a loosely typed query still hits.
+      const fold = (text) =>
+        text
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+
+      /** Which slice answers this query: the first two letters of word one. */
+      function sliceOf(needle) {
+        const word = needle.split(/[^a-z0-9]+/).filter(Boolean)[0] || ''
+        return word.length >= 2 ? word.slice(0, 2) : ''
+      }
+
+      function loadSlice(prefix) {
+        let job = slices.get(prefix)
+        if (!job) {
+          // A missing slice is an empty one, not an error: nothing in the
+          // catalog has a word starting with those two letters.
+          job = fetch(`/search/${prefix}.json`)
+            .then((res) => (res.ok ? res.json() : []))
+            .catch(() => [])
+          slices.set(prefix, job)
         }
+        return job
       }
 
       let active = -1
 
+      const escapeHtml = (text) =>
+        String(text).replace(
+          /[&<>"]/g,
+          (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]
+        )
+
+      // A record is [ title, url, cover file, year, alternate names ].
       function render(matches) {
         active = -1
         if (!matches.length) {
@@ -310,39 +338,49 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           return
         }
         list.innerHTML = matches
-          .map(
-            (m) =>
-              `<li><a href="${m.u}"><img src="${m.c}" alt="" loading="lazy" width="34" height="48" /><span><b>${m.t}</b><em>${m.k}${m.y ? ' · ' + m.y : ''}</em></span></a></li>`
-          )
+          .map(([title, url, cover, year]) => {
+            const kind = url.split('/')[1]
+            const src = cover.includes('://')
+              ? cover
+              : `${COVER_BASE}${kind === 'anime' ? 'anime' : 'manga'}/cover/small/${cover}`
+            return `<li><a href="${escapeHtml(url)}"><img src="${escapeHtml(src)}" alt="" loading="lazy" width="34" height="48" /><span><b>${escapeHtml(title)}</b><em>${escapeHtml(kind)}${year ? ' · ' + year : ''}</em></span></a></li>`
+          })
           .join('')
         list.hidden = false
       }
 
-      // Accents fold away so a loosely typed query still hits.
-      const fold = (text) =>
-        text
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-
       // Every word of the query must appear; better matches float up:
       // exact title, then title-starts-with, then word-starts-with,
       // then substring. Ties go to the more popular title.
-      function search(q) {
-        if (!index || q.length < 2) return render([])
+      //
+      // `turn` guards against a slow slice landing after the person has typed
+      // on. Only the newest search is allowed to draw.
+      let turn = 0
+
+      async function search(q) {
         const needle = fold(q)
+        const prefix = needle.length >= 2 ? sliceOf(needle) : ''
+        if (!prefix) return render([])
+
+        const mine = ++turn
+        const rows = await loadSlice(prefix)
+        if (mine !== turn) return
+
         const words = needle.split(/\s+/).filter(Boolean)
         const scored = []
-        for (const m of index) {
-          if (!words.every((w) => m.s.includes(w))) continue
-          const title = fold(m.t)
+        for (const row of rows) {
+          const title = fold(row[0])
+          const hay = row[4] ? `${title} ${row[4]}` : title
+          if (!words.every((w) => hay.includes(w))) continue
           let score = 1
           if (title === needle) score = 4
           else if (title.startsWith(needle)) score = 3
-          else if (m.s.includes(' ' + needle) || m.s.startsWith(needle)) score = 2
-          scored.push([score, m])
+          else if (hay.includes(' ' + needle) || hay.startsWith(needle)) score = 2
+          scored.push([score, row])
         }
-        scored.sort((a, b) => b[0] - a[0] || (b[1].p || 0) - (a[1].p || 0))
+        // Sorting is stable, so equal scores keep the popularity order the
+        // slice was written in. That is why no popularity is stored.
+        scored.sort((a, b) => b[0] - a[0])
         render(scored.slice(0, 8).map((x) => x[1]))
       }
 
@@ -354,7 +392,6 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         rows[active].scrollIntoView({ block: 'nearest' })
       }
 
-      input.addEventListener('focus', loadIndex, { once: false })
       input.addEventListener('input', () => search(input.value.trim()))
       input.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown') {
