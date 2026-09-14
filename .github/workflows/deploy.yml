@@ -9,7 +9,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: deploy
@@ -32,32 +32,52 @@ jobs:
       # lock file. `npm install` resolves it on the runner instead.
       - run: npm install --no-audit --no-fund
 
+      # The catalog is not in git. comics.json alone is 141 MB and GitHub
+      # refuses any file over 100 MB, so the three big files live in the
+      # GitHub Actions cache. The backfill workflow writes them; this job
+      # reads them, tops them up, and writes them back. This daily run is
+      # also what keeps the cache warm, because an unused cache is deleted
+      # after 7 days.
+      - name: Restore the catalog
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/comics.json
+            data/anime.json
+            data/characters.json
+          key: anilist-data-${{ github.run_id }}
+          restore-keys: anilist-data-
+
+      # A cache is deleted after 7 days without use, and a brand new fork has
+      # no cache at all. data/seed holds a small gzipped copy of the catalog so
+      # the site can always be rebuilt. It is a floor, not the live data: the
+      # backfill and the daily ingest never write to it.
+      - name: Fall back to the seed catalog
+        run: bash scripts/unseed.sh
+
       # The daily run only asks AniList what changed since yesterday and
       # fetches those records. A push deploy skips it and builds from the
-      # data already in the repo. The one-time full backfill is a separate
+      # catalog in the cache. The one-time full backfill is a separate
       # workflow (backfill.yml), because it takes hours.
       # If AniList has a bad day, we still build and deploy from the data
-      # already in the repo. A stale site beats a dead site.
+      # we already have. A stale site beats a dead site.
       - name: Pull changed data
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
         run: node --max-old-space-size=6000 scripts/ingest-daily.mjs
 
-      - name: Commit refreshed data
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: |
-          git config user.name "manhwaindex-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data
-          git diff --cached --quiet || git commit -m "chore: daily data refresh [skip ci]"
-          # A backfill or a hand push can land while the ingest runs. Rebase on
-          # top of it rather than losing the refreshed data to a rejected push.
-          for attempt in 1 2 3; do
-            if git push; then break; fi
-            echo "push rejected, rebasing (attempt $attempt)"
-            git pull --rebase --autostash origin master
-            sleep 5
-          done
+      # Save BEFORE the build. The fresh records cost API calls, so a broken
+      # build must not throw them away. `always()` keeps the save running even
+      # when the ingest itself reported a problem.
+      - name: Save the catalog
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/comics.json
+            data/anime.json
+            data/characters.json
+          key: anilist-data-${{ github.run_id }}
 
       - run: npm run build
 

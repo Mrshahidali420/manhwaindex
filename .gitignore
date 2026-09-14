@@ -15,3 +15,11 @@ public/d/
 data/shards.json
 data/site-stats.json
 data/answer-urls.json
+
+# The catalog. Too big for git: at full size comics.json alone is 141 MB and
+# GitHub refuses any file over 100 MB. These live in the GitHub Actions cache
+# instead; see .github/workflows/backfill.yml. Your local copies stay put.
+data/comics.json
+data/anime.json
+data/characters.json
+data/seen.json

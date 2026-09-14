@@ -2,8 +2,9 @@ name: Full AniList backfill
 
 # One-time (or top-up) walk of the whole AniList id space.
 # You start it by hand: Actions -> Full AniList backfill -> Run workflow.
-# It does NOT deploy. It commits the data with [skip ci] so you can look at
-# the numbers first and deploy when you are ready.
+# It does NOT deploy and it does NOT commit. The catalog files are far too
+# big for git (comics.json alone is 141 MB), so they live in the GitHub
+# Actions cache instead. The deploy workflow reads them back from there.
 
 on:
   workflow_dispatch:
@@ -26,7 +27,7 @@ on:
         default: '0'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: backfill
@@ -49,14 +50,30 @@ jobs:
       # The raw dump is large and is not committed, so it is cached between
       # runs. That lets a stopped walk carry on instead of starting again.
       - name: Restore the raw walk
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: data/raw
+          path: |
+            data/raw
+            data/seen.json
           key: anilist-raw-${{ github.run_id }}
           restore-keys: anilist-raw-
-          # Keep the walk even when a later step fails. The walk costs hours;
-          # losing it to a one-line git error is not acceptable.
-          save-always: true
+
+      # The built catalog also lives in the cache. Restoring it first means a
+      # short top-up walk does not throw away what a long walk already found.
+      - name: Restore the catalog
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/comics.json
+            data/anime.json
+            data/characters.json
+          key: anilist-data-${{ github.run_id }}
+          restore-keys: anilist-data-
+
+      # No cache yet (first run, or the cache expired)? Start from the small
+      # gzipped copy in data/seed rather than from nothing.
+      - name: Fall back to the seed catalog
+        run: bash scripts/unseed.sh
 
       - name: Walk AniList
         env:
@@ -66,20 +83,37 @@ jobs:
           SKIP_SEEN: ${{ github.event.inputs.skip_seen }}
         run: node --max-old-space-size=6000 scripts/ingest-full.mjs
 
-      - name: Commit the data
+      # `if: always()` is the whole point. The walk costs hours. If any later
+      # step fails, the work must still be saved. `save-always` on the older
+      # combined cache action does NOT do this; only an explicit save step does.
+      - name: Save the raw walk
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/raw
+            data/seen.json
+          key: anilist-raw-${{ github.run_id }}
+
+      - name: Save the catalog
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/comics.json
+            data/anime.json
+            data/characters.json
+          key: anilist-data-${{ github.run_id }}
+
+      - name: What the walk found
+        if: always()
         run: |
-          git config user.name "manhwaindex-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data
-          git diff --cached --quiet || git commit -m "chore: AniList backfill [skip ci]"
-          # This walk runs for hours, so master has almost always moved on by
-          # the time it finishes. A plain push is rejected and the whole walk
-          # is thrown away. Rebase on top of whatever landed, then try again.
-          for attempt in 1 2 3 4 5; do
-            if git push; then exit 0; fi
-            echo "push rejected, rebasing (attempt $attempt)"
-            git pull --rebase --autostash origin master
-            sleep 5
-          done
-          echo "could not push after 5 attempts"
-          exit 1
+          ls -la data/*.json || true
+          node -e "
+            const fs = require('fs')
+            for (const f of ['comics', 'anime', 'characters']) {
+              const p = 'data/' + f + '.json'
+              if (!fs.existsSync(p)) { console.log(f + ': missing'); continue }
+              console.log(f + ': ' + JSON.parse(fs.readFileSync(p, 'utf8')).length)
+            }
+          "
