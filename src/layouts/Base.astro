@@ -32,6 +32,13 @@ const nav = [
 ]
 const here = Astro.url.pathname
 const footGenres = stats.genres
+
+// The search box says how much there is to search. It used to say a number
+// typed in by hand, which went stale the day after it was typed. This one
+// comes from the build, rounded down to a round thousand so it reads as a
+// claim and not as a false precision.
+const searchable = Math.floor((stats.comics + stats.anime) / 1000) * 1000
+const searchLabel = `Search ${searchable.toLocaleString()}+ titles…`
 const year = new Date().getUTCFullYear()
 
 // One brand entity, on every page, so each page is a self-contained
@@ -194,7 +201,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
             <input
               id="finder-input"
               type="search"
-              placeholder="Search 3,500 titles…"
+              placeholder={searchLabel}
               autocomplete="off"
               aria-label="Search titles"
             />
