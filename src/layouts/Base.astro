@@ -308,6 +308,20 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         return word.length >= 2 ? word.slice(0, 2) : ''
       }
 
+      // A slice is folded once, here, and never again. Folding is
+      // normalize() plus toLowerCase() on every row; doing that for 1,500
+      // rows on every keypress is what made the box feel slow on a phone.
+      // Each row grows two fields: the folded title, and the folded title
+      // plus alternate names as one string to test against.
+      function prepare(rows) {
+        for (const row of rows) {
+          const folded = fold(row[0])
+          row[5] = folded
+          row[6] = row[4] ? folded + " " + row[4] : folded
+        }
+        return rows
+      }
+
       function loadSlice(prefix) {
         let job = slices.get(prefix)
         if (!job) {
@@ -315,6 +329,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           // catalog has a word starting with those two letters.
           job = fetch(`/search/${prefix}.json`)
             .then((res) => (res.ok ? res.json() : []))
+            .then(prepare)
             .catch(() => [])
           slices.set(prefix, job)
         }
@@ -363,14 +378,23 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         if (!prefix) return render([])
 
         const mine = ++turn
+
+        // The first search for a prefix downloads that slice. On a phone
+        // that is a few hundred milliseconds of nothing, which reads as a
+        // broken box. Say what is happening instead.
+        if (!slices.has(prefix)) {
+          list.innerHTML = '<li class="finder-wait">Searching…</li>'
+          list.hidden = false
+        }
+
         const rows = await loadSlice(prefix)
         if (mine !== turn) return
 
         const words = needle.split(/\s+/).filter(Boolean)
         const scored = []
         for (const row of rows) {
-          const title = fold(row[0])
-          const hay = row[4] ? `${title} ${row[4]}` : title
+          const title = row[5]
+          const hay = row[6]
           if (!words.every((w) => hay.includes(w))) continue
           let score = 1
           if (title === needle) score = 4

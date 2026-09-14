@@ -152,7 +152,6 @@ img {
 /* numbers read like a cue sheet everywhere they appear */
 .tnum,
 .facts dd,
-.cue-sheet b,
 .cue,
 .cover-rail__score b {
   font-variant-numeric: tabular-nums;
@@ -294,6 +293,12 @@ img {
   z-index: 20;
   max-height: 70vh;
   overflow: auto;
+}
+/* shown while the first slice for a prefix is still downloading */
+.finder-wait {
+  padding: 0.7rem 0.9rem;
+  color: var(--dawn-dim);
+  font-size: 0.9rem;
 }
 .finder ul a {
   display: flex;
@@ -450,27 +455,6 @@ img {
   width: clamp(76px, 10vw, 122px);
 }
 
-/* the house count reads as one cue-sheet row, not a stat block */
-.cue-sheet {
-  display: flex;
-  align-items: baseline;
-  gap: 1.4rem;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--cobalt);
-  padding-block: 0.9rem;
-}
-.cue-sheet p {
-  margin: 0;
-  max-width: none;
-  color: var(--dawn-dim);
-  font-size: 0.9rem;
-}
-.cue-sheet b {
-  color: var(--dawn);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
 /* ---------- sections: horizon bands, stacked dark to light --------------- */
 
 .section {
@@ -536,6 +520,23 @@ img {
   color: var(--day);
   text-decoration: underline;
 }
+.section__more--cta {
+  color: var(--day);
+  border: 1px solid var(--rose);
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--rose) 14%, transparent);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.section__more--cta:hover {
+  background: color-mix(in srgb, var(--rose) 28%, transparent);
+  border-color: var(--day);
+  text-decoration: none;
+}
+
 
 /* ---------- trending tabs -------------------------------------------------- */
 
@@ -2055,9 +2056,6 @@ main:has(.title-page) {
   }
   .skyline img:nth-child(n + 6) {
     display: none;
-  }
-  .cue-sheet {
-    gap: 0.6rem 1.4rem;
   }
 }
 

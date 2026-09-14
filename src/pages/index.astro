@@ -8,8 +8,6 @@ import { animeByPopularity, comics, comicsOfCountry, anime, genres, platform, ai
 const manhwa = comicsOfCountry('KR')
 const manga = comicsOfCountry('JP')
 const manhua = comicsOfCountry('CN')
-const readable = comics.filter((c) => c.readLinks.length > 0).length
-const watchable = anime.filter((a) => a.watchLinks.length > 0).length
 
 // The most-read covers stand on the horizon line, right of the copy.
 const skyline = manhwa.slice(0, 6)
@@ -92,14 +90,6 @@ const jsonld = {
     </div>
   </section>
 
-  <div class="shell cue-sheet">
-    <p>
-      <b>{comics.length.toLocaleString()}+</b> titles indexed ·
-      <b>{readable.toLocaleString()}+</b> with official reading links ·
-      <b>{anime.length.toLocaleString()}+</b> anime ·
-      <b>{watchable.toLocaleString()}+</b> with official streaming info
-    </p>
-  </div>
 
   <nav class="shell kinds" aria-label="Browse by type">
     <a href="/manhwa"><b>Manhwa</b><span>Korean comics · {comicsOfCountry('KR').length.toLocaleString()} titles</span></a>
@@ -109,38 +99,6 @@ const jsonld = {
   </nav>
 
   <div class="shell">
-    {
-      airing.length > 0 && (
-        <section class="section" data-phase="night">
-          <div class="section__head section__head--row">
-            <div>
-              <h2>Anime airing this week</h2>
-              <p>The next episode of each ongoing show, and where it legally streams.</p>
-            </div>
-            <a class="section__more" href="/schedule">
-              The full week
-            </a>
-          </div>
-          <ul class="airing">
-            {airing.map((a) => (
-              <li>
-                <a href={`/anime/${a.slug}`}>
-                  <img src={a.cover} alt="" width="52" height="74" loading="lazy" decoding="async" />
-                  <span>
-                    <b>{a.title}</b>
-                    <em>
-                      Episode {a.nextEpisode.number} · <Countdown at={a.nextEpisode.at} />
-                      {a.watchLinks.length ? ` · on ${a.watchLinks.length} platforms` : ''}
-                    </em>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
-
     {
       rows.map((row) => (
         <section class="section" data-phase="night">
@@ -190,6 +148,38 @@ const jsonld = {
         update()
       }
     </script>
+
+    {
+      airing.length > 0 && (
+        <section class="section" data-phase="night">
+          <div class="section__head section__head--row">
+            <div>
+              <h2>Anime airing this week</h2>
+              <p>The next episode of each ongoing show, and where it legally streams.</p>
+            </div>
+            <a class="section__more section__more--cta" href="/schedule">
+              See the full week →
+            </a>
+          </div>
+          <ul class="airing">
+            {airing.map((a) => (
+              <li>
+                <a href={`/anime/${a.slug}`}>
+                  <img src={a.cover} alt="" width="52" height="74" loading="lazy" decoding="async" />
+                  <span>
+                    <b>{a.title}</b>
+                    <em>
+                      Episode {a.nextEpisode.number} · <Countdown at={a.nextEpisode.at} />
+                      {a.watchLinks.length ? ` · on ${a.watchLinks.length} platforms` : ''}
+                    </em>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
 
     <section class="section legend" data-phase="first" aria-label="Platform colour legend">

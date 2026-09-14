@@ -13,3 +13,8 @@
 /llms.txt
   Content-Type: text/plain; charset=utf-8
   Cache-Control: public, max-age=86400
+
+# Search slices. The catalog is rebuilt once a day, so an hour of browser
+# cache costs nothing and makes the second search on a visit instant.
+/search/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
