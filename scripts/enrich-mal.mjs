@@ -9,6 +9,7 @@ const anime = JSON.parse(readFileSync('data/anime.json', 'utf8'))
 const comics = JSON.parse(readFileSync('data/comics.json', 'utf8'))
 const enrich = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {}
 
+const TODAY = new Date().toISOString().slice(0, 10)
 const save = () => writeFileSync(OUT, JSON.stringify(enrich))
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -73,40 +74,71 @@ async function stepOffline() {
 }
 
 // ---- Step B: Jikan → MAL score -------------------------------------------
+// Three answers, and they must stay apart:
+//   { ok: true, data }  MyAnimeList answered.
+//   { ok: true, data: null }  MyAnimeList has no such entry (a real 404).
+//   { ok: false }  we could not reach it. NOT an answer. Never store this.
+//
+// Jikan returns 504 "Jikan failed to connect to MyAnimeList" whenever MAL is
+// down. The old code treated that as "no score" and wrote null, and the null
+// counted as done forever. That is how 1,595 of 1,599 comics ended up with no
+// score: MyAnimeList was unreachable, not score-less.
 async function jikan(path) {
   for (let attempt = 1; attempt <= 4; attempt++) {
     try {
       const res = await fetch(`https://api.jikan.moe/v4${path}`)
-      if (res.status === 404) return null
+      if (res.status === 404) return { ok: true, data: null }
       if (res.status === 429 || res.status >= 500) {
         await sleep(3000 * attempt)
         continue
       }
-      if (!res.ok) return null
-      return (await res.json()).data
+      if (!res.ok) return { ok: false }
+      return { ok: true, data: (await res.json()).data }
     } catch {
       await sleep(3000 * attempt)
     }
   }
-  return null
+  return { ok: false }
 }
 
+// A record counts as settled only when MyAnimeList actually answered for it.
+// `checked` is that proof. Entries written before this flag existed carry a
+// null score with no proof behind it, so they are asked again.
+const settled = (entry) => entry && entry.mal && (entry.mal.score || entry.mal.checked)
+
 async function stepJikan(items, kind, apiKind) {
-  const todo = items.filter((i) => i.malId && !(enrich[`${kind}:${i.id}`] || {}).mal)
+  const todo = items.filter((i) => i.malId && !settled(enrich[`${kind}:${i.id}`]))
   console.log(`jikan ${apiKind}: ${todo.length} to fetch`)
   let n = 0
+  let failed = 0
   for (const item of todo) {
-    const data = await jikan(`/${apiKind}/${item.malId}`)
+    const res = await jikan(`/${apiKind}/${item.malId}`)
+    n++
+    // Could not reach MyAnimeList. Write nothing: a gap is honest, a false
+    // "no score" is not. Ten failures in a row means MAL is down; stop and
+    // keep what we have rather than walk the whole list for nothing.
+    if (!res.ok) {
+      failed++
+      if (failed >= 10) {
+        console.log(`  MyAnimeList unreachable. Stopping at ${n}/${todo.length}.`)
+        break
+      }
+      await sleep(1100)
+      continue
+    }
+    failed = 0
+
+    const data = res.data
     const key = `${kind}:${item.id}`
     enrich[key] = {
       ...enrich[key],
       mal: data && data.score
-        ? { score: data.score, scoredBy: data.scored_by || 0, url: data.url }
-        : { score: null },
+        ? { score: data.score, scoredBy: data.scored_by || 0, url: data.url, checked: TODAY }
+        : { score: null, checked: TODAY },
     }
-    n++
-    if (n % 100 === 0) { console.log(`  ${apiKind} ${n}/${todo.length}`); save() }
-    await sleep(450)
+    if (n % 50 === 0) { console.log(`  ${apiKind} ${n}/${todo.length}`); save() }
+    // Jikan allows 60 calls a minute. A shorter gap just earns 429s.
+    await sleep(1100)
   }
   save()
   console.log(`jikan ${apiKind} done: ${n}`)
