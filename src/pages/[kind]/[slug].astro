@@ -34,6 +34,9 @@ if (isComic && (KIND_OF_COUNTRY[item.country] || 'manga') !== kind) return notFo
 
 const word = isComic ? formatWord(item) : 'anime'
 const links = isComic ? item.readLinks : item.watchLinks
+// The table merges the language editions of a platform into one row, so the
+// count above it has to be counted the same way.
+const siteCount = new Set((links || []).map((l) => l.site)).size
 const related = isComic ? item.animeInIndex : item.comicInIndex
 
 // The page title is written the way people actually type the search.
@@ -153,6 +156,10 @@ const cast = charactersOf(item).slice(0, 12)
 // You may also like: worked out at build time and stored in the record,
 // so the Worker does no searching at request time.
 const similar = item.similar || []
+// A pick you can legally go and read today is worth more than one you cannot,
+// so the block says how many of them that is before you scroll the covers.
+const similarOpen = similar.filter((p) =>
+  ((p.kind === 'anime' ? p.watchLinks : p.readLinks) || []).length > 0).length
 const similarBase = isComic ? `/${word}` : '/anime'
 const kindBase = similarBase
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
@@ -364,7 +371,8 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
       <Platforms
         heading={isComic ? 'Read it on' : 'Watch it on'}
         links={links}
-        count={`${links.length} official ${links.length === 1 ? 'place' : 'places'}`}
+        count={`${siteCount} official ${siteCount === 1 ? 'place' : 'places'}`}
+        withVerdict
         verb={isComic ? 'read' : 'watch'}
       >
         <Fragment slot="empty">
@@ -705,7 +713,9 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           <section class="answer">
             <div class="answer__head">
               <h2>You may also like</h2>
-              <p>Closest {word} by genre, most-read first.</p>
+              <p>{similarOpen > 0
+                ? `${similarOpen} of these ${similarOpen === 1 ? 'has' : 'have'} an official place to ${isComic ? 'read' : 'watch'} right now. Closest by genre, most-read first.`
+                : `Closest ${word} by genre, most-read first.`}</p>
             </div>
             <CoverGrid items={similar} base={similarBase} />
           </section>

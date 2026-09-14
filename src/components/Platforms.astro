@@ -4,17 +4,28 @@
  * comparison and not a list of logos: for every official platform it says how
  * you pay, what you get without paying, and where the service works.
  *
+ * The rows are ordered cheapest-for-the-reader first, and the language
+ * editions of one platform are merged into a single row. AniList hands us an
+ * arbitrary list with WEBTOON in it four times; the order and the grouping are
+ * our own work, and they are the reason this table beats the raw source.
+ *
  * The facts come from platform-facts.js and belong to the PLATFORM, so a title
  * added tomorrow gets a filled table tomorrow with no extra step.
  */
 import { platform } from '../lib/format.js'
-import { factsFor } from '../lib/platform-facts.js'
+import { rankedRows, bestValue } from '../lib/answers.mjs'
 import shards from '../../data/shards.json'
 
-const { heading, links, empty, count, verb = 'read' } = Astro.props
+// withVerdict: print the one-line "cheapest way in" above the table. Only the
+// title page asks for it. The free page already says the same thing in its
+// opening line, and saying it twice reads as filler.
+const { heading, links, empty, count, verb = 'read', withVerdict = false } = Astro.props
 
 // "Free to read" / "Free to watch" — the reader's own word for what they want.
 const freeLabel = `Free to ${verb}`
+
+const rows = rankedRows(links)
+const verdict = withVerdict ? bestValue(rows, verb === 'watch' ? 'anime' : 'comic') : null
 
 // Every build rewrites builtAt, so this date is never stale by more than a day.
 const checkedAt = new Date(shards.builtAt || Date.now())
@@ -29,12 +40,14 @@ const checkedISO = checkedAt.toISOString().slice(0, 10)
 <section class="answer">
   <div class="answer__head">
     <h2>{heading}</h2>
-    {links.length > 0 && <p class="answer__count">{count}</p>}
+    {rows.length > 0 && <p class="answer__count">{count}</p>}
   </div>
 
   {
-    links.length > 0 ? (
+    rows.length > 0 ? (
       <div class="compare">
+        {verdict && <p class="verdict">{verdict}</p>}
+
         <div class="compare__head" aria-hidden="true">
           <span>Platform</span>
           <span>How you pay</span>
@@ -45,16 +58,21 @@ const checkedISO = checkedAt.toISOString().slice(0, 10)
         </div>
 
         <ul class="platforms">
-          {links.map((link) => {
+          {rows.map(({ link, facts, languages }, at) => {
             const brand = platform(link.site)
-            const facts = factsFor(link.site)
             return (
               <li class="platform" style={`--mark:${brand.color}`}>
                 <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
                   <i class="platform__edge" aria-hidden="true" />
-                  <span class="platform__name">{link.site}</span>
+                  <span class="platform__name">
+                    {link.site}
+                    {at === 0 && facts.free && <b class="platform__best">Best value</b>}
+                  </span>
                   <span class="platform__sub">
-                    {[link.language, facts.account ? 'Sign-in needed' : null]
+                    {[
+                      languages.length > 2 ? `${languages.length} languages` : languages.join(', '),
+                      facts.account ? 'Sign-in needed' : null,
+                    ]
                       .filter(Boolean)
                       .join(' · ') || 'Official'}
                   </span>

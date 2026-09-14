@@ -15,7 +15,7 @@
  * Because platform facts belong to the PLATFORM, a title added tomorrow gets
  * a complete set of answer pages tomorrow with no extra step.
  */
-import { factsFor, FREE } from './platform-facts.js'
+import { factsFor, FREE, PAY } from './platform-facts.js'
 
 /* -------------------------------------------------------------- tiny words */
 
@@ -52,6 +52,111 @@ export function uniqueBySite(links = []) {
 }
 
 export const linksOf = (item) => (item.kind === 'anime' ? item.watchLinks : item.readLinks) || []
+
+/* ------------------------------------------------ cheapest first, grouped */
+
+/**
+ * How much of the work a reader gets without paying. Lower is better for the
+ * reader, so this is the first sort key. A platform we hold no facts for sits
+ * in the middle: we will not promote it, and we will not bury it either.
+ */
+const FREE_COST = {
+  [FREE.ALL]: 0,
+  [FREE.MOST]: 1,
+  [FREE.EARLY]: 2,
+  [FREE.TIMER]: 3,
+  [FREE.SOME]: 4,
+  [FREE.SOME_EP]: 4,
+  [FREE.TRIAL]: 6,
+  [FREE.NONE]: 7,
+}
+const UNKNOWN_COST = 5
+
+/** How the money leaves your pocket when the free part runs out. */
+const PAY_COST = {
+  [PAY.ADS]: 0,
+  [PAY.LIBRARY]: 1,
+  [PAY.SUB_FREE]: 2,
+  [PAY.SUB]: 3,
+  [PAY.COINS]: 4,
+  [PAY.BUY]: 5,
+  [PAY.PRINT]: 6,
+}
+
+const costOf = (facts) => [
+  FREE_COST[facts.free] ?? UNKNOWN_COST,
+  PAY_COST[facts.pay] ?? 4,
+  facts.region === 'Worldwide' ? 0 : 1,
+  facts.account ? 1 : 0,
+]
+
+/**
+ * One row per platform, cheapest for the reader first.
+ *
+ * AniList hands us one link per language edition, so WEBTOON could fill four
+ * rows of the same table and say the same thing four times. Here the editions
+ * are merged into one row that names the languages.
+ *
+ * The order is the value this page adds. AniList gives an arbitrary list; a
+ * reader wants to know which door is open without paying, and that is a fact
+ * we can work out from the platform facts we already hold.
+ */
+export function rankedRows(links = []) {
+  const bySite = new Map()
+  for (const link of links) {
+    if (!link || !link.site) continue
+    const row = bySite.get(link.site)
+    if (row) {
+      if (link.language && !row.languages.includes(link.language)) row.languages.push(link.language)
+      continue
+    }
+    bySite.set(link.site, {
+      link,
+      facts: factsFor(link.site),
+      languages: link.language ? [link.language] : [],
+    })
+  }
+
+  const rows = [...bySite.values()]
+  for (const row of rows) row.cost = costOf(row.facts)
+  rows.sort((a, b) => {
+    for (let i = 0; i < a.cost.length; i++) {
+      if (a.cost[i] !== b.cost[i]) return a.cost[i] - b.cost[i]
+    }
+    return a.link.site.localeCompare(b.link.site)
+  })
+  return rows
+}
+
+/**
+ * One sentence naming the best door in, and what it costs.
+ *
+ * This is the sentence the reader came for, and it exists nowhere else: it is
+ * our ranking, in our words, over facts we keep. Returns null when we hold no
+ * facts, because a guess here is worse than silence.
+ */
+export function bestValue(rows, kind) {
+  const top = rows[0]
+  if (!top || !top.facts.free) return null
+  const unit = unitOf(kind)
+  const verb = verbOf(kind)
+  const site = top.link.site
+  const free = top.facts.free
+
+  let what
+  if (free === FREE.ALL) what = `the whole thing, for nothing`
+  else if (free === FREE.MOST) what = `most of it, for nothing`
+  else if (free === FREE.EARLY) what = `every ${unit.slice(0, -1)} but the newest, for nothing`
+  else if (free === FREE.TIMER) what = `one ${unit.slice(0, -1)} at a time, for nothing, if you wait`
+  else if (free === FREE.SOME || free === FREE.SOME_EP) what = `the opening ${unit}, for nothing`
+  else return null
+
+  const region = top.facts.region && top.facts.region !== 'Worldwide' ? ` in ${top.facts.region}` : ''
+  const account = top.facts.account ? ' You do need an account.' : ' No account needed.'
+  // Only say "everything below" when there IS something below.
+  const rest = rows.length > 1 ? ` Everything below is the same ${verb} for more money.` : ''
+  return `Cheapest legal way in: ${site}${region}. It gives you ${what}.${account}${rest}`
+}
 
 /* ------------------------------------------------------------ free or not */
 

@@ -1101,6 +1101,32 @@ main:has(.title-page) {
   min-width: 7.5rem;
 }
 
+/* the one line that says which door is open without paying */
+.verdict {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--rose);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--rose) 10%, transparent);
+  color: var(--dawn);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+/* marks the top row, which is the one the ranking is for */
+.platform__best {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rose) 22%, transparent);
+  color: var(--day);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+}
+
 .compare__checked {
   margin: 0.9rem 0 0;
   color: var(--dawn-faint);
