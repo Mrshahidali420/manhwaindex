@@ -98,13 +98,14 @@ export const enrichOf = (item) => item.extra || {}
 
 /* ------------------------------------------------------------ brand marks */
 /**
- * Every platform gets the same square tile. The tile is the brand colour.
- * Inside it there is either the real brand mark, or the platform's initials.
+ * Every platform gets the same square tile. Inside it is the platform's real
+ * logo, downloaded once from that platform's own site and served from our own
+ * /brand/ folder. We never hotlink one, so no reader is ever reported back to
+ * a platform, and a platform going down cannot break our page.
  *
- * We only ship a real mark when the brand is in simple-icons, which is CC0.
- * The other platforms would need a logo we have no licence for, so they get
- * letters instead. One shape for all of them means the page still looks made
- * on purpose, and a platform added next year works with no extra step.
+ * A platform we have no logo for yet still gets the same tile, with its
+ * initials in the brand colour. So a platform added next year looks deliberate
+ * from the first day, and the logo can follow later.
  */
 const initialsOf = (site) => {
   const words = site.trim().split(/\s+/).filter(Boolean)
@@ -116,8 +117,15 @@ const initialsOf = (site) => {
   return site.slice(0, 2)
 }
 
-export const markOf = (site) => ({
-  ...platform(site),
-  path: LOGOS[site] || null,
-  initials: initialsOf(site || '?'),
-})
+export const markOf = (site) => {
+  // A leading "!" is the build script telling us this mark is drawn dark and
+  // needs a pale plate under it. See scripts/make-brand.mjs.
+  const entry = LOGOS[site] || null
+  const dark = entry ? entry.startsWith('!') : false
+  return {
+    ...platform(site),
+    src: entry ? `/brand/${dark ? entry.slice(1) : entry}` : null,
+    plate: dark,
+    initials: initialsOf(site || '?'),
+  }
+}

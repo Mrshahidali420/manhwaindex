@@ -1508,9 +1508,10 @@ main:has(.title-page) {
 }
 
 /* The platform tile. One shape for every platform on the site: the brand
-   colour, and inside it the real mark when we may legally ship it, or the
-   platform's initials when we may not. Same size, same weight, so a row of
-   them reads as a set and not as a pile of logos. */
+   colour, and inside it that platform's own logo, served from our /brand/
+   folder. Same size, same weight, so a row of them reads as a set and not as
+   a pile of loose logos. A logo drawn in a dark colour gets a pale plate, or
+   it would vanish into the tile; scripts/make-brand.mjs decides which. */
 .mark {
   --mark: var(--cobalt-line);
   display: inline-grid;
@@ -1523,10 +1524,20 @@ main:has(.title-page) {
   border: 1px solid color-mix(in srgb, var(--mark) 45%, transparent);
   box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--mark) 70%, transparent);
 }
-.mark svg {
-  inline-size: 54%;
-  block-size: 54%;
-  fill: var(--mark);
+.mark img {
+  inline-size: 62%;
+  block-size: 62%;
+  object-fit: contain;
+}
+/* A mark drawn in black or near-black. The plate is warm white, not pure, so
+   it sits in the same night as everything else instead of glaring out of it. */
+.mark--plate {
+  background: #f3f1ee;
+  border-color: color-mix(in srgb, var(--mark) 30%, transparent);
+}
+.mark--plate img {
+  inline-size: 70%;
+  block-size: 70%;
 }
 .mark b {
   font-family: var(--stencil);

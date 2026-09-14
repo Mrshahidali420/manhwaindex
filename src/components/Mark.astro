@@ -2,27 +2,28 @@
 /**
  * One platform tile. The same square everywhere on the site.
  *
- * It carries the brand colour, and inside it either the real brand mark or
- * two letters. A reader learns the colour once and then finds the platform by
- * eye, without reading. `size` is a CSS length, so a row can ask for a small
- * tile and a page header can ask for a big one.
+ * The logo file is our own copy, served from /brand/. The tile is the brand
+ * colour, so a row of platforms still reads as a set and not as a pile of
+ * loose logos. A dark logo gets a pale plate under it, decided at build time.
+ *
+ * It is aria-hidden on purpose: the platform name is always written next to
+ * it, so a screen reader saying the name twice is noise, not help.
  */
 import { markOf } from '../lib/format.js'
 
 const { site, size = '2.1rem', class: extra = '' } = Astro.props
 const mark = markOf(site)
+const kind = mark.src ? (mark.plate ? 'mark--plate' : 'mark--logo') : 'mark--letters'
 ---
 
 <span
-  class={`mark ${mark.path ? 'mark--logo' : 'mark--letters'} ${extra}`.trim()}
+  class={`mark ${kind} ${extra}`.trim()}
   style={`--mark:${mark.color}; --mark-size:${size}`}
   aria-hidden="true"
 >
   {
-    mark.path ? (
-      <svg viewBox="0 0 24 24" role="presentation" focusable="false">
-        <path d={mark.path} />
-      </svg>
+    mark.src ? (
+      <img src={mark.src} alt="" width="96" height="96" loading="lazy" decoding="async" />
     ) : (
       <b>{mark.initials}</b>
     )
