@@ -73,6 +73,19 @@ const thin = (p) => ({
  * sequels. Both need the whole catalog, which the Worker does not have. So
  * both are worked out here, once, and stored inside the record.
  */
+/**
+ * How many titles per genre are kept as candidates for "you may also like".
+ *
+ * This cap is what keeps the build finite. The old code compared every title
+ * against every other title of the same kind. At 2,499 comics that was about
+ * 5 million steps and took seconds. At 107,036 titles it is about 4 billion
+ * steps, and one build ran for 57 minutes without finishing.
+ *
+ * The candidates are the most popular titles in each genre, so the six picks
+ * that survive are the same ones a reader would recognise anyway.
+ */
+const POOL_PER_GENRE = 300
+
 function precompute(titles) {
   const byId = new Map(titles.map((item) => [item.id, item]))
 
@@ -84,17 +97,48 @@ function precompute(titles) {
   }
   for (const list of pools.values()) list.sort((a, b) => b.popularity - a.popularity)
 
+  // "kind|genre" -> the most popular titles carrying that genre.
+  // Each pool is already popularity-sorted, so taking the first
+  // POOL_PER_GENRE of it needs no second sort.
+  const byGenre = new Map()
+  for (const [kind, list] of pools) {
+    for (const item of list) {
+      for (const genre of item.genres || []) {
+        const key = `${kind}|${genre}`
+        let bucketList = byGenre.get(key)
+        if (!bucketList) {
+          bucketList = []
+          byGenre.set(key, bucketList)
+        }
+        if (bucketList.length < POOL_PER_GENRE) bucketList.push(item)
+      }
+    }
+  }
+
   for (const item of titles) {
-    const mine = new Set(item.genres || [])
-    item.similar = (pools.get(kindOf(item)) || [])
-      .filter((p) => p.id !== item.id)
-      .map((p) => ({ p, shared: (p.genres || []).filter((g) => mine.has(g)) }))
-      .filter((x) => x.shared.length >= 2)
-      .sort((a, b) => b.shared.length - a.shared.length || b.p.popularity - a.p.popularity)
+    const kind = kindOf(item)
+    // candidate -> the genres it shares with this title. Only titles that
+    // share at least one genre are ever looked at, instead of all of them.
+    const sharedBy = new Map()
+    for (const genre of item.genres || []) {
+      for (const candidate of byGenre.get(`${kind}|${genre}`) || []) {
+        if (candidate.id === item.id) continue
+        let list = sharedBy.get(candidate)
+        if (!list) {
+          list = []
+          sharedBy.set(candidate, list)
+        }
+        list.push(genre)
+      }
+    }
+
+    item.similar = [...sharedBy]
+      .filter(([, shared]) => shared.length >= 2)
+      .sort((a, b) => b[1].length - a[1].length || b[0].popularity - a[0].popularity)
       .slice(0, 6)
       // The "like" page has to say WHY each pick belongs, so the shared
       // genres travel with the pick instead of being worked out again.
-      .map((x) => ({ ...thin(x.p), shared: x.shared.slice(0, 3) }))
+      .map(([p, shared]) => ({ ...thin(p), shared: shared.slice(0, 3) }))
 
     for (const rel of item.relations || []) {
       const found = byId.get(rel.id)
@@ -224,18 +268,30 @@ function writeOverviews(titles, pools) {
   }
 }
 
+// Phase timings. A build that crawls must say WHERE it crawls: one run of
+// this script took 57 minutes and printed nothing at all until it was killed.
+let mark = Date.now()
+const since = (label) => {
+  console.log(`  ${label}: ${((Date.now() - mark) / 1000).toFixed(1)}s`)
+  mark = Date.now()
+}
+
 function main() {
   const comics = read('comics.json')
   const anime = read('anime.json')
   const characters = read('characters.json')
+  since('read json')
   reslugAll(comics, anime, characters)
+  since('reslug')
 
   rmSync(OUT, { recursive: true, force: true })
 
   const titles = [...comics, ...anime]
   precompute(titles)
+  since('precompute')
   const t = writeShards(join(OUT, 't'), titles, TITLES_PER_SHARD, (item) =>
     titleKey(kindOf(item), item.slug))
+  since('title shards')
 
   // Only characters that earn a page are sharded. The rest are never served.
   const pages = characters.filter((c) => c.image && (c.appearsIn || []).length > 0)
