@@ -139,6 +139,36 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       function gtag() { dataLayer.push(arguments) }
       gtag('js', new Date())
       gtag('config', 'G-R1V6DJN1L3')
+
+      // Every link that leaves the site is worth counting, because leaving is
+      // the whole job here: this site answers "where do I read, watch or buy
+      // this" and then hands the reader over. One listener on the document
+      // covers every page and every link, so no button has to be wired by hand
+      // and a new link can never ship untracked.
+      document.addEventListener('click', function (event) {
+        var link = event.target.closest && event.target.closest('a[href]')
+        if (!link) return
+
+        var url
+        try { url = new URL(link.href, location.href) } catch (e) { return }
+        if (url.hostname === location.hostname) return
+
+        // A paid link carries rel="sponsored". That is the one that can earn,
+        // so it gets its own event name and can be read apart from the free
+        // "go read it here" links.
+        var paid = (link.rel || '').indexOf('sponsored') !== -1
+        var label = link.querySelector('.buy__label')
+
+        gtag('event', paid ? 'affiliate_click' : 'outbound_click', {
+          link_domain: url.hostname,
+          link_url: url.href,
+          link_label: (label ? label.textContent : link.textContent || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 100),
+          page_path: location.pathname,
+        })
+      })
     </script>
 
     <!-- Google AdSense. Declared in /privacy. The tag is loaded on every page,
