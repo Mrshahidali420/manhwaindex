@@ -1000,6 +1000,18 @@ main:has(.title-page) {
 /* Own a copy. These are search links, not products, so each row reads as a
    door and not as a price tag. Same shape as the platform rows above, because
    a reader has already learned to read that shape by the time they get here. */
+/* The buy box sits above the read table, so it has to look like a real offer
+   and not like an advert bolted on. The rose edge and the lifted ground give
+   it weight without shouting over the answer the reader actually came for. */
+.answer--buy {
+  border: 1px solid var(--rose-soft);
+  border-radius: 16px;
+  background: var(--night-raised);
+  padding: 1.1rem 1.1rem 1rem;
+}
+.answer--buy .answer__count {
+  color: var(--rose);
+}
 .buys {
   list-style: none;
   margin: 0;
@@ -1036,6 +1048,9 @@ main:has(.title-page) {
 .buy__go {
   grid-column: 2;
   grid-row: 1 / span 2;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--rose-soft);
+  border-radius: 999px;
   color: var(--rose);
   font-size: 0.85rem;
   font-weight: 600;

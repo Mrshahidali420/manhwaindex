@@ -385,6 +385,32 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
         )
       }
 
+      {
+        buys.length > 0 && (
+          <section class="answer answer--buy">
+            <div class="answer__head">
+              <h2>Own a copy</h2>
+              <p class="answer__count">Buy on Amazon</p>
+            </div>
+            <ul class="buys">
+              {buys.map((row) => (
+                <li class="buy">
+                  <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+                    <span class="buy__label">{row.label}</span>
+                    <span class="buy__note">{row.note}</span>
+                    <span class="buy__go">Shop</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p class="buys__note">
+              We hold no stock and ship nothing. Each link opens Amazon, so
+              you see what is actually in print today. {AMAZON_DISCLOSURE}
+            </p>
+          </section>
+        )
+      }
+
       <Platforms
         heading={isComic ? 'Read it on' : 'Watch it on'}
         links={links}
@@ -402,32 +428,6 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           </p>
         </Fragment>
       </Platforms>
-
-      {
-        buys.length > 0 && (
-          <section class="answer">
-            <div class="answer__head">
-              <h2>Own a copy</h2>
-              <p class="answer__count">Search Amazon</p>
-            </div>
-            <ul class="buys">
-              {buys.map((row) => (
-                <li class="buy">
-                  <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
-                    <span class="buy__label">{row.label}</span>
-                    <span class="buy__note">{row.note}</span>
-                    <span class="buy__go">Search</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <p class="buys__note">
-              We hold no stock and ship nothing. Each link opens a search on Amazon, so
-              you see what is actually in print today. {AMAZON_DISCLOSURE}
-            </p>
-          </section>
-        )
-      }
 
       {
         reach && (
