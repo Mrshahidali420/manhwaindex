@@ -52,32 +52,32 @@ const STORES = {
   },
   de: {
     host: 'www.amazon.de',
-    tag: '',
+    tag: 'manhwaindex06-21',
     dept: { books: 'stripbooks', video: 'dvd' },
   },
   fr: {
     host: 'www.amazon.fr',
-    tag: '',
+    tag: 'manhwainde0f6-21',
     dept: { books: 'stripbooks', video: 'dvd' },
   },
   it: {
     host: 'www.amazon.it',
-    tag: '',
+    tag: 'manhwaindex04-21',
     dept: { books: 'stripbooks', video: 'dvd' },
   },
   es: {
     host: 'www.amazon.es',
-    tag: '',
+    tag: 'manhwaindex0a-21',
     dept: { books: 'stripbooks', video: 'dvd' },
   },
   ca: {
     host: 'www.amazon.ca',
-    tag: '',
+    tag: 'manhwaindex01-20',
     dept: { books: 'stripbooks', video: 'movies-tv' },
   },
   jp: {
     host: 'www.amazon.co.jp',
-    tag: '',
+    tag: 'manhwaindex-22',
     dept: { books: 'english-books', video: 'dvd' },
   },
 }
