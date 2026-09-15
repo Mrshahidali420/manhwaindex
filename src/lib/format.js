@@ -55,6 +55,53 @@ export const bioText = (text) =>
 export const truncate = (text, length) =>
   !text ? '' : text.length <= length ? text : `${text.slice(0, length).replace(/\s+\S*$/, '')}…`
 
+/**
+ * How tall a character is, pulled out of the AniList bio.
+ *
+ * People search "how tall is X" all day, and the answer is already sitting in
+ * the text we store. AniList writers mark it with bold markers, but they are
+ * not consistent: the colon sits inside the markers on some records and
+ * outside on others, the space before "cm" goes missing, and a growing
+ * character is given a range. All of those shapes are the same fact.
+ *
+ * Returns a short clean string such as "170 cm (5'7\")", or '' when the bio
+ * says nothing about height.
+ */
+export function parseHeight(description) {
+  const text = String(description || '')
+  // All of these say the same thing, and all of them are in the data:
+  //   __Height:__ 170 cm      __Height__: 170 cm
+  //   **Height:** 170 cm      **Height**: 170 cm
+  //   __Initial Height:__ 168cm      __Height (2045-2049):__ 138 - 155 cm
+  const found =
+    text.match(
+      /(?:__|\*\*)\s*(?:[a-z]+\s+)?height(?![a-z])[^_*\n]{0,24}(?:__|\*\*)\s*:?\s*([^\n]{1,60})/i
+    ) ||
+    // Some writers use no bold at all. Only a line that STARTS with the word
+    // is trusted, so the word "height" inside a sentence is never mistaken
+    // for a fact.
+    text.match(/(?:^|\n)\s*height\s*:\s*([^\n]{1,60})/i)
+  if (!found) return ''
+
+  let value = found[1]
+    .replace(/~!.*$/, '')       // a spoiler marker ends the fact
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  // Stop at the next fact when the writer put two on one line.
+  value = value.split(/\s+(?:__|\*\*)/)[0].trim()
+  // A trailing separator left over from the cut.
+  value = value.replace(/[;,.\-–—\s]+$/, '').trim()
+  // "168cm" is the same as "168 cm".
+  value = value.replace(/(\d)\s*(cm|mm|m|ft|in|kg)\b/gi, '$1 $2')
+
+  // A height with no digit in it is not a height.
+  if (!/\d/.test(value)) return ''
+  if (value.length > 48) return ''
+  return value
+}
+
 export function genreSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }

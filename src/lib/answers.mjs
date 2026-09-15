@@ -460,7 +460,7 @@ export function titleFaq(item, kind) {
  * `series` is that title's own record, or null when it could not be loaded.
  * `bio` is the character's description as plain text, already shortened.
  */
-export function characterFaq(person, lead, leadKind, series, bio = '') {
+export function characterFaq(person, lead, leadKind, series, bio = '', height = '') {
   const word = wordOf(leadKind)
   const verb = verbOf(leadKind)
   const who = person.name
@@ -477,6 +477,16 @@ export function characterFaq(person, lead, leadKind, series, bio = '') {
     q: `Who is ${who}?`,
     a: `${who} is a ${role} in the ${word} ${lead.title}.${bio ? ` ${bio}` : ''}`,
   })
+
+  // People ask this more than any other question about a character, and the
+  // answer is already written in the profile above.
+  if (height) {
+    faq.push({
+      q: `How tall is ${who}?`,
+      a: `${who} is ${height}. This is the height given in the official ` +
+        `profile for ${lead.title}.`,
+    })
+  }
 
   const authors = listWords(
     (series?.authors || []).map((a) => a.name).filter(Boolean).slice(0, 3)

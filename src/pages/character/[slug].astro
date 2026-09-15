@@ -8,6 +8,7 @@ import {
   bioHtml,
   bioText,
   genreSlug,
+  parseHeight,
 } from '../../lib/format.js'
 import { loadCharacter, loadTitle, envOf, countryOf, notFound } from '../../lib/runtime.js'
 import { characterFaq, faqJsonld, wordOf, verbOf, uniqueBySite, linksOf } from '../../lib/answers.mjs'
@@ -73,8 +74,14 @@ const siblings = (series?.characters || [])
   .filter((c) => c.image && c.slug !== person.slug)
   .slice(0, 11)
 
+// "How tall is X" is one of the most common searches that reaches this page,
+// and the answer is already inside the bio AniList gave us. Reading it here
+// costs nothing: the bio is loaded for this page anyway.
+const height = parseHeight(person.description)
+
 const facts = [
   person.age ? ['Age', person.age] : null,
+  height ? ['Height', height] : null,
   person.gender ? ['Gender', person.gender] : null,
   person.birthday ? ['Birthday', person.birthday] : null,
   ['From', lead.title],
@@ -91,7 +98,7 @@ const buys = characterShopLinks(person, series || lead, countryOf(Astro))
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 
 const bioPlain = person.description ? bioText(person.description) : ''
-const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220))
+const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height)
 
 // The old description was the same sentence on every character page with only
 // the name swapped, which says nothing a searcher cannot already see in the
@@ -112,6 +119,8 @@ const promise = ` Full profile, every title they appear in, and where to ${verb}
 // sits at the front where the reader reads it.
 const description =
   [
+    `${opening} ${said([person.age && `Age ${person.age}`, height && `height ${height}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
+    `${opening} ${said([person.age && `Age ${person.age}`, height && `height ${height}`, person.gender])}.${promise}`,
     `${opening} ${said([person.age && `Age ${person.age}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
     `${opening} ${said([person.age && `Age ${person.age}`, person.gender])}.${promise}`,
     `${opening}${promise}`,
@@ -132,6 +141,9 @@ const jsonld = {
   name: person.name,
   alternateName: person.native || undefined,
   image: person.image,
+  // schema.org gives Person a height field, so the fact is machine readable
+  // as well as printed.
+  height: height || undefined,
   description: truncate(bioPlain || description, 300),
   subjectOf: person.appearsIn.map((a) => ({
     '@type': a.kind === 'anime' ? 'TVSeries' : 'Book',
