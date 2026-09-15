@@ -7,7 +7,18 @@
  */
 import Admin from '../layouts/Admin.astro'
 import { envOf } from '../lib/runtime.js'
-import { gate, ask, askOne, clock, countryName, humanize, num, sectionName, words } from '../lib/admin.js'
+import {
+  gate,
+  ask,
+  askOne,
+  clock,
+  countryName,
+  humanize,
+  num,
+  sectionName,
+  sourceName,
+  words,
+} from '../lib/admin.js'
 
 export const prerender = false
 
@@ -42,7 +53,7 @@ if (signedIn) {
     ),
     ask(
       db,
-      `SELECT ts, path, label, page_type, country, device, step
+      `SELECT ts, path, label, page_type, country, device, step, referrer, campaign, prev
        FROM events WHERE kind = 'view' ORDER BY ts DESC LIMIT 20`
     ),
     ask(
@@ -55,6 +66,18 @@ if (signedIn) {
   todayRow = b
   looking = c
   clicks = d
+}
+
+/**
+ * Where this one page view came from, in three words or less.
+ * A tagged link wins, then another website, then one of our own pages, and
+ * last of all a person who typed the address.
+ */
+function cameFrom(row) {
+  if (row.campaign) return sourceName(`utm:${row.campaign}`)
+  if (row.referrer) return sourceName(row.referrer)
+  if (row.prev) return `from ${humanize(row.prev, '')}`
+  return 'Typed the address'
 }
 ---
 
@@ -102,6 +125,7 @@ if (signedIn) {
             <a href={row.path}>{humanize(row.path, row.label)}</a>
             <div class="meta">
               <span class="tag">{sectionName(row.page_type)}</span>
+              <span class="tag src">{cameFrom(row)}</span>
               <span class="tag">{countryName(row.country)}</span>
               <span class="tag">page {row.step || 1}</span>
               <span class="tag">{row.device}</span>

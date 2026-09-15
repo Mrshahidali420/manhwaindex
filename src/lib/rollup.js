@@ -150,14 +150,16 @@ async function rollOneDay(db, day) {
     .bind(D, D)
 
   // Where the day's readers came from. A link we tagged ourselves wins over
-  // the sending site, because it says more.
+  // the sending site, because it says more. A blank source is kept too: it
+  // means the person typed the address or used a bookmark, and that is most
+  // of the traffic on a young site.
   const sources = db
     .prepare(
       `INSERT OR REPLACE INTO daily_sources (day, source, views, entries)
        SELECT ?, CASE WHEN campaign <> '' THEN 'utm:' || campaign ELSE referrer END AS source,
          COUNT(*), SUM(step = 1)
        FROM events
-       WHERE day = ? AND kind = 'view' AND (campaign <> '' OR referrer <> '')
+       WHERE day = ? AND kind = 'view'
        GROUP BY source ORDER BY COUNT(*) DESC LIMIT 100`
     )
     .bind(D, D)

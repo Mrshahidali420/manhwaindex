@@ -251,14 +251,19 @@ export async function clicksFor(db, range) {
 
 // ------------------------------------------------------------------ countries
 
+// A country is only shown when it opened at least one page. A person who
+// leaves the site sends one last "leave" row, and that row alone must not put
+// a country in the list with zero views next to it.
+const withViews = (rows) => rows.filter((row) => (row.views || 0) > 0)
+
 export async function countriesFor(db, range, limit = 15) {
   if (range.mode === 'all') {
-    return await ask(
+    return withViews(await ask(
       db,
       `SELECT country, SUM(views) AS views, SUM(clicks) AS clicks
        FROM daily_countries GROUP BY country ORDER BY views DESC LIMIT ?`,
       limit
-    )
+    ))
   }
 
   const where = rawWhere(range)
@@ -269,7 +274,7 @@ export async function countriesFor(db, range, limit = 15) {
     ...where.args,
     limit
   )
-  if (range.mode === 'raw') return raw
+  if (range.mode === 'raw') return withViews(raw)
 
   const closed = await ask(
     db,
@@ -283,7 +288,7 @@ export async function countriesFor(db, range, limit = 15) {
     `SELECT country, ${RAW_COUNTS} FROM events WHERE day = ? GROUP BY country`,
     range.toDay
   )
-  return biggest(merge((r) => r.country, closed, today), 'views', limit)
+  return withViews(biggest(merge((r) => r.country, closed, today), 'views', limit))
 }
 
 // -------------------------------------------------------------------- sources
@@ -303,7 +308,7 @@ export async function sourcesFor(db, range, limit = 20) {
     db,
     `SELECT CASE WHEN campaign <> '' THEN 'utm:' || campaign ELSE referrer END AS source,
             COUNT(*) AS views, SUM(step = 1) AS entries
-     FROM events WHERE ${where.sql} AND kind = 'view' AND (campaign <> '' OR referrer <> '')
+     FROM events WHERE ${where.sql} AND kind = 'view'
      GROUP BY source ORDER BY views DESC LIMIT ?`,
     ...where.args,
     limit
@@ -321,7 +326,7 @@ export async function sourcesFor(db, range, limit = 20) {
     db,
     `SELECT CASE WHEN campaign <> '' THEN 'utm:' || campaign ELSE referrer END AS source,
             COUNT(*) AS views, SUM(step = 1) AS entries
-     FROM events WHERE day = ? AND kind = 'view' AND (campaign <> '' OR referrer <> '')
+     FROM events WHERE day = ? AND kind = 'view'
      GROUP BY source`,
     range.toDay
   )
