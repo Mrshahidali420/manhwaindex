@@ -170,17 +170,10 @@ const jsonld = {
   ...(isComic ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
   ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
   ...(item.authors?.length ? { author: item.authors.map((a) => ({ '@type': 'Person', name: a.name })) } : {}),
-  ...(trailer
-    ? {
-        trailer: {
-          '@type': 'VideoObject',
-          name: `${item.title} trailer`,
-          description: `Official trailer for ${item.title}.`,
-          embedUrl: `https://www.youtube-nocookie.com/embed/${trailer.id}`,
-          thumbnailUrl: trailer.thumb || undefined,
-        },
-      }
-    : {}),
+  // No trailer block here on purpose. Google needs an uploadDate on a video
+  // and AniList never gives one, so every trailer we described was marked
+  // invalid in Search Console. A made-up date would be worse than no block.
+  // The trailer still plays further down the page.
   ...(item.score
     ? {
         aggregateRating: {
