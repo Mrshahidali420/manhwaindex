@@ -1,4 +1,115 @@
+# The search engines that actually send readers. They get everything.
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Blocked, and why.
+#
+# This site is ~104,000 pages on a free plan with 100,000 requests a day. A
+# crawler that walks the whole catalogue once uses the entire day's budget and
+# the site then fails for real readers. On 14 Sep 2026 that happened: GPTBot
+# took 50,135 requests, AhrefsBot 29,880 and YandexBot 9,243, while humans took
+# a few hundred. So the rule is simple: a crawler that cannot send a reader is
+# not worth a page view.
+#
+# None of these sell anything here. AhrefsBot, SemrushBot, DataForSeoBot and
+# MJ12bot build databases for other people's SEO tools. GPTBot, CCBot,
+# Bytespider, ClaudeBot and the rest train models. Yandex and Petal serve
+# audiences this English catalogue does not have.
+User-agent: GPTBot
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: SeekportBot
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+User-agent: Timpibot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+# Anything not named above may read, but slowly. One page every ten seconds
+# still crawls 8,600 pages a day, which is more than enough for a catalogue
+# that changes once a day.
 User-agent: *
 Allow: /
+Crawl-delay: 10
 
 Sitemap: https://manhwaindex.com/sitemap.xml
