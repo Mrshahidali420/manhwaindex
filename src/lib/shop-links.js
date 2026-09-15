@@ -138,8 +138,28 @@ export function shopName(item) {
   return String(item.title || item.titleRomaji || '')
     .replace(/\s*[([].*$/, '')
     .replace(/\s*[:\-–]\s*(season|part|cour)\s+\w+.*$/i, '')
+    // Quote marks inside a title are part of the story's name, never part of
+    // the name on the box. Amazon treats them as words to match, so leaving
+    // them in makes the search find less than it should.
+    .replace(/["“”]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/**
+ * The first few words of a title.
+ *
+ * Amazon looks for every word you give it. A title of eleven words finds
+ * nothing at all, and a character name added in front of it finds less than
+ * nothing. Four words is enough to tell two stories apart and short enough to
+ * still reach the shelf.
+ */
+export function shortName(name, words = 4) {
+  return String(name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, words)
+    .join(' ')
 }
 
 /**
@@ -213,17 +233,34 @@ export function shelfLinks(item) {
 }
 
 /**
+ * A figure of one named character only exists for a story that sold enough
+ * copies to pay for the mould. AniList popularity is the closest number we
+ * hold to that. Under this line the character's own name finds an empty shop,
+ * and an empty shop earns nothing and looks broken, so those pages are given
+ * the printed volumes of the story instead. Those always exist.
+ */
+const FIGURE_POPULARITY = 40000
+
+/**
  * Merch for one character.
  *
  * A character is what a figure is actually made of, so the series name alone
  * finds the wrong shelf. The series is still added as a second word, because a
- * first name on its own matches half the shop.
+ * first name on its own matches half the shop — but only the first few words
+ * of it, or the search matches nothing.
+ *
+ * `series` is the story's own record: its title, its kind and its popularity.
  */
-export function characterShopLinks(person, seriesTitle, country) {
+export function characterShopLinks(person, series, country) {
   const who = String(person?.name || '').replace(/\s+/g, ' ').trim()
   if (who.length < 2) return []
-  const series = String(seriesTitle || '').replace(/\s*[([].*$/, '').trim()
-  const both = series ? `${who} ${series}` : who
+
+  // Not famous enough for a figure. Offer the story itself.
+  if ((series?.popularity || 0) < FIGURE_POPULARITY) {
+    return shopLinks(series || {}, country)
+  }
+
+  const both = `${who} ${shortName(shopName(series), 4)}`.trim()
 
   return [
     {

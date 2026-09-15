@@ -58,7 +58,7 @@ if (signedIn) {
     ),
     ask(
       db,
-      `SELECT ts, name, kind, path, label, platform, country, target
+      `SELECT ts, name, kind, path, label, page_type, platform, country, target
        FROM events WHERE kind NOT IN ('view','leave') ORDER BY ts DESC LIMIT 30`
     ),
   ])
@@ -154,6 +154,7 @@ function cameFrom(row) {
             <div class="meta">
               <span class={row.kind === 'buy' ? 'tag buy' : 'tag go'}>{row.kind}</span>
               <span class="tag">from {humanize(row.path, '')}</span>
+              <span class="tag">{sectionName(row.page_type)}</span>
               {row.country && <span class="tag">{countryName(row.country)}</span>}
             </div>
           </div>

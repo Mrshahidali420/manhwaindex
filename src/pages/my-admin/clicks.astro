@@ -41,10 +41,14 @@ if (signedIn) {
     const since = range.sinceTs
     fromPages = await ask(
       db,
-      `SELECT path, label, platform, kind, COUNT(*) AS clicks
+      // `label` is the word on the button that was clicked ("Figures"), not
+      // the name of the page. Asking for it here made every row say the
+      // button. `page_type` is what says whether the click came from an
+      // anime, a manhwa or a character page, so it is asked for instead.
+      `SELECT path, page_type, platform, kind, COUNT(*) AS clicks
        FROM events
        WHERE ${since ? 'ts > ?' : 'day >= ?'} AND kind IN ('read','watch','buy')
-       GROUP BY path, platform, kind
+       GROUP BY path, page_type, platform, kind
        ORDER BY clicks DESC LIMIT 40`,
       since || range.fromDay
     )
@@ -219,7 +223,10 @@ const buys = sum(rows, (r) => r.kind === 'buy')
         </tr>
         {fromPages.map((row) => (
           <tr>
-            <td><a href={row.path}>{humanize(row.path, row.label)}</a></td>
+            <td>
+              <a href={row.path}>{humanize(row.path, '')}</a>
+              <span class="tag">{sectionName(row.page_type)}</span>
+            </td>
             <td>
               {row.platform || 'shop'}
               <span class={row.kind === 'buy' ? 'tag buy' : 'tag'}>{row.kind}</span>

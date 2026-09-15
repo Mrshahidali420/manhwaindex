@@ -59,9 +59,11 @@ const facts = [
 ].filter(Boolean)
 
 // A character is what a figure is actually made of, so this is the page where
-// merch is the honest answer. The series name goes in the query too, because a
-// first name on its own matches half the shop.
-const buys = characterShopLinks(person, lead.title, countryOf(Astro))
+// merch is the honest answer — but only for a story big enough to have figures
+// made of it. For every other story the shop rows fall back to the printed
+// volumes, which always exist. `buys` says which of the two it gave us.
+const buys = characterShopLinks(person, series || lead, countryOf(Astro))
+const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 
 const bioPlain = person.description ? bioText(person.description) : ''
 const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220))
@@ -134,8 +136,12 @@ const jsonld = {
 
     {buys.length > 0 && (
       <BuyBox
-        heading={`Own a piece of ${person.name}`}
-        sub="Figures, prints and apparel, straight from Amazon."
+        heading={merchIsCharacter ? `Own a piece of ${person.name}` : `Own ${lead.title}`}
+        sub={
+          merchIsCharacter
+            ? 'Figures, prints and apparel, straight from Amazon.'
+            : `The official print run and merch of ${lead.title}, straight from Amazon.`
+        }
         rows={buys}
       />
     )}

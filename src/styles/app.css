@@ -2057,6 +2057,56 @@ main:has(.title-page) {
   color: var(--dawn-faint);
 }
 
+/* ---------- character pages, narrow screens --------------------------------- */
+
+/* The portrait column was a fixed 220px at every width, and the fact list was
+   two fixed columns at every width. On a tablet that left a small picture
+   beside a very long line of text, and a long value such as a whole series
+   name wrapped inside its half, so the lines under the two halves stopped
+   matching. These rules give the page a middle size and a stacked size. */
+
+.person .facts {
+  align-items: stretch;
+  margin-bottom: 1.35rem;
+}
+.person > div > p {
+  max-width: 62ch;
+}
+
+@media (max-width: 1000px) {
+  .person {
+    grid-template-columns: 200px 1fr;
+    gap: 1.75rem;
+  }
+  /* One column: a value can now be as long as it likes without pushing its
+     neighbour out of line. */
+  .facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .person {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-block: 1.75rem 1.25rem;
+  }
+  .person__portrait {
+    max-width: 190px;
+  }
+  .person h1 {
+    font-size: 1.9rem;
+  }
+  /* The role word moves under the title instead of fighting it for width. */
+  .appears a {
+    grid-template-columns: 46px 1fr;
+    gap: 0.15rem 0.8rem;
+  }
+  .appears em {
+    grid-column: 2;
+  }
+}
+
 /* ---------- trailer ----------------------------------------------------------- */
 
 .trailer {
