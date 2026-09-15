@@ -98,7 +98,7 @@ const jsonld = [
               {answer.picks.map((pick) => (
                 <li class="pick">
                   <a class="pick__art" href={`/${kind}/${pick.slug}`} tabindex="-1" aria-hidden="true">
-                    <img src={pick.cover} alt="" width="220" height="311" loading="lazy" decoding="async" />
+                    <img src={pick.cover} alt={`Cover of ${pick.title}`} width="220" height="311" loading="lazy" decoding="async" />
                   </a>
                   <div class="pick__body">
                     <h3>

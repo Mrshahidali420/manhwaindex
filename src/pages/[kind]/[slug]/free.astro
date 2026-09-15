@@ -73,7 +73,7 @@ const jsonld = [
   <div class="shell title-page">
     <div class="cover-rail">
       <div class="cover-wrap">
-        <img class="cover" src={item.cover} alt={`Cover of ${item.title}`} width="460" height="651" />
+        <img class="cover" src={item.cover} alt={`Cover of ${item.title}`} width="460" height="651" loading="eager" fetchpriority="high" decoding="async" />
       </div>
     </div>
 

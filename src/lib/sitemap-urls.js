@@ -96,21 +96,35 @@ const comicUrls = (country) =>
       loc: `${SITE}/${KIND_OF_COUNTRY[item.country] || 'manga'}/${item.slug}`,
       // Pages that answer the question get crawled first.
       priority: item.readLinks.length > 0 ? '0.8' : '0.5',
+      image: item.cover,
+      caption: `Cover of ${item.title}`,
     }))
 
 const otherComicUrls = () =>
   comics
     .filter((c) => !['KR', 'JP', 'CN', 'TW'].includes(c.country))
-    .map((item) => ({ loc: `${SITE}/manga/${item.slug}`, priority: item.readLinks.length > 0 ? '0.8' : '0.5' }))
+    .map((item) => ({
+      loc: `${SITE}/manga/${item.slug}`,
+      priority: item.readLinks.length > 0 ? '0.8' : '0.5',
+      image: item.cover,
+      caption: `Cover of ${item.title}`,
+    }))
 
 const animeUrls = () =>
   anime.map((item) => ({
     loc: `${SITE}/anime/${item.slug}`,
     priority: item.watchLinks.length > 0 ? '0.8' : '0.5',
+    image: item.cover,
+    caption: `Cover of ${item.title}`,
   }))
 
 const characterUrls = () =>
-  charactersWithPages.map((person) => ({ loc: `${SITE}/character/${person.slug}`, priority: '0.6' }))
+  charactersWithPages.map((person) => ({
+    loc: `${SITE}/character/${person.slug}`,
+    priority: '0.6',
+    image: person.image,
+    caption: `${person.name} portrait`,
+  }))
 
 /** Split a long list into numbered parts, so no single file is huge. */
 function split(name, urls) {
@@ -139,12 +153,43 @@ export const sitemapParts = [
 
 export const today = () => new Date().toISOString().slice(0, 10)
 
+// A title, a cover URL or a character name can hold a character XML treats as
+// markup. One unescaped "&" makes the whole file unparseable, so every value
+// that reaches the XML goes through here first.
+const xml = (text) =>
+  String(text == null ? '' : text)
+    .split('&')
+    .join('&amp;')
+    .split('<')
+    .join('&lt;')
+    .split('>')
+    .join('&gt;')
+    .split('"')
+    .join('&quot;')
+    .split("'")
+    .join('&apos;')
+
+/**
+ * One <image:image> child per URL that owns a picture.
+ *
+ * Every cover and every portrait is a real picture people search for by the
+ * name of the story. Left alone, Google must find ~107,000 of them by
+ * crawling each page. Naming them here hands Google Images the list.
+ */
+const imageTag = (u) =>
+  u.image
+    ? `<image:image><image:loc>${xml(u.image)}</image:loc><image:title>${xml(u.caption)}</image:title></image:image>`
+    : ''
+
 export function urlsetXml(urls) {
   const day = today()
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urls
-  .map((u) => `  <url><loc>${u.loc}</loc><lastmod>${day}</lastmod><priority>${u.priority}</priority></url>`)
+  .map(
+    (u) =>
+      `  <url><loc>${xml(u.loc)}</loc><lastmod>${day}</lastmod><priority>${u.priority}</priority>${imageTag(u)}</url>`,
+  )
   .join('\n')}
 </urlset>
 `

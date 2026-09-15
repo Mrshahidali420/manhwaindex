@@ -36,7 +36,7 @@ const current = Number(page)
         {items.map((person) => (
           <li>
             <a href={`/character/${person.slug}`}>
-              <img src={person.image} alt="" width="220" height="293" loading="lazy" />
+              <img src={person.image} alt={`${person.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
               <b>{person.name}</b>
               <span>{kindOfAppearance(person.appearsIn[0])}</span>
             </a>

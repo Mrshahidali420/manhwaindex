@@ -168,7 +168,7 @@ const jsonld = {
   <div class="shell">
     <article class="person">
       <div class="person__portrait">
-        <img src={person.image} alt={person.name} width="440" height="587" loading="eager" />
+        <img src={person.image} alt={`${person.name} portrait`} width="440" height="587" loading="eager" fetchpriority="high" decoding="async" />
       </div>
       <div>
         <h1>{person.name}</h1>
@@ -238,7 +238,7 @@ const jsonld = {
         {person.appearsIn.map((a) => (
           <li>
             <a href={`/${kindOfAppearance(a)}/${a.slug}`}>
-              <img src={a.cover} alt="" width="46" height="64" loading="lazy" />
+              <img src={a.cover} alt={`Cover of ${a.title}`} width="46" height="64" loading="lazy" decoding="async" />
               <span><b>{a.title}</b><span>{kindOfAppearance(a)}</span></span>
               <em>{a.role === 'MAIN' ? 'Main character' : a.role === 'SUPPORTING' ? 'Supporting' : 'Appears'}</em>
             </a>
@@ -257,7 +257,7 @@ const jsonld = {
           {siblings.map((mate) => (
             <li>
               <a href={`/character/${mate.slug}`}>
-                <img src={mate.image} alt="" width="220" height="293" loading="lazy" />
+                <img src={mate.image} alt={`${mate.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
                 <b>{mate.name}</b>
                 <span>{mate.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
               </a>

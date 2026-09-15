@@ -111,7 +111,7 @@ const jsonld = [
               {day.shows.map((show) => (
                 <li class="sched__row">
                   <a class="sched__art" href={`/anime/${show.slug}`} tabindex="-1" aria-hidden="true">
-                    <img src={show.cover} alt="" width="60" height="85" loading="lazy" decoding="async" />
+                    <img src={show.cover} alt={`Cover of ${show.title}`} width="60" height="85" loading="lazy" decoding="async" />
                   </a>
                   <div class="sched__body">
                     <h3 class="sched__name">

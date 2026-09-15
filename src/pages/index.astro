@@ -77,7 +77,7 @@ const jsonld = {
         skyline.map((item, i) => (
           <img
             src={item.cover}
-            alt=""
+            alt={`Cover of ${item.title}`}
             width="230"
             height="345"
             loading={i < 5 ? 'eager' : 'lazy'}
@@ -165,7 +165,7 @@ const jsonld = {
             {airing.map((a) => (
               <li>
                 <a href={`/anime/${a.slug}`}>
-                  <img src={a.cover} alt="" width="52" height="74" loading="lazy" decoding="async" />
+                  <img src={a.cover} alt={`Cover of ${a.title}`} width="52" height="74" loading="lazy" decoding="async" />
                   <span>
                     <b>{a.title}</b>
                     <em>

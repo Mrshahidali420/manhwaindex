@@ -87,7 +87,7 @@ const jsonld = [
               <a class="mood__link" href={`/mood/${mood.slug}`}>
                 <span class="mood__art" aria-hidden="true">
                   {covers.map((c) => (
-                    <img src={c.cover} alt="" width="40" height="57" loading="lazy" decoding="async" />
+                    <img src={c.cover} alt={`Cover of ${c.title}`} width="40" height="57" loading="lazy" decoding="async" />
                   ))}
                 </span>
                 <span class="mood__body">

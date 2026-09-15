@@ -618,7 +618,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
             const src = cover.includes('://')
               ? cover
               : `${COVER_BASE}${kind === 'anime' ? 'anime' : 'manga'}/cover/small/${cover}`
-            return `<li><a href="${escapeHtml(url)}"><img src="${escapeHtml(src)}" alt="" loading="lazy" width="34" height="48" /><span><b>${escapeHtml(title)}</b><em>${escapeHtml(kind)}${year ? ' · ' + year : ''}</em></span></a></li>`
+            return `<li><a href="${escapeHtml(url)}"><img src="${escapeHtml(src)}" alt="Cover of ${escapeHtml(title)}" loading="lazy" width="34" height="48" /><span><b>${escapeHtml(title)}</b><em>${escapeHtml(kind)}${year ? ' · ' + year : ''}</em></span></a></li>`
           })
           .join('')
         list.hidden = false

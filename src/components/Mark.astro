@@ -23,7 +23,7 @@ const kind = mark.src ? (mark.plate ? 'mark--plate' : 'mark--logo') : 'mark--let
 >
   {
     mark.src ? (
-      <img src={mark.src} alt="" width="96" height="96" loading="lazy" decoding="async" />
+      <img src={mark.src} alt={`${site} logo`} width="96" height="96" loading="lazy" decoding="async" />
     ) : (
       <b>{mark.initials}</b>
     )
