@@ -154,6 +154,7 @@ export function shopLinks(item, country) {
   const rows = isAnime
     ? [
         {
+          kind: 'discs',
           icon: 'disc',
           label: 'Blu-ray and DVD',
           note: 'The disc release, if one was made',
@@ -161,6 +162,7 @@ export function shopLinks(item, country) {
           url: shopUrl(`${name} anime`, VIDEO, country),
         },
         {
+          kind: 'books',
           icon: 'book',
           label: 'The manga it came from',
           note: 'Printed volumes of the original',
@@ -170,6 +172,7 @@ export function shopLinks(item, country) {
       ]
     : [
         {
+          kind: 'books',
           icon: 'book',
           label: 'Printed volumes',
           note: 'The official English print run',
@@ -179,6 +182,7 @@ export function shopLinks(item, country) {
       ]
 
   rows.push({
+    kind: 'merch',
     icon: 'figure',
     label: 'Figures and merch',
     note: 'Figures, art books, posters and apparel',
@@ -202,9 +206,9 @@ export function shelfLinks(item) {
   const isAnime = item.kind === 'anime'
   return [
     isAnime
-      ? { label: 'Discs', url: shopUrl(`${name} anime`, VIDEO) }
-      : { label: 'Books', url: shopUrl(`${name} manga`, BOOKS) },
-    { label: 'Merch', url: shopUrl(`${name} anime`, TOYS) },
+      ? { kind: 'discs', label: 'Discs', url: shopUrl(`${name} anime`, VIDEO) }
+      : { kind: 'books', label: 'Books', url: shopUrl(`${name} manga`, BOOKS) },
+    { kind: 'merch', label: 'Merch', url: shopUrl(`${name} anime`, TOYS) },
   ]
 }
 
@@ -223,6 +227,7 @@ export function characterShopLinks(person, seriesTitle, country) {
 
   return [
     {
+      kind: 'figures',
       icon: 'figure',
       label: 'Figures',
       note: `Statues and scale figures of ${who}`,
@@ -230,6 +235,7 @@ export function characterShopLinks(person, seriesTitle, country) {
       url: shopUrl(`${both} figure`, TOYS, country),
     },
     {
+      kind: 'prints',
       icon: 'poster',
       label: 'Posters and prints',
       note: 'Wall art, art books and canvases',
@@ -237,6 +243,7 @@ export function characterShopLinks(person, seriesTitle, country) {
       url: shopUrl(`${both} poster`, TOYS, country),
     },
     {
+      kind: 'apparel',
       icon: 'shirt',
       label: 'Apparel',
       note: 'Shirts, hoodies and accessories',

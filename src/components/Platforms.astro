@@ -63,7 +63,13 @@ const checkedISO = checkedAt.toISOString().slice(0, 10)
             const brand = platform(link.site)
             return (
               <li class="platform" style={`--mark:${brand.color}`}>
-                <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
+                <a
+                  href={link.url}
+                  rel="noopener nofollow sponsored"
+                  target="_blank"
+                  data-go={verb}
+                  data-platform={link.site}
+                >
                   <Mark site={link.site} size="22px" class="platform__edge" />
                   <span class="platform__name">
                     {link.site}

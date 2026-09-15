@@ -378,7 +378,13 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           <p class="free-call">
             <b>{isComic ? 'Read it free on' : 'Watch it free on'}</b>
             {freeLinks.map((link) => (
-              <a href={link.url} rel="noopener nofollow sponsored" target="_blank">
+              <a
+                href={link.url}
+                rel="noopener nofollow sponsored"
+                target="_blank"
+                data-go={isComic ? 'read' : 'watch'}
+                data-platform={link.site}
+              >
                 {link.site}
               </a>
             ))}

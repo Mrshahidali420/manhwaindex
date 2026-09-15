@@ -145,6 +145,15 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // this" and then hands the reader over. One listener on the document
       // covers every page and every link, so no button has to be wired by hand
       // and a new link can never ship untracked.
+      // GA4 accepts letters, digits and underscore in an event name, nothing
+      // else, and at most 40 characters.
+      function ga4Name(part) {
+        return String(part || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '')
+      }
+
       document.addEventListener('click', function (event) {
         var link = event.target.closest && event.target.closest('a[href]')
         if (!link) return
@@ -153,15 +162,33 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         try { url = new URL(link.href, location.href) } catch (e) { return }
         if (url.hostname === location.hostname) return
 
-        // A paid link carries data-aff, written by the component that built it.
-        // rel="sponsored" cannot be used for this: the official read and watch
-        // links carry it too, so keying off rel filed every free link as a sale
-        // link. The component knows which links can earn, so it says so, and
-        // the two can be read apart from each other.
-        var paid = link.hasAttribute('data-aff')
+        // Each link says for itself what it is, because the component that
+        // built it is the only thing that knows. rel="sponsored" cannot be
+        // used for this: the official read and watch links carry that same rel,
+        // so reading rel filed every free link as a sale link.
+        var kind = link.getAttribute('data-aff') // books, discs, figures, ...
+        var go = link.getAttribute('data-go') // read or watch
+        var site = link.getAttribute('data-platform') // WEBTOON, Netflix, ...
+
+        // The name alone says what the click was, so a report needs no filter:
+        // affiliate_amazon_books, read_webtoon, watch_crunchyroll. The set is
+        // bounded by five shop kinds and 48 platforms, about a hundred names in
+        // total, so it can never grow into GA4's ceiling of 500.
+        var name = 'outbound_other'
+        if (kind) name = 'affiliate_amazon_' + ga4Name(kind)
+        else if (go && site) name = ga4Name(go) + '_' + ga4Name(site)
+
         var label = link.querySelector('.buy__label')
 
-        gtag('event', paid ? 'affiliate_click' : 'outbound_click', {
+        gtag('event', name.slice(0, 40), {
+          // The same facts again as parameters, so every click can also be read
+          // as one group: all buying, or one platform across both verbs.
+          click_type: kind ? 'buy' : go || 'other',
+          shop_kind: kind || '',
+          platform: site || (kind ? 'Amazon' : url.hostname),
+          // The first part of the path is the page kind: manhwa, manga, anime,
+          // character, shop. It answers "which pages actually earn".
+          page_type: location.pathname.split('/')[1] || 'home',
           link_domain: url.hostname,
           link_url: url.href,
           link_label: (label ? label.textContent : link.textContent || '')
