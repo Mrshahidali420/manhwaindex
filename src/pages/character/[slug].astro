@@ -18,8 +18,13 @@ import BuyBox from '../../components/BuyBox.astro'
 const person = await loadCharacter(envOf(Astro), Astro.params.slug)
 if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
 
+// The lead title is the one this page is about. A comic wins over its own
+// anime: the comic is where the character was made, and a reader searching a
+// character's name nearly always types the comic word with it.
+const best = (rows) =>
+  rows.find((a) => a.kind !== 'anime') || rows[0]
 const main = person.appearsIn.filter((a) => a.role === 'MAIN')
-const lead = main[0] || person.appearsIn[0]
+const lead = best(main.length ? main : person.appearsIn)
 const leadKind = kindOfAppearance(lead)
 // The word a person actually types: "manga", "manhwa", "manhua" or "anime".
 // The old title never used it, so a search for "<name> manga" matched nothing
