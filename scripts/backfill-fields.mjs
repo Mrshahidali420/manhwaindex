@@ -4,12 +4,12 @@
  *
  * Why this exists: the daily ingest only fetches a title whose updatedAt moved.
  * That is the right rule for normal days, but it means a field we did not ask
- * for yesterday never appears on the ~7,000 titles already in data/. This job
+ * for yesterday never appears on the ~107,000 titles already in data/. This job
  * asks for all of them again, by id, so the new fields land everywhere at once.
  *
  * It is cheap because we already own the ids. The slow part of a full ingest is
  * hunting the whole AniList id space, and this skips that entirely:
- * 50 ids per call at 2.2s per call, so about 6 minutes for 7,000 titles.
+ * 50 ids per call at about 3s per call, so a touch under two hours.
  *
  * Run it by hand, once, after adding a field to MEDIA_FIELDS:
  *   node --max-old-space-size=6000 scripts/backfill-fields.mjs

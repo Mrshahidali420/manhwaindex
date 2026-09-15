@@ -6,7 +6,7 @@ name: Backfill new AniList fields
 # The daily ingest only refetches a title whose updatedAt moved, so a new field
 # would otherwise never appear on the titles we already hold. This job asks
 # AniList for all of them again, by id, and writes the catalog back to the
-# cache. It takes about ten minutes. It does NOT deploy; the next daily run
+# cache. It takes a touch under two hours. It does NOT deploy; the next daily run
 # picks the catalog up and rebuilds the site from it.
 
 on:
@@ -22,7 +22,11 @@ concurrency:
 jobs:
   backfill-fields:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The catalog is ~107,000 titles, not the ~7,000 first assumed: that is
+    # 2,141 calls at about three seconds each, so a touch under two hours. The
+    # first try was capped at 60 minutes and died two thirds of the way in with
+    # nothing written, because the catalog is only saved once at the end.
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
 
