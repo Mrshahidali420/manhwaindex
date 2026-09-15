@@ -79,7 +79,13 @@ jobs:
             data/characters.json
           key: anilist-data-${{ github.run_id }}
 
+      # The catalog grew to ~107,000 titles and each record now carries the
+      # backfilled fields too. Both make-shards and astro build hold the whole
+      # thing in memory, and the default 2 GB heap is no longer enough: the
+      # first run after the backfill died with "heap out of memory".
       - run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=6000
 
       - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3

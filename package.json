@@ -6,7 +6,7 @@
   "scripts": {
     "ingest": "node scripts/ingest.mjs",
     "dev": "astro dev",
-    "build": "node scripts/make-redirects.mjs && node scripts/make-shards.mjs && astro build && node scripts/after-build.mjs",
+    "build": "node scripts/make-redirects.mjs && node --max-old-space-size=6000 scripts/make-shards.mjs && astro build && node scripts/after-build.mjs",
     "preview": "astro preview",
     "deploy": "wrangler deploy",
     "ingest:full": "node --max-old-space-size=6000 scripts/ingest-full.mjs",
