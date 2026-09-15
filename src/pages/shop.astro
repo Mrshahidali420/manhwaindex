@@ -113,7 +113,7 @@ const description =
         {
           starters.map((row) => (
             <li>
-              <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+              <a href={row.url} rel="noopener nofollow sponsored" target="_blank" data-aff>
                 {row.label} →
               </a>
             </li>
@@ -145,7 +145,7 @@ const description =
                 </a>
                 <p class="shop-card__buy">
                   {shelfLinks(item).map((row) => (
-                    <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+                    <a href={row.url} rel="noopener nofollow sponsored" target="_blank" data-aff>
                       {row.label}
                     </a>
                   ))}
@@ -170,10 +170,10 @@ const description =
           genreRows.map((row) => (
             <li>
               <b>{row.name}</b>
-              <a href={row.books} rel="noopener nofollow sponsored" target="_blank">
+              <a href={row.books} rel="noopener nofollow sponsored" target="_blank" data-aff>
                 Books
               </a>
-              <a href={row.merch} rel="noopener nofollow sponsored" target="_blank">
+              <a href={row.merch} rel="noopener nofollow sponsored" target="_blank" data-aff>
                 Merch
               </a>
             </li>

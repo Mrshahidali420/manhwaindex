@@ -37,7 +37,7 @@ const ICONS = {
     {
       rows.map((row, at) => (
         <li class={at === 0 ? 'buy buy--lead' : 'buy'}>
-          <a href={row.url} rel="noopener nofollow sponsored" target="_blank">
+          <a href={row.url} rel="noopener nofollow sponsored" target="_blank" data-aff>
             <span class="buy__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                 <path d={ICONS[row.icon] || ICONS.figure} />

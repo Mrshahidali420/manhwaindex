@@ -153,10 +153,12 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         try { url = new URL(link.href, location.href) } catch (e) { return }
         if (url.hostname === location.hostname) return
 
-        // A paid link carries rel="sponsored". That is the one that can earn,
-        // so it gets its own event name and can be read apart from the free
-        // "go read it here" links.
-        var paid = (link.rel || '').indexOf('sponsored') !== -1
+        // A paid link carries data-aff, written by the component that built it.
+        // rel="sponsored" cannot be used for this: the official read and watch
+        // links carry it too, so keying off rel filed every free link as a sale
+        // link. The component knows which links can earn, so it says so, and
+        // the two can be read apart from each other.
+        var paid = link.hasAttribute('data-aff')
         var label = link.querySelector('.buy__label')
 
         gtag('event', paid ? 'affiliate_click' : 'outbound_click', {
