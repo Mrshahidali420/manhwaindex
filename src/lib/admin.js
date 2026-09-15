@@ -167,6 +167,27 @@ export function sectionName(type) {
   return SECTIONS[type] || type || 'Other'
 }
 
+// Cloudflare gives a two letter country code. The browser engine already
+// knows the full name of every country, so no list has to be kept here.
+const REGION = (() => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' })
+  } catch (e) {
+    return null
+  }
+})()
+
+/** "SG" becomes "Singapore". A code that is not known is given back as it came. */
+export function countryName(code) {
+  const c = String(code || '').trim().toUpperCase()
+  if (!c || c === '??' || c === 'XX' || c === 'T1') return 'Unknown'
+  try {
+    return (REGION && REGION.of(c)) || c
+  } catch (e) {
+    return c
+  }
+}
+
 /** A sending site, said as a name. */
 const SOURCES = {
   'google.com': 'Google search',

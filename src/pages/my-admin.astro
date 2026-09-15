@@ -7,7 +7,7 @@
  */
 import Admin from '../layouts/Admin.astro'
 import { envOf } from '../lib/runtime.js'
-import { gate, ask, askOne, clock, humanize, num, sectionName, words } from '../lib/admin.js'
+import { gate, ask, askOne, clock, countryName, humanize, num, sectionName, words } from '../lib/admin.js'
 
 export const prerender = false
 
@@ -102,7 +102,7 @@ if (signedIn) {
             <a href={row.path}>{humanize(row.path, row.label)}</a>
             <div class="meta">
               <span class="tag">{sectionName(row.page_type)}</span>
-              <span class="tag">{row.country || '??'}</span>
+              <span class="tag">{countryName(row.country)}</span>
               <span class="tag">page {row.step || 1}</span>
               <span class="tag">{row.device}</span>
             </div>
@@ -130,7 +130,7 @@ if (signedIn) {
             <div class="meta">
               <span class={row.kind === 'buy' ? 'tag buy' : 'tag go'}>{row.kind}</span>
               <span class="tag">from {humanize(row.path, '')}</span>
-              {row.country && <span class="tag">{row.country}</span>}
+              {row.country && <span class="tag">{countryName(row.country)}</span>}
             </div>
           </div>
         </div>

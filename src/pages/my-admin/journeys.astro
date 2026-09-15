@@ -12,6 +12,7 @@ import {
   ask,
   rangeOf,
   clock,
+  countryName,
   fmtDwell,
   humanize,
   num,
@@ -109,7 +110,7 @@ const edgeTop = edges[0]?.moves || 1
     {visits.map((visit) => (
       <div style="padding:10px 0;border-top:1px solid var(--edge)">
         <div class="say" style="margin:0 0 4px">
-          {clock(visit.started)} · {visit.country || '??'} · {visit.device} ·{' '}
+          {clock(visit.started)} · {countryName(visit.country)} · {visit.device} ·{' '}
           {num(visit.steps.length)} pages
         </div>
         <div class="chain">

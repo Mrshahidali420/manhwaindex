@@ -5,7 +5,7 @@
  */
 import Admin from '../../layouts/Admin.astro'
 import { envOf } from '../../lib/runtime.js'
-import { gate, rangeOf, fmtDwell, handOff, num, sectionName, sourceName } from '../../lib/admin.js'
+import { gate, rangeOf, countryName, fmtDwell, handOff, num, sectionName, sourceName } from '../../lib/admin.js'
 import { typesFor, countriesFor, sourcesFor, clicksFor } from '../../lib/admin-data.js'
 
 export const prerender = false
@@ -136,7 +136,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
       <table>
         {countries.map((row) => (
           <tr>
-            <td style="width:60px">{row.country || '??'}</td>
+            <td style="width:130px">{countryName(row.country)}</td>
             <td>
               <div class="bar" style={`width:${Math.max(2, (row.views / countryTop) * 100)}%`}></div>
             </td>
