@@ -3,11 +3,22 @@ import { platform, formatWord, statusWord } from '../lib/format.js'
 
 const { items, base, shelf = false, eager = 0 } = Astro.props
 
+// One grid can hold both comics and anime, so a single `base` is not always
+// enough. Leave `base` off and each card works out its own address from what
+// the record already says it is.
+const hrefOf = (item) =>
+  base
+    ? `${base}/${item.slug}`
+    : item.kind === 'anime'
+      ? `/anime/${item.slug}`
+      : `/${formatWord(item)}/${item.slug}`
+
 // The first covers of the first grid on a page are the largest thing the
 // visitor sees, so they must not wait for the lazy loader.
 
 /** Which marks to show under a cover: read links for comics, watch for anime. */
-const marksOf = (item) => (base === '/anime' ? item.watchLinks : item.readLinks)
+const marksOf = (item) =>
+  (base ? base === '/anime' : item.kind === 'anime') ? item.watchLinks : item.readLinks
 
 /** One quiet line of facts under the title: ★ 8.4 · Manhwa · Finished */
 const metaOf = (item) => {
@@ -20,12 +31,12 @@ const metaOf = (item) => {
 <ul class={shelf ? 'grid grid--shelf' : 'grid'}>
   {
     items.map((item, i) => {
-      const marks = marksOf(item)
+      const marks = marksOf(item) || []
       const shown = marks.slice(0, 4)
       const extra = marks.length - shown.length
       return (
         <li class="card">
-          <a href={`${base}/${item.slug}`}>
+          <a href={hrefOf(item)}>
             <img
               src={item.cover}
               alt={`Cover of ${item.title}`}

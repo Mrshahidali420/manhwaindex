@@ -79,15 +79,23 @@ const siblings = (series?.characters || [])
 // costs nothing: the bio is loaded for this page anyway.
 const height = parseHeight(person.description)
 
+// Who speaks this part. Only an anime has a voice, so the first anime row that
+// carries one wins. "Who voices X" is a heavy search and today we answer it
+// with nothing at all.
+const voiced = person.appearsIn.find((a) => a.voice) || null
+
 const facts = [
   person.age ? ['Age', person.age] : null,
   height ? ['Height', height] : null,
   person.gender ? ['Gender', person.gender] : null,
+  person.bloodType ? ['Blood type', person.bloodType] : null,
   person.birthday ? ['Birthday', person.birthday] : null,
+  voiced ? ['Japanese voice', voiced.voice] : null,
   ['From', lead.title],
   authors.length ? ['Made by', authors.join(' · ')] : null,
   series?.startYear ? ['Started', String(series.startYear)] : null,
   ['Appears in', `${person.appearsIn.length} ${person.appearsIn.length === 1 ? 'title' : 'titles'}`],
+  person.favourites ? ['AniList favourites', person.favourites.toLocaleString()] : null,
 ].filter(Boolean)
 
 // A character is what a figure is actually made of, so this is the page where
@@ -98,7 +106,7 @@ const buys = characterShopLinks(person, series || lead, countryOf(Astro))
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 
 const bioPlain = person.description ? bioText(person.description) : ''
-const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height)
+const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height, voiced?.voice || '')
 
 // The old description was the same sentence on every character page with only
 // the name swapped, which says nothing a searcher cannot already see in the

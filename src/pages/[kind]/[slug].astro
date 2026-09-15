@@ -83,8 +83,43 @@ const description = links.length
     }.`
   : `${item.title} has no official English ${isComic ? 'reading' : 'streaming'} platform listed yet. Here is what we know about it.`
 
+// AniList keeps its own charts. "#2 most popular of all time" is a real fact
+// about a story and nothing else on this page says it. Only an all-time place
+// is printed: a yearly place needs the year beside it to mean anything, and
+// the facts list has no room for that.
+const chartWord = { POPULAR: 'most popular', RATED: 'highest rated' }
+const chart = (item.ranks || []).find((r) => r.allTime && chartWord[r.type])
+
+// How many people are reading it right now, and how many finished it. These
+// are the numbers a reader uses to decide if a story is worth starting.
+const readers = item.readers || {}
+const num = (value) => (value ? Number(value).toLocaleString() : null)
+
+// What the story was made from. AniList stores it as MANGA, LIGHT_NOVEL and
+// so on, which is not a thing anybody says out loud.
+const SOURCE_WORDS = {
+  ORIGINAL: 'An original story',
+  MANGA: 'A manga',
+  LIGHT_NOVEL: 'A light novel',
+  WEB_NOVEL: 'A web novel',
+  NOVEL: 'A novel',
+  VISUAL_NOVEL: 'A visual novel',
+  VIDEO_GAME: 'A video game',
+  DOUJINSHI: 'A doujinshi',
+  ANIME: 'An anime',
+  COMIC: 'A comic',
+  GAME: 'A game',
+  PICTURE_BOOK: 'A picture book',
+  MULTIMEDIA_PROJECT: 'A multimedia project',
+  LIVE_ACTION: 'A live action show',
+}
+
 const facts = [
   ['Status', statusWord(item.status)],
+  ...(SOURCE_WORDS[item.source] ? [['Based on', SOURCE_WORDS[item.source]]] : []),
+  ...(chart ? [['AniList chart', `#${chart.rank} ${chartWord[chart.type]} of all time`]] : []),
+  ...(num(readers.current) ? [[isComic ? 'Reading now' : 'Watching now', num(readers.current)]] : []),
+  ...(num(readers.completed) ? [['Finished it', num(readers.completed)]] : []),
   isComic ? ['Chapters', item.chapters ?? 'Not counted'] : ['Episodes', item.episodes ?? 'Not counted'],
   isComic ? ['Volumes', item.volumes ?? '—'] : ['Studio', item.studios[0] ?? '—'],
   ['First released', item.startYear ?? '—'],
@@ -176,6 +211,14 @@ const similar = item.similar || []
 const similarOpen = similar.filter((p) =>
   ((p.kind === 'anime' ? p.watchLinks : p.readLinks) || []).length > 0).length
 const similarBase = isComic ? `/${word}` : '/anime'
+
+// What AniList readers themselves picked next after this story. A human vote
+// beats a genre match, so it gets its own block above the genre one. The list
+// can hold both comics and anime, so the grid works out each address itself.
+// Anything already shown as a genre pick is dropped, so the page never shows
+// the same cover twice.
+const shownSlugs = new Set(similar.map((p) => p.slug))
+const recs = (item.recs || []).filter((p) => p.slug !== item.slug && !shownSlugs.has(p.slug))
 const kindBase = similarBase
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
 
@@ -738,6 +781,18 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
                 </li>
               ))}
             </ul>
+          </section>
+        )
+      }
+
+      {
+        recs.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Readers of {item.title} picked these next</h2>
+              <p>Voted for by AniList readers who finished this one. Open any of them to see where to read or watch it legally.</p>
+            </div>
+            <CoverGrid items={recs} />
           </section>
         )
       }

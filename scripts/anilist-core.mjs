@@ -31,7 +31,12 @@ const MAX_RETRIES = 12
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export const MEDIA_FIELDS = `
-  id idMal siteUrl type format status countryOfOrigin updatedAt
+  id idMal siteUrl type format status countryOfOrigin updatedAt source(version: 3)
+  rankings { rank type allTime year context }
+  stats { statusDistribution { status amount } }
+  recommendations(perPage: 8, sort: RATING_DESC) {
+    nodes { rating mediaRecommendation { id type title { romaji english } } }
+  }
   title { romaji english native }
   synonyms
   description(asHtml: false)
@@ -51,7 +56,7 @@ export const MEDIA_FIELDS = `
   staff(perPage: 4, sort: RELEVANCE) { edges { role node { name { full } } } }
   streamingEpisodes { title url site }
   relations { edges { relationType node { id type format countryOfOrigin title { romaji english } } } }
-  characters(perPage: 10, sort: [ROLE, RELEVANCE]) { edges { role node { id name { full native alternative } image { large } description(asHtml: false) gender age dateOfBirth { month day } } } }
+  characters(perPage: 10, sort: [ROLE, RELEVANCE]) { edges { role voiceActors(language: JAPANESE, sort: [RELEVANCE]) { name { full } } node { id name { full native alternative } image { large } description(asHtml: false) gender age bloodType favourites dateOfBirth { month day } } } }
 `
 
 /** Walk the id space. This is the only way to reach every title. */
@@ -224,6 +229,24 @@ export function shape(media, kind = media.type === 'ANIME' ? 'anime' : 'comic') 
     status: media.status,
     country: media.countryOfOrigin,
     updatedAt: media.updatedAt ?? null,
+    // What the story was made from: a light novel, a game, an original work.
+    source: media.source ?? null,
+    // AniList's own charts. "#2 most popular manhwa of all time" is a fact a
+    // reader cares about and nothing else on the page says.
+    ranks: (media.rankings || [])
+      .filter((r) => r.rank <= 500)
+      .slice(0, 4)
+      .map((r) => ({ rank: r.rank, type: r.type, allTime: !!r.allTime, year: r.year ?? null, context: r.context })),
+    // How many people are reading it, finished it, or gave up on it.
+    readers: Object.fromEntries(
+      (media.stats?.statusDistribution || []).map((s) => [s.status.toLowerCase(), s.amount])
+    ),
+    // "If you liked this, try that." Ids only here; make-shards.mjs throws
+    // away the ones we do not hold a page for and swaps the rest for slugs.
+    recIds: (media.recommendations?.nodes || [])
+      .filter((n) => n.mediaRecommendation?.id)
+      .slice(0, 8)
+      .map((n) => ({ id: n.mediaRecommendation.id, rating: n.rating || 0 })),
     description: (media.description || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim(),
     startYear: media.startDate?.year ?? null,
     startDate: media.startDate?.year ? [media.startDate.year, media.startDate.month || 1, media.startDate.day || 1] : null,
@@ -264,6 +287,10 @@ export function shape(media, kind = media.type === 'ANIME' ? 'anime' : 'comic') 
       name: e.node.name.full,
       image: e.node.image?.large || null,
       role: e.role,
+      // Who speaks this part in the Japanese dub. "Who voices X" is a real
+      // search and today we answer it with nothing. Only for anime: a comic
+      // has no voices.
+      voice: (e.voiceActors || []).slice(0, 1).map((v) => v.name.full)[0] || null,
       // The full body rides along here and is stripped once it reaches CHARACTERS.
       body: {
         id: e.node.id,
@@ -275,6 +302,10 @@ export function shape(media, kind = media.type === 'ANIME' ? 'anime' : 'comic') 
         gender: e.node.gender || null,
         age: e.node.age || null,
         birthday: e.node.dateOfBirth?.month ? e.node.dateOfBirth.month + '/' + e.node.dateOfBirth.day : null,
+        bloodType: e.node.bloodType || null,
+        // How many AniList members picked this character as a favourite. It is
+        // the only popularity number a character record carries.
+        favourites: e.node.favourites ?? 0,
         description: cutBio((e.node.description || '').replace(/<[^>]+>/g, '').trim()),
       },
     })),
@@ -399,10 +430,12 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
           country: item.country,
           role: ref.role,
           popularity: item.popularity || 0,
+          // Only an anime has a voice, so this is null on every comic row.
+          voice: ref.voice || null,
         })
       }
       // Keep the id: the daily job needs it to rebuild this same link.
-      item.characters = (item.characters || []).map((r) => ({ id: r.id, slug: r.slug, name: r.name, image: r.image, role: r.role }))
+      item.characters = (item.characters || []).map((r) => ({ id: r.id, slug: r.slug, name: r.name, image: r.image, role: r.role, voice: r.voice || null }))
     }
   }
 

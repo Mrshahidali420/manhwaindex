@@ -460,7 +460,7 @@ export function titleFaq(item, kind) {
  * `series` is that title's own record, or null when it could not be loaded.
  * `bio` is the character's description as plain text, already shortened.
  */
-export function characterFaq(person, lead, leadKind, series, bio = '', height = '') {
+export function characterFaq(person, lead, leadKind, series, bio = '', height = '', voice = '') {
   const word = wordOf(leadKind)
   const verb = verbOf(leadKind)
   const who = person.name
@@ -485,6 +485,16 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
       q: `How tall is ${who}?`,
       a: `${who} is ${height}. This is the height given in the official ` +
         `profile for ${lead.title}.`,
+    })
+  }
+
+  // "Who voices X" is a heavy search and only the anime can answer it. The
+  // name comes from the AniList cast list, so it is a credit, not a guess.
+  if (voice) {
+    faq.push({
+      q: `Who voices ${who}?`,
+      a: `${voice} plays ${who} in the Japanese version. This is the cast ` +
+        `credit AniList gives for the anime.`,
     })
   }
 

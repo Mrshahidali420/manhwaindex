@@ -167,6 +167,17 @@ function precompute(titles) {
       // genres travel with the pick instead of being worked out again.
       .map(([p, shared]) => ({ ...thin(p), shared: shared.slice(0, 3) }))
 
+    // What real readers picked next, from AniList. This is a human vote, so it
+    // beats the genre match above, and every pick that survives is a real
+    // internal link to a page we hold. Anything we do not hold is dropped:
+    // a link to nothing helps nobody.
+    item.recs = (item.recIds || [])
+      .map(({ id }) => byId.get(id))
+      .filter((p) => p && p.id !== item.id && p.cover)
+      .slice(0, 6)
+      .map(thin)
+    delete item.recIds
+
     for (const rel of item.relations || []) {
       const found = byId.get(rel.id)
       rel.hit = found
