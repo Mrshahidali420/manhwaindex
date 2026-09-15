@@ -40,7 +40,12 @@ const TABS = [
     {signedIn && refresh > 0 && (
       <meta http-equiv="refresh" content={String(refresh)} />
     )}
-    <style>
+    <!--
+      is:global matters. Astro keeps a <style> block to the elements written in
+      THIS file, and every table below arrives through <slot />. Without this
+      word the whole reading room renders as plain unstyled text.
+    -->
+    <style is:global>
       :root {
         --ink: #0a0a1f;
         --panel: #14142e;
@@ -86,27 +91,74 @@ const TABS = [
       .ranges a { font-size: 12px; padding: 5px 11px; }
       .cards {
         display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        grid-template-columns: repeat(2, 1fr);
         margin-bottom: 22px;
+      }
+      @media (min-width: 620px) {
+        .cards { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
       }
       .card, .panel {
         background: var(--panel);
         border: 1px solid var(--edge);
         border-radius: 14px;
       }
-      .card { padding: 16px; }
-      .card .n { font-size: 30px; font-weight: 700; line-height: 1.1; }
-      .card .t { color: var(--dim); font-size: 13px; margin-top: 4px; }
+      .card { padding: 14px; }
+      .card .n {
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+      .card .t { color: var(--dim); font-size: 12px; margin-top: 4px; line-height: 1.35; }
       .card.live { border-color: var(--pink); }
       .card.live .n { color: var(--pink); }
-      .panel { padding: 18px; margin-bottom: 18px; overflow-x: auto; }
-      table { width: 100%; border-collapse: collapse; font-size: 14px; }
-      th, td { text-align: left; padding: 7px 10px 7px 0; vertical-align: top; }
-      th { color: var(--dim); font-weight: 600; font-size: 12px; }
+      .panel { padding: 16px 14px; margin-bottom: 16px; }
+      @media (min-width: 620px) { .panel { padding: 18px; } }
+
+      /* A table is allowed to be wider than the phone, but only inside its own
+         sideways scroller. The page itself must never scroll sideways. */
+      .scroll { overflow-x: auto; margin: 0 -14px; padding: 0 14px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+      th, td { text-align: left; padding: 8px 12px 8px 0; vertical-align: top; }
+      th {
+        color: var(--dim);
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: none;
+        white-space: nowrap;
+      }
       tr + tr td { border-top: 1px solid var(--edge); }
       td.num, th.num { text-align: right; padding-right: 0; white-space: nowrap; }
       a { color: var(--blue); }
+
+      /* The newest-first lists. A table would squeeze five columns onto a
+         phone; this stacks the name over its small facts instead. */
+      .feed { display: flex; flex-direction: column; }
+      .feed .row {
+        display: flex;
+        gap: 12px;
+        padding: 10px 0;
+        align-items: baseline;
+      }
+      .feed .row + .row { border-top: 1px solid var(--edge); }
+      .feed .when {
+        color: var(--dim);
+        font-size: 12px;
+        white-space: nowrap;
+        width: 58px;
+        flex: none;
+      }
+      .feed .what { min-width: 0; flex: 1; }
+      .feed .what a { text-decoration: none; }
+      .feed .what a:hover { text-decoration: underline; }
+      .feed .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 5px;
+      }
+      .feed .meta .tag { margin-left: 0; }
       .bar {
         height: 8px;
         border-radius: 4px;
@@ -121,13 +173,17 @@ const TABS = [
       .tag {
         display: inline-block;
         font-size: 11px;
-        padding: 1px 7px;
+        line-height: 1.7;
+        padding: 0 8px;
         border-radius: 999px;
         border: 1px solid var(--edge);
+        background: rgba(255, 255, 255, 0.03);
         color: var(--dim);
         margin-left: 6px;
+        white-space: nowrap;
       }
       .tag.buy { color: var(--pink); border-color: var(--pink); }
+      .tag.go { color: var(--blue); border-color: var(--blue); }
       .chain { font-size: 14px; line-height: 1.9; }
       .chain .hop { color: var(--text); }
       .chain .arrow { color: var(--dim); padding: 0 6px; }

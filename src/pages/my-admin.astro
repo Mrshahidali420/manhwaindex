@@ -94,20 +94,22 @@ if (signedIn) {
     <h2>What they are looking at</h2>
     <p class="say">The last 20 pages opened, newest first.</p>
     {looking.length === 0 && <p class="empty">Nothing yet.</p>}
-    <table>
+    <div class="feed">
       {looking.map((row) => (
-        <tr>
-          <td style="width:88px">{clock(row.ts)}</td>
-          <td>
+        <div class="row">
+          <div class="when">{clock(row.ts).replace(' UTC', '')}</div>
+          <div class="what">
             <a href={row.path}>{humanize(row.path, row.label)}</a>
-            <span class="tag">{sectionName(row.page_type)}</span>
-          </td>
-          <td class="num">{row.country || '??'}</td>
-          <td class="num">page {row.step || 1}</td>
-          <td class="num">{row.device}</td>
-        </tr>
+            <div class="meta">
+              <span class="tag">{sectionName(row.page_type)}</span>
+              <span class="tag">{row.country || '??'}</span>
+              <span class="tag">page {row.step || 1}</span>
+              <span class="tag">{row.device}</span>
+            </div>
+          </div>
+        </div>
       ))}
-    </table>
+    </div>
   </div>
 
   <div class="panel">
@@ -117,28 +119,22 @@ if (signedIn) {
       site.
     </p>
     {clicks.length === 0 && <p class="empty">No clicks yet.</p>}
-    <table>
-      <tr>
-        <th>Time</th>
-        <th>What</th>
-        <th>From page</th>
-        <th>Where it went</th>
-      </tr>
+    <div class="feed">
       {clicks.map((row) => (
-        <tr>
-          <td>{clock(row.ts)}</td>
-          <td>
-            {words(row.name)}
-            {row.country && <span class={row.kind === 'buy' ? 'tag buy' : 'tag'}>{row.country}</span>}
-          </td>
-          <td><a href={row.path}>{humanize(row.path, '')}</a></td>
-          <td>
+        <div class="row">
+          <div class="when">{clock(row.ts).replace(' UTC', '')}</div>
+          <div class="what">
             <a href={row.target} rel="noopener nofollow" target="_blank">
-              {row.label || row.platform || row.target}
+              {row.platform || row.label || words(row.name)}
             </a>
-          </td>
-        </tr>
+            <div class="meta">
+              <span class={row.kind === 'buy' ? 'tag buy' : 'tag go'}>{row.kind}</span>
+              <span class="tag">from {humanize(row.path, '')}</span>
+              {row.country && <span class="tag">{row.country}</span>}
+            </div>
+          </div>
+        </div>
       ))}
-    </table>
+    </div>
   </div>
 </Admin>

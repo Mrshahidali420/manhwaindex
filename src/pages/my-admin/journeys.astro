@@ -134,6 +134,7 @@ const edgeTop = edges[0]?.moves || 1
       started on that page.
     </p>
     {edges.length === 0 && <p class="empty">Nothing yet.</p>}
+    <div class="scroll">
     <table>
       {edges.map((row) => (
         <tr>
@@ -148,6 +149,7 @@ const edgeTop = edges[0]?.moves || 1
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   <p class="say">

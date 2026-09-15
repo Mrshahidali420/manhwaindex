@@ -132,6 +132,7 @@ const buys = sum(rows, (r) => r.kind === 'buy')
       readers trust most, so give it the top spot on the page.
     </p>
     {platforms.length === 0 && <p class="empty">No read or watch clicks yet.</p>}
+    <div class="scroll">
     <table>
       {platforms.map((row) => (
         <tr>
@@ -152,6 +153,7 @@ const buys = sum(rows, (r) => r.kind === 'buy')
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   <div class="panel">
@@ -160,6 +162,7 @@ const buys = sum(rows, (r) => r.kind === 'buy')
       Each bar is one kind of product. Put more of the winner on your pages.
     </p>
     {shops.length === 0 && <p class="empty">No buy clicks yet.</p>}
+    <div class="scroll">
     <table>
       {shops.map((row) => (
         <tr>
@@ -171,11 +174,13 @@ const buys = sum(rows, (r) => r.kind === 'buy')
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   <div class="panel">
     <h2>Which part of the site sends the clicks</h2>
     <p class="say">A section with many views but few clicks needs better links.</p>
+    <div class="scroll">
     <table>
       <tr>
         <th>Section</th>
@@ -194,6 +199,7 @@ const buys = sum(rows, (r) => r.kind === 'buy')
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   {range.mode !== 'all' && (
@@ -204,6 +210,7 @@ const buys = sum(rows, (r) => r.kind === 'buy')
         30 days, because that is how long the step-by-step record is kept.
       </p>
       {fromPages.length === 0 && <p class="empty">No clicks yet.</p>}
+      <div class="scroll">
       <table>
         <tr>
           <th>Page</th>
@@ -221,6 +228,7 @@ const buys = sum(rows, (r) => r.kind === 'buy')
           </tr>
         ))}
       </table>
+      </div>
     </div>
   )}
 </Admin>

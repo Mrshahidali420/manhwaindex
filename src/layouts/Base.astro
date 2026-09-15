@@ -234,7 +234,9 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // a web address. Everything after " | " is the site name.
       function miTitle() {
         var t = document.title || ''
-        return t.split(' | ')[0].split(' \u2013 ')[0].trim().slice(0, 80)
+        var cuts = [' | ', ' \u2013 ', ' \u2014 ', ' - ']
+        for (var i = 0; i < cuts.length; i++) t = t.split(cuts[i])[0]
+        return t.trim().slice(0, 80)
       }
 
       // Time the page was really on screen. A tab left in the background does

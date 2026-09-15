@@ -101,6 +101,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
       Hand-off is clicks for every 100 views. "Arrived here first" is how many
       visits started in this part of the site.
     </p>
+    <div class="scroll">
     <table>
       <tr>
         <th>Section</th>
@@ -123,6 +124,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   <div class="two">
@@ -130,6 +132,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
       <h2>Countries</h2>
       <p class="say">Where your readers are. This decides which Amazon shop to show.</p>
       {countries.length === 0 && <p class="empty">Nothing yet.</p>}
+      <div class="scroll">
       <table>
         {countries.map((row) => (
           <tr>
@@ -141,12 +144,14 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
           </tr>
         ))}
       </table>
+      </div>
     </div>
 
     <div class="panel">
       <h2>Where visitors come from</h2>
       <p class="say">The site that sent them, or your own tagged link.</p>
       {sources.length === 0 && <p class="empty">Nothing yet.</p>}
+      <div class="scroll">
       <table>
         <tr>
           <th>Source</th>
@@ -161,6 +166,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
           </tr>
         ))}
       </table>
+      </div>
     </div>
   </div>
 
@@ -182,6 +188,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
       the address. Every visit from that link then shows below.
     </p>
     {utms.length === 0 && <p class="empty">No tagged links used yet.</p>}
+    <div class="scroll">
     <table>
       {utms.map((row) => (
         <tr>
@@ -191,5 +198,6 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
         </tr>
       ))}
     </table>
+    </div>
   </div>
 </Admin>

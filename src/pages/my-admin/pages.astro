@@ -64,6 +64,7 @@ const siteRate = handOff(totals.clicks, totals.views)
       left out, because a small number swings too much.
     </p>
     {best.length === 0 && <p class="empty">Not enough clicks yet.</p>}
+    <div class="scroll">
     <table>
       <tr>
         <th>Page</th>
@@ -85,6 +86,7 @@ const siteRate = handOff(totals.clicks, totals.views)
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   <div class="panel">
@@ -94,6 +96,7 @@ const siteRate = handOff(totals.clicks, totals.views)
       add a better link.
     </p>
     {most.length === 0 && <p class="empty">Nothing yet.</p>}
+    <div class="scroll">
     <table>
       <tr>
         <th>Page</th>
@@ -117,6 +120,7 @@ const siteRate = handOff(totals.clicks, totals.views)
         </tr>
       ))}
     </table>
+    </div>
   </div>
 
   <p class="say">
