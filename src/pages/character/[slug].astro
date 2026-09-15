@@ -1,7 +1,16 @@
 ---
 import Base from '../../layouts/Base.astro'
-import { characterIsThin, kindOfAppearance, truncate, bioHtml, bioText } from '../../lib/format.js'
-import { loadCharacter, envOf, countryOf, notFound } from '../../lib/runtime.js'
+import Platforms from '../../components/Platforms.astro'
+import {
+  characterIsThin,
+  kindOfAppearance,
+  truncate,
+  bioHtml,
+  bioText,
+  genreSlug,
+} from '../../lib/format.js'
+import { loadCharacter, loadTitle, envOf, countryOf, notFound } from '../../lib/runtime.js'
+import { characterFaq, faqJsonld, wordOf, verbOf, uniqueBySite, linksOf } from '../../lib/answers.mjs'
 import { characterShopLinks } from '../../lib/shop-links.js'
 import BuyBox from '../../components/BuyBox.astro'
 
@@ -12,10 +21,35 @@ if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro
 const main = person.appearsIn.filter((a) => a.role === 'MAIN')
 const lead = main[0] || person.appearsIn[0]
 const leadKind = kindOfAppearance(lead)
+// The word a person actually types: "manga", "manhwa", "manhua" or "anime".
+// The old title never used it, so a search for "<name> manga" matched nothing
+// on the page itself.
+const word = wordOf(leadKind)
+const verb = verbOf(leadKind)
+
+// The character record holds only a thumbnail of the story. The story's own
+// record holds the official places to read it, who made it and what it is
+// about, and all of that belongs on this page too: a reader who lands here
+// wants the same answer as a reader who lands on the title page.
+const series = await loadTitle(envOf(Astro), leadKind, lead.slug)
+const links = series ? uniqueBySite(linksOf(series)) : []
+const siteCount = links.length
+const authors = (series?.authors || []).map((a) => a.name).filter(Boolean).slice(0, 3)
+const genres = (series?.genres || []).slice(0, 6)
+
+// Other faces from the same story. Real internal links, and the next click a
+// reader who came for one character usually wants.
+const siblings = (series?.characters || [])
+  .filter((c) => c.image && c.slug !== person.slug)
+  .slice(0, 11)
+
 const facts = [
   person.age ? ['Age', person.age] : null,
   person.gender ? ['Gender', person.gender] : null,
   person.birthday ? ['Birthday', person.birthday] : null,
+  ['From', lead.title],
+  authors.length ? ['Made by', authors.join(' · ')] : null,
+  series?.startYear ? ['Started', String(series.startYear)] : null,
   ['Appears in', `${person.appearsIn.length} ${person.appearsIn.length === 1 ? 'title' : 'titles'}`],
 ].filter(Boolean)
 
@@ -24,7 +58,10 @@ const facts = [
 // first name on its own matches half the shop.
 const buys = characterShopLinks(person, lead.title, countryOf(Astro))
 
-const description = `${person.name} is a character in ${lead.title}. See every manhwa, manga and anime they appear in, and the official places to read or watch each one.`
+const bioPlain = person.description ? bioText(person.description) : ''
+const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220))
+
+const description = `${person.name} is a character in the ${word} ${lead.title}. Who they are, every title they appear in, and the official places to ${verb} each one.`
 
 // A portrait with no bio says nothing worth indexing. The page stays
 // reachable and keeps passing links, but it is kept out of the index.
@@ -40,7 +77,7 @@ const jsonld = {
   name: person.name,
   alternateName: person.native || undefined,
   image: person.image,
-  description: truncate(person.description ? bioText(person.description) : description, 300),
+  description: truncate(bioPlain || description, 300),
   subjectOf: person.appearsIn.map((a) => ({
     '@type': a.kind === 'anime' ? 'TVSeries' : 'Book',
     name: a.title,
@@ -50,11 +87,11 @@ const jsonld = {
 ---
 
 <Base
-  title={`${person.name} — ${lead.title} character, and where to read it`}
+  title={`${person.name} — ${word} character from ${lead.title}`}
   description={description}
   canonical={`/character/${person.slug}`}
   image={person.image}
-  jsonld={jsonld}
+  jsonld={faq.length ? [jsonld, faqJsonld(faq)] : jsonld}
   noindex={thin}
   crumbs={[{ name: 'Characters', href: '/character' }, { name: person.name }]}
 >
@@ -70,17 +107,23 @@ const jsonld = {
           <p class="person__alias">Also called {person.aliases.join(' · ')}</p>
         )}
         <p>
-          {person.name} is a character in <a href={`/${leadKind}/${lead.slug}`}>{lead.title}</a>.
-          Every place you can read or watch that story is listed on its own page.
+          {person.name} is a {lead.role === 'MAIN' ? 'main character' : 'character'} in the {word}{' '}
+          <a href={`/${leadKind}/${lead.slug}`}>{lead.title}</a>
+          {authors.length > 0 && <> by {authors.join(' and ')}</>}. Every official place to {verb}{' '}
+          that story is listed further down this page.
         </p>
         <dl class="facts">
           {facts.map(([term, value]) => (
-            <div>
-              <dt>{term}</dt>
-              <dd>{value}</dd>
-            </div>
+            <div><dt>{term}</dt><dd>{value}</dd></div>
           ))}
         </dl>
+        {genres.length > 0 && (
+          <div class="chips">
+            {genres.map((genre) => (
+              <a href={`/genre/${genreSlug(genre)}`}>{genre}</a>
+            ))}
+          </div>
+        )}
       </div>
     </article>
 
@@ -89,6 +132,26 @@ const jsonld = {
         heading={`Own a piece of ${person.name}`}
         sub="Figures, prints and apparel, straight from Amazon."
         rows={buys}
+      />
+    )}
+
+    {person.description && (
+      <section class="section">
+        <div class="section__head">
+          <h2>About {person.name}</h2>
+          <p>From AniList, the same source as the rest of this page.</p>
+        </div>
+        <div class="synopsis" set:html={bioHtml(person.description)} />
+      </section>
+    )}
+
+    {series && (
+      <Platforms
+        heading={`Where to ${verb} ${lead.title}`}
+        links={links}
+        verb={verb}
+        count={`${siteCount} official ${siteCount === 1 ? 'place' : 'places'}`}
+        empty={`No platform we track holds an official licence for ${lead.title} yet. This page is rebuilt every day, so a new one shows up here on its own.`}
       />
     )}
 
@@ -102,10 +165,7 @@ const jsonld = {
           <li>
             <a href={`/${kindOfAppearance(a)}/${a.slug}`}>
               <img src={a.cover} alt="" width="46" height="64" loading="lazy" />
-              <span>
-                <b>{a.title}</b>
-                <span>{kindOfAppearance(a)}</span>
-              </span>
+              <span><b>{a.title}</b><span>{kindOfAppearance(a)}</span></span>
               <em>{a.role === 'MAIN' ? 'Main character' : a.role === 'SUPPORTING' ? 'Supporting' : 'Appears'}</em>
             </a>
           </li>
@@ -113,12 +173,37 @@ const jsonld = {
       </ul>
     </section>
 
-    {person.description && (
+    {siblings.length > 0 && (
       <section class="section">
         <div class="section__head">
-          <h2>About {person.name}</h2>
+          <h2>Other characters in {lead.title}</h2>
+          <p>Tap a face to see every other story that character turns up in.</p>
         </div>
-        <div class="synopsis" set:html={bioHtml(person.description)} />
+        <ul class="people">
+          {siblings.map((mate) => (
+            <li>
+              <a href={`/character/${mate.slug}`}>
+                <img src={mate.image} alt="" width="220" height="293" loading="lazy" />
+                <b>{mate.name}</b>
+                <span>{mate.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {faq.length > 0 && (
+      <section class="section">
+        <div class="section__head">
+          <h2>Common questions about {person.name}</h2>
+          <p>Answered from the same facts as the rest of this page.</p>
+        </div>
+        <dl class="qa">
+          {faq.map((row) => (
+            <div><dt>{row.q}</dt><dd>{row.a}</dd></div>
+          ))}
+        </dl>
       </section>
     )}
   </div>

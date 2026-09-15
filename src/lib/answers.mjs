@@ -448,6 +448,91 @@ export function titleFaq(item, kind) {
   return faq.slice(0, 6)
 }
 
+/**
+ * The questions a person types after a character's name: "who is X", "what
+ * manga is X from", "is there an anime of it", "where do I read it".
+ *
+ * A character page used to be a portrait and a link. These answers turn it
+ * into a page that says something, built only from facts we already hold, so
+ * nothing here can drift away from the rest of the site.
+ *
+ * `lead` is the appearance row for the title the character matters most in.
+ * `series` is that title's own record, or null when it could not be loaded.
+ * `bio` is the character's description as plain text, already shortened.
+ */
+export function characterFaq(person, lead, leadKind, series, bio = '') {
+  const word = wordOf(leadKind)
+  const verb = verbOf(leadKind)
+  const who = person.name
+  const faq = []
+
+  const role =
+    lead.role === 'MAIN'
+      ? 'main character'
+      : lead.role === 'SUPPORTING'
+        ? 'supporting character'
+        : 'character'
+
+  faq.push({
+    q: `Who is ${who}?`,
+    a: `${who} is a ${role} in the ${word} ${lead.title}.${bio ? ` ${bio}` : ''}`,
+  })
+
+  const authors = listWords(
+    (series?.authors || []).map((a) => a.name).filter(Boolean).slice(0, 3)
+  )
+  const madeBy = [
+    series?.startYear ? `It started in ${series.startYear}` : '',
+    authors ? `${series?.startYear ? ' and is' : 'It is'} made by ${authors}` : '',
+  ]
+    .join('')
+    .trim()
+
+  faq.push({
+    q: `What ${word} is ${who} from?`,
+    a:
+      `${who} is from ${lead.title}, a ${word}` +
+      (series?.status ? ` that is ${STATUS_WORD[series.status] || 'listed'}` : '') +
+      `.${madeBy ? ` ${madeBy}.` : ''}`,
+  })
+
+  const sites = series ? uniqueBySite(linksOf(series)).map((l) => l.site) : []
+  faq.push({
+    q: `Where can I ${verb} ${lead.title}?`,
+    a: sites.length
+      ? `On ${listWords(sites)}. Each one holds an official licence. ` +
+        `manhwaindex carries no ${unitOf(leadKind)} and links only to the platform itself.`
+      : `No platform we track holds an official licence for ${lead.title} yet. ` +
+        `This page is rebuilt every day, so a new licence shows up here on its own.`,
+  })
+
+  if (series?.hasAnime) {
+    faq.push({
+      q: `Is there an anime of ${lead.title}?`,
+      a: `Yes. ${lead.title} has an anime, so you can see ${who} in motion. ` +
+        `Open the title page for the official places to watch it.`,
+    })
+  }
+
+  if (person.aliases?.length) {
+    faq.push({
+      q: `What else is ${who} called?`,
+      a: `${who} is also called ${listWords(person.aliases.slice(0, 4))}.` +
+        (person.native ? ` The original name is ${person.native}.` : ''),
+    })
+  }
+
+  if (person.appearsIn.length > 1) {
+    faq.push({
+      q: `How many titles does ${who} appear in?`,
+      a: `${person.appearsIn.length}. They are all listed on this page, and ` +
+        `each one links to the official places to read or watch it.`,
+    })
+  }
+
+  return faq.slice(0, 6)
+}
+
 /** JSON-LD for a question set. Google reads this; a person reads the block. */
 export const faqJsonld = (faq) => ({
   '@type': 'FAQPage',
