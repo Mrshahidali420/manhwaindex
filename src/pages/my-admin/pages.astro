@@ -1,0 +1,126 @@
+---
+/**
+ * Pages. Which page does its job, and which page only collects visitors.
+ *
+ * The job of a page here is the hand-off: the reader arrives, and leaves
+ * through a read, watch or buy link. So the ranking is by hand-off rate, not
+ * by views.
+ */
+import Admin from '../../layouts/Admin.astro'
+import { envOf } from '../../lib/runtime.js'
+import { gate, rangeOf, fmtDwell, handOff, humanize, num, sectionName } from '../../lib/admin.js'
+import { pagesFor, totalsFor } from '../../lib/admin-data.js'
+
+export const prerender = false
+
+const env = envOf(Astro)
+const { db, secret, signedIn, wrongWord } = await gate(Astro, env)
+if (secret && !signedIn && Astro.request.method !== 'POST') {
+  return Astro.redirect('/my-admin')
+}
+
+const range = rangeOf(Astro.url)
+
+// A page needs this many views before its hand-off rate means anything. One
+// visitor who clicked is 100 percent, and that number says nothing.
+const FLOOR = 20
+
+let rows = []
+let totals = {}
+
+if (signedIn) {
+  ;[rows, totals] = await Promise.all([pagesFor(db, range), totalsFor(db, range)])
+}
+
+const withRate = rows.map((row) => ({
+  ...row,
+  rate: handOff(row.clicks, row.views),
+  avg: row.dwell_n ? row.dwell_sum / row.dwell_n : 0,
+}))
+
+const best = withRate
+  .filter((row) => (row.views || 0) >= FLOOR && row.clicks > 0)
+  .sort((a, b) => b.rate - a.rate)
+  .slice(0, 25)
+
+const most = withRate.slice(0, 25)
+const siteRate = handOff(totals.clicks, totals.views)
+---
+
+<Admin
+  title="Pages"
+  here="/my-admin/pages"
+  range={range}
+  signedIn={signedIn}
+  secret={secret}
+  wrongWord={wrongWord}
+  note={`${range.label}. Across the whole site, ${siteRate} of every 100 page views ended in a click out.`}
+>
+  <div class="panel">
+    <h2>Best pages</h2>
+    <p class="say">
+      Ranked by hand-off rate: the share of views that ended in a read, watch
+      or buy click. That is the job of the page. Pages under {FLOOR} views are
+      left out, because a small number swings too much.
+    </p>
+    {best.length === 0 && <p class="empty">Not enough clicks yet.</p>}
+    <table>
+      <tr>
+        <th>Page</th>
+        <th class="num">Hand-off</th>
+        <th class="num">Views</th>
+        <th class="num">Clicks</th>
+        <th class="num">Time on page</th>
+      </tr>
+      {best.map((row) => (
+        <tr>
+          <td>
+            <a href={row.path}>{humanize(row.path, row.label)}</a>
+            <span class="tag">{sectionName(row.page_type)}</span>
+          </td>
+          <td class="num">{row.rate}%</td>
+          <td class="num">{num(row.views)}</td>
+          <td class="num">{num(row.clicks)}</td>
+          <td class="num">{fmtDwell(row.avg)}</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Most viewed</h2>
+    <p class="say">
+      The busiest pages. A busy page with a low hand-off is the best place to
+      add a better link.
+    </p>
+    {most.length === 0 && <p class="empty">Nothing yet.</p>}
+    <table>
+      <tr>
+        <th>Page</th>
+        <th class="num">Views</th>
+        <th class="num">Arrived here first</th>
+        <th class="num">Clicks</th>
+        <th class="num">Hand-off</th>
+        <th class="num">Time on page</th>
+      </tr>
+      {most.map((row) => (
+        <tr>
+          <td>
+            <a href={row.path}>{humanize(row.path, row.label)}</a>
+            <span class="tag">{sectionName(row.page_type)}</span>
+          </td>
+          <td class="num">{num(row.views)}</td>
+          <td class="num">{range.mode === 'all' ? '—' : num(row.entries)}</td>
+          <td class="num">{num(row.clicks)}</td>
+          <td class="num">{row.rate}%</td>
+          <td class="num">{fmtDwell(row.avg)}</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <p class="say">
+    Time on page is measured on half of readers, and only when a page was on
+    screen for 5 seconds or more. Treat it as a guide, not a stopwatch.
+  </p>
+</Admin>

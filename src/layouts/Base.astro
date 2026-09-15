@@ -153,6 +153,19 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // worth reading.
       var MI_PATH = '/_a'
 
+      // A visit is over after 30 quiet minutes.
+      var MI_GAP = 1800000
+      // A page must be on screen 5 seconds before its time is worth keeping.
+      var MI_LEAVE_MIN = 5000
+      // Only one reader in this many sends the "I left" row. It is the only
+      // sampled row, and it halves the cost of the whole counter. Raise it to 4
+      // if the site ever passes 40,000 real page views a day.
+      var MI_LEAVE_SAMPLE = 2
+
+      function miRandom() {
+        return Math.random().toString(36).slice(2) + Date.now().toString(36)
+      }
+
       // One id per browser, kept locally, so a returning reader is one person
       // and not two. It is a random number and nothing else: it cannot be
       // traced back to a name, an address or an account.
@@ -160,7 +173,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         try {
           var id = localStorage.getItem('mi_v')
           if (!id) {
-            id = Math.random().toString(36).slice(2) + Date.now().toString(36)
+            id = miRandom()
             localStorage.setItem('mi_v', id)
           }
           return id
@@ -169,18 +182,122 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         }
       }
 
+      var miMe = miVisitor()
+
+      // Half of readers send the leave row, always the same half, so the
+      // average time on page stays steady instead of jumping about.
+      var miSampled =
+        !miMe || parseInt(miMe.slice(-1), 36) % MI_LEAVE_SAMPLE === 0
+
+      // One visit, numbered. It lives in this tab only and restarts after 30
+      // quiet minutes, so "step 1, step 2, step 3" really is one path through
+      // the site and can be read back as a journey.
+      var miVisit = (function () {
+        try {
+          var now = Date.now()
+          var id = sessionStorage.getItem('mi_s')
+          var last = Number(sessionStorage.getItem('mi_last') || 0)
+          var step = Number(sessionStorage.getItem('mi_n') || 0)
+          if (!id || !last || now - last > MI_GAP) {
+            id = miRandom()
+            step = 0
+          }
+          step = step + 1
+          sessionStorage.setItem('mi_s', id)
+          sessionStorage.setItem('mi_n', String(step))
+          sessionStorage.setItem('mi_last', String(now))
+          return { id: id, step: step }
+        } catch (e) {
+          return { id: '', step: 0 }
+        }
+      })()
+
+      // Only the page they arrived on carries the tag we put on our own links,
+      // so one shared link is counted once and not on every page after it.
+      function miCampaign() {
+        if (miVisit.step !== 1) return ''
+        try {
+          var q = new URLSearchParams(location.search)
+          var parts = []
+          var keys = ['utm_source', 'utm_medium', 'utm_campaign']
+          for (var i = 0; i < keys.length; i += 1) {
+            var v = (q.get(keys[i]) || '').slice(0, 40)
+            if (v) parts.push(v)
+          }
+          return parts.join('/')
+        } catch (e) {
+          return ''
+        }
+      }
+
+      // The name of the page in plain words, so a report does not have to show
+      // a web address. Everything after " | " is the site name.
+      function miTitle() {
+        var t = document.title || ''
+        return t.split(' | ')[0].split(' \u2013 ')[0].trim().slice(0, 80)
+      }
+
+      // Time the page was really on screen. A tab left in the background does
+      // not count, because nobody is reading it.
+      var miShownAt = document.visibilityState === 'visible' ? Date.now() : 0
+      var miSeen = 0
+      var miLeft = false
+
+      function miVisible() {
+        return miSeen + (miShownAt ? Date.now() - miShownAt : 0)
+      }
+
+      function miLeave() {
+        if (miLeft || !miSampled) return
+        var ms = miVisible()
+        if (ms < MI_LEAVE_MIN) return
+        miLeft = true
+        mi({ name: 'leave', kind: 'leave', dwell: ms, label: miTitle() })
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          miShownAt = Date.now()
+          return
+        }
+        if (miShownAt) {
+          miSeen += Date.now() - miShownAt
+          miShownAt = 0
+        }
+        miLeave()
+      })
+      window.addEventListener('pagehide', miLeave)
+
       function mi(row) {
+        // The owner's own browser is marked when /my-admin is opened, so his
+        // own visits never show up in his own numbers.
+        try {
+          if (localStorage.getItem('mi_off') === '1') return
+        } catch (e) {}
+
         row.path = location.pathname
         row.page_type = location.pathname.split('/')[1] || 'home'
         row.device = window.innerWidth < 700 ? 'phone' : 'desktop'
-        row.visitor = miVisitor()
+        row.visitor = miMe
+        row.session = miVisit.id
+        row.step = miVisit.step
+        row.campaign = miCampaign()
+
+        // Where they came from. Another site goes in referrer. One of our own
+        // pages goes in prev, and that is what draws the journey.
+        row.referrer = ''
+        row.prev = ''
+        row.prev_type = ''
         try {
           var from = document.referrer ? new URL(document.referrer) : null
-          row.referrer =
-            from && from.hostname !== location.hostname ? from.hostname : ''
-        } catch (e) {
-          row.referrer = ''
-        }
+          if (from && from.hostname === location.hostname) {
+            row.prev = from.pathname
+            row.prev_type = from.pathname.split('/')[1] || 'home'
+          } else if (from) {
+            row.referrer = from.hostname
+          }
+        } catch (e) {}
+
         var text = JSON.stringify(row)
         // sendBeacon still arrives after the page is gone, which is the whole
         // point for a link that navigates away.
@@ -195,7 +312,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         } catch (e) {}
       }
 
-      mi({ name: 'page_view', kind: 'view' })
+      mi({ name: 'page_view', kind: 'view', label: miTitle() })
 
       // Every link that leaves the site is worth counting, because leaving is
       // the whole job here: this site answers "where do I read, watch or buy
@@ -266,6 +383,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           platform: site || (kind ? 'Amazon' : url.hostname),
           shop_kind: kind || '',
           target: url.href,
+          dwell: miVisible(),
         })
       })
     </script>

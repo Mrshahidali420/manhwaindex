@@ -6,6 +6,7 @@
 import redirects from '../data/redirects.json'
 import shards from '../data/shards.json'
 import astro from '../dist/_worker.js/index.js'
+import { runRollup } from './lib/rollup.js'
 
 // How long the edge keeps a rendered page. The data changes once a day.
 const CACHE_SECONDS = 86400
@@ -15,13 +16,21 @@ const CACHE_SECONDS = 86400
 // template change stays invisible for a full day.
 const BUILD = String(shards.builtAt || 0)
 
-// Where the page script posts one row per view and per outbound click. It is
-// short on purpose: it travels in every page.
+// Where the page script posts one row per view, per outbound click and per
+// exit. It is short on purpose: it travels in every page.
 const BEACON_PATH = '/_a'
 
-// The reading room. It must never be cached, or one reader would see another
-// reader's numbers, and the numbers would be stale anyway.
-const LIVE_PATHS = new Set(['/my-admin'])
+// A row is small. Anything bigger than this is a mistake or an attack, and is
+// dropped before it reaches the database.
+const MAX_BODY = 2048
+
+// The only words allowed in the kind column. Anything else becomes 'other', so
+// a made up value can never widen a table or break a count.
+const KINDS = new Set(['view', 'read', 'watch', 'buy', 'other', 'leave'])
+
+// The longest time on page we believe: 30 minutes. A tab left open all night
+// must not pull the average up.
+const MAX_DWELL = 1800000
 
 /**
  * Keep one event. It can never fail the page: the script does not wait for the
@@ -36,7 +45,9 @@ async function recordEvent(request, env) {
 
   let body
   try {
-    body = await request.json()
+    const raw = await request.text()
+    if (!raw || raw.length > MAX_BODY) return done
+    body = JSON.parse(raw)
   } catch (e) {
     return done
   }
@@ -51,16 +62,24 @@ async function recordEvent(request, env) {
       .trim()
       .slice(0, max)
 
+  // A number we can trust, or zero.
+  const num = (value, max) => {
+    const n = Math.round(Number(value))
+    if (!Number.isFinite(n) || n < 0) return 0
+    return n > max ? max : n
+  }
+
+  const kind = text(body.kind, 20) || 'view'
   const now = Date.now()
   try {
     await env.ANALYTICS.prepare(
-      'INSERT INTO events (ts, day, name, kind, path, page_type, label, platform, shop_kind, target, country, referrer, device, visitor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+      'INSERT INTO events (ts, day, name, kind, path, page_type, label, platform, shop_kind, target, country, referrer, device, visitor, session, step, prev, prev_type, dwell, campaign) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
     )
       .bind(
         now,
         new Date(now).toISOString().slice(0, 10),
         text(body.name, 60) || 'page_view',
-        text(body.kind, 20) || 'view',
+        KINDS.has(kind) ? kind : 'other',
         text(body.path, 200),
         text(body.page_type, 40),
         text(body.label, 120),
@@ -70,7 +89,13 @@ async function recordEvent(request, env) {
         text(request.headers.get('cf-ipcountry'), 2),
         text(body.referrer, 120),
         text(body.device, 10),
-        text(body.visitor, 40)
+        text(body.visitor, 40),
+        text(body.session, 40),
+        num(body.step, 500),
+        text(body.prev, 200),
+        text(body.prev_type, 40),
+        num(body.dwell, MAX_DWELL),
+        text(body.campaign, 120)
       )
       .run()
   } catch (e) {
@@ -92,9 +117,11 @@ export default {
       return recordEvent(request, env)
     }
 
-    // The admin page reads the database on every request, so it is rendered
-    // fresh every time and never kept by the edge.
-    if (LIVE_PATHS.has(path)) return astro.fetch(request, env, ctx)
+    // The admin pages read the database on every request, so they are
+    // rendered fresh every time and never kept by the edge.
+    if (path === '/my-admin' || path.startsWith('/my-admin/')) {
+      return astro.fetch(request, env, ctx)
+    }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return astro.fetch(request, env, ctx)
@@ -125,5 +152,14 @@ export default {
       return kept
     }
     return response
+  },
+
+  /**
+   * Once a night, at 00:10 UTC, yesterday is squeezed into the small daily
+   * tables and raw rows older than 30 days are thrown away. See
+   * src/lib/rollup.js. One run is one Worker request out of 100,000 a day.
+   */
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runRollup(env && env.ANALYTICS))
   },
 }

@@ -1,425 +1,144 @@
 ---
 /**
- * The reading room. Our own numbers, in plain words.
+ * Now. What is happening on the site in the last few minutes.
  *
- * Google Analytics answers the same questions, but a day late and through a
- * report builder. This page reads the Cloudflare database that every page
- * writes to, so it can say what happened in the last five minutes.
- *
- * It is deliberately NOT built on Base.astro. Base carries the Google tag and
- * our own counter, and an owner refreshing his own dashboard must never be
- * counted as a reader.
- *
- * The door is one secret word, kept as a Cloudflare secret named ADMIN_SECRET.
- * The word itself is never stored in the cookie: the cookie holds a one-way
- * fingerprint of it, and the page makes the same fingerprint again to compare.
+ * This is the only page that reloads itself, and it only asks small questions
+ * about the last five minutes, so the free allowance is never at risk.
  */
+import Admin from '../layouts/Admin.astro'
 import { envOf } from '../lib/runtime.js'
+import { gate, ask, askOne, clock, humanize, num, sectionName, words } from '../lib/admin.js'
 
 export const prerender = false
 
 const env = envOf(Astro)
-const db = env?.ANALYTICS
-const secret = env?.ADMIN_SECRET || ''
-
-const COOKIE = 'mi_admin'
-const THIRTY_DAYS = 60 * 60 * 24 * 30
-
-/** A one-way fingerprint. The same word always gives the same answer, and the
- * answer can never be turned back into the word. */
-async function fingerprint(word) {
-  const bytes = new TextEncoder().encode(`manhwaindex:${word}`)
-  const hash = await crypto.subtle.digest('SHA-256', bytes)
-  return [...new Uint8Array(hash)]
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-const wanted = secret ? await fingerprint(secret) : ''
-
-let signedIn = false
-let wrongWord = false
-
-if (secret) {
-  if (Astro.request.method === 'POST') {
-    const form = await Astro.request.formData()
-    const given = String(form.get('word') || '')
-    if (given && (await fingerprint(given)) === wanted) {
-      signedIn = true
-      Astro.cookies.set(COOKIE, wanted, {
-        path: '/my-admin',
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: THIRTY_DAYS,
-      })
-    } else {
-      wrongWord = true
-    }
-  } else {
-    signedIn = Astro.cookies.get(COOKIE)?.value === wanted
-  }
-}
-
-// ---------------------------------------------------------------- the numbers
+const { db, secret, signedIn, wrongWord } = await gate(Astro, env)
 
 const now = Date.now()
-const dayKey = (shift) =>
-  new Date(now - shift * 86400000).toISOString().slice(0, 10)
-const today = dayKey(0)
+const today = new Date(now).toISOString().slice(0, 10)
 
-const nothing = { results: [] }
-const ask = async (sql, ...args) => {
-  if (!db) return nothing
-  try {
-    return await db.prepare(sql).bind(...args).all()
-  } catch (e) {
-    return nothing
-  }
-}
-
-let live = 0
-let liveViews = 0
-let todayViews = 0
-let todayPeople = 0
-let todayClicks = 0
-let days = []
-let pages = []
-let countries = []
-let sources = []
-let clickKinds = []
-let recent = []
+let live = {}
+let todayRow = {}
+let looking = []
+let clicks = []
 
 if (signedIn) {
-  const [a, b, c, d, e, f, g, h] = await Promise.all([
-    // Live: the last five minutes.
-    ask(
-      'SELECT COUNT(DISTINCT visitor) AS people, COUNT(*) AS views FROM events WHERE ts > ?',
+  const [a, b, c, d] = await Promise.all([
+    askOne(
+      db,
+      `SELECT COUNT(DISTINCT visitor) AS people,
+              SUM(kind = 'view') AS views,
+              COUNT(DISTINCT CASE WHEN session <> '' THEN session END) AS visits
+       FROM events WHERE ts > ?`,
       now - 300000
     ),
-    // Today in one row.
-    ask(
-      "SELECT COUNT(*) AS views, COUNT(DISTINCT visitor) AS people FROM events WHERE day = ? AND kind = 'view'",
+    askOne(
+      db,
+      `SELECT SUM(kind = 'view') AS views,
+              COUNT(DISTINCT CASE WHEN kind = 'view' THEN visitor END) AS people,
+              SUM(kind IN ('buy','read','watch','other')) AS clicks
+       FROM events WHERE day = ?`,
       today
     ),
     ask(
-      "SELECT COUNT(*) AS clicks FROM events WHERE day = ? AND kind <> 'view'",
-      today
-    ),
-    // The last seven days, newest last.
-    ask(
-      "SELECT day, COUNT(*) AS views, COUNT(DISTINCT visitor) AS people FROM events WHERE day >= ? AND kind = 'view' GROUP BY day ORDER BY day",
-      dayKey(6)
+      db,
+      `SELECT ts, path, label, page_type, country, device, step
+       FROM events WHERE kind = 'view' ORDER BY ts DESC LIMIT 20`
     ),
     ask(
-      "SELECT path, COUNT(*) AS views FROM events WHERE day = ? AND kind = 'view' GROUP BY path ORDER BY views DESC LIMIT 15",
-      today
-    ),
-    ask(
-      "SELECT country, COUNT(DISTINCT visitor) AS people FROM events WHERE day = ? AND kind = 'view' GROUP BY country ORDER BY people DESC LIMIT 12",
-      today
-    ),
-    ask(
-      "SELECT referrer, COUNT(*) AS views FROM events WHERE day = ? AND kind = 'view' AND referrer <> '' GROUP BY referrer ORDER BY views DESC LIMIT 12",
-      today
-    ),
-    // Every click today, grouped, plus the last thirty one by one.
-    ask(
-      "SELECT name, kind, COUNT(*) AS hits FROM events WHERE day >= ? AND kind <> 'view' GROUP BY name, kind ORDER BY hits DESC LIMIT 20",
-      dayKey(6)
+      db,
+      `SELECT ts, name, kind, path, label, platform, country, target
+       FROM events WHERE kind NOT IN ('view','leave') ORDER BY ts DESC LIMIT 30`
     ),
   ])
-
-  live = a.results?.[0]?.people || 0
-  liveViews = a.results?.[0]?.views || 0
-  todayViews = b.results?.[0]?.views || 0
-  todayPeople = b.results?.[0]?.people || 0
-  todayClicks = c.results?.[0]?.clicks || 0
-  days = d.results || []
-  pages = e.results || []
-  countries = f.results || []
-  sources = g.results || []
-  clickKinds = h.results || []
-
-  const last = await ask(
-    "SELECT ts, name, kind, path, platform, label, country, target FROM events WHERE kind <> 'view' ORDER BY ts DESC LIMIT 30"
-  )
-  recent = last.results || []
+  live = a
+  todayRow = b
+  looking = c
+  clicks = d
 }
-
-const peak = Math.max(1, ...days.map((row) => row.views || 0))
-const clock = (ts) =>
-  new Date(ts).toISOString().slice(11, 16) + ' UTC'
-const words = (name) => String(name || '').replace(/_/g, ' ')
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
-    <title>Live numbers</title>
-    {signedIn && <meta http-equiv="refresh" content="30" />}
-    <style>
-      :root {
-        --ink: #0a0a1f;
-        --panel: #14142e;
-        --edge: #262650;
-        --text: #eceaff;
-        --dim: #9a97c8;
-        --blue: #6f7dff;
-        --purple: #a66bff;
-        --pink: #ff6fae;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        background: var(--ink);
-        color: var(--text);
-        font: 15px/1.6 system-ui, -apple-system, Segoe UI, sans-serif;
-        padding: 24px 16px 64px;
-      }
-      .wrap { max-width: 1040px; margin: 0 auto; }
-      h1 { font-size: 22px; margin: 0 0 4px; }
-      h2 { font-size: 15px; margin: 0 0 12px; color: var(--dim); font-weight: 600; }
-      .sub { color: var(--dim); margin: 0 0 24px; font-size: 13px; }
-      .cards {
-        display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        margin-bottom: 28px;
-      }
-      .card {
-        background: var(--panel);
-        border: 1px solid var(--edge);
-        border-radius: 14px;
-        padding: 16px;
-      }
-      .card .n { font-size: 32px; font-weight: 700; line-height: 1.1; }
-      .card .t { color: var(--dim); font-size: 13px; margin-top: 4px; }
-      .card.live { border-color: var(--pink); }
-      .card.live .n { color: var(--pink); }
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--edge);
-        border-radius: 14px;
-        padding: 18px;
-        margin-bottom: 18px;
-        overflow-x: auto;
-      }
-      table { width: 100%; border-collapse: collapse; font-size: 14px; }
-      th, td { text-align: left; padding: 7px 10px 7px 0; vertical-align: top; }
-      th { color: var(--dim); font-weight: 600; font-size: 12px; }
-      tr + tr td { border-top: 1px solid var(--edge); }
-      td.num, th.num { text-align: right; padding-right: 0; white-space: nowrap; }
-      a { color: var(--blue); }
-      .bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--blue), var(--pink)); }
-      .two { display: grid; gap: 18px; grid-template-columns: 1fr; }
-      @media (min-width: 760px) { .two { grid-template-columns: 1fr 1fr; } }
-      .tag {
-        display: inline-block;
-        font-size: 11px;
-        padding: 1px 7px;
-        border-radius: 999px;
-        border: 1px solid var(--edge);
-        color: var(--dim);
-      }
-      .tag.buy { color: var(--pink); border-color: var(--pink); }
-      form { max-width: 320px; }
-      input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid var(--edge);
-        background: var(--ink);
-        color: var(--text);
-        font-size: 16px;
-      }
-      button {
-        margin-top: 10px;
-        width: 100%;
-        padding: 12px;
-        border: 0;
-        border-radius: 10px;
-        background: linear-gradient(90deg, var(--purple), var(--pink));
-        color: #fff;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .bad { color: var(--pink); font-size: 13px; }
-      .empty { color: var(--dim); font-size: 13px; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      {!secret && (
-        <div class="panel">
-          <h1>Not set up yet</h1>
-          <p class="sub">
-            Run this once on your computer, then reload this page:
-          </p>
-          <p><code>npx wrangler secret put ADMIN_SECRET</code></p>
-        </div>
-      )}
-
-      {secret && !signedIn && (
-        <div class="panel">
-          <h1>Secret word</h1>
-          <p class="sub">Type it once. This browser stays open for 30 days.</p>
-          {wrongWord && <p class="bad">That is not the word. Try again.</p>}
-          <form method="POST">
-            <input
-              type="password"
-              name="word"
-              autocomplete="current-password"
-              autofocus
-            />
-            <button type="submit">Open</button>
-          </form>
-        </div>
-      )}
-
-      {signedIn && (
-        <>
-          <h1>Live numbers</h1>
-          <p class="sub">
-            Real people only. Robots do not run scripts, so they are never
-            counted. This page reloads itself every 30 seconds. Times are UTC.
-          </p>
-
-          <div class="cards">
-            <div class="card live">
-              <div class="n">{live}</div>
-              <div class="t">people here now ({liveViews} views in 5 min)</div>
-            </div>
-            <div class="card">
-              <div class="n">{todayPeople}</div>
-              <div class="t">people today</div>
-            </div>
-            <div class="card">
-              <div class="n">{todayViews}</div>
-              <div class="t">page views today</div>
-            </div>
-            <div class="card">
-              <div class="n">{todayClicks}</div>
-              <div class="t">links clicked today</div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h2>Last 7 days</h2>
-            {days.length === 0 && <p class="empty">Nothing yet.</p>}
-            <table>
-              {days.map((row) => (
-                <tr>
-                  <td style="width:110px">{row.day}</td>
-                  <td style="width:50%">
-                    <div
-                      class="bar"
-                      style={`width:${Math.round((row.views / peak) * 100)}%`}
-                    ></div>
-                  </td>
-                  <td class="num">{row.people} people</td>
-                  <td class="num">{row.views} views</td>
-                </tr>
-              ))}
-            </table>
-          </div>
-
-          <div class="panel">
-            <h2>Money and hand-offs, last 7 days</h2>
-            <p class="sub">
-              Every link that sends a reader away. "buy" rows are the Amazon
-              ones.
-            </p>
-            {clickKinds.length === 0 && <p class="empty">No clicks yet.</p>}
-            <table>
-              {clickKinds.map((row) => (
-                <tr>
-                  <td>{words(row.name)}</td>
-                  <td>
-                    <span class={row.kind === 'buy' ? 'tag buy' : 'tag'}>
-                      {row.kind}
-                    </span>
-                  </td>
-                  <td class="num">{row.hits}</td>
-                </tr>
-              ))}
-            </table>
-          </div>
-
-          <div class="two">
-            <div class="panel">
-              <h2>Top pages today</h2>
-              {pages.length === 0 && <p class="empty">Nothing yet.</p>}
-              <table>
-                {pages.map((row) => (
-                  <tr>
-                    <td><a href={row.path}>{row.path}</a></td>
-                    <td class="num">{row.views}</td>
-                  </tr>
-                ))}
-              </table>
-            </div>
-
-            <div class="panel">
-              <h2>Countries today</h2>
-              {countries.length === 0 && <p class="empty">Nothing yet.</p>}
-              <table>
-                {countries.map((row) => (
-                  <tr>
-                    <td>{row.country || 'unknown'}</td>
-                    <td class="num">{row.people}</td>
-                  </tr>
-                ))}
-              </table>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h2>Where they came from today</h2>
-            <p class="sub">Empty means they typed the address or used a bookmark.</p>
-            {sources.length === 0 && <p class="empty">No outside links yet.</p>}
-            <table>
-              {sources.map((row) => (
-                <tr>
-                  <td>{row.referrer}</td>
-                  <td class="num">{row.views}</td>
-                </tr>
-              ))}
-            </table>
-          </div>
-
-          <div class="panel">
-            <h2>The last 30 clicks, one by one</h2>
-            {recent.length === 0 && <p class="empty">No clicks yet.</p>}
-            <table>
-              <tr>
-                <th>Time</th>
-                <th>What</th>
-                <th>From page</th>
-                <th>Where it went</th>
-              </tr>
-              {recent.map((row) => (
-                <tr>
-                  <td>{clock(row.ts)}</td>
-                  <td>
-                    {words(row.name)}
-                    {row.country && <span class="tag">{row.country}</span>}
-                  </td>
-                  <td><a href={row.path}>{row.path}</a></td>
-                  <td>
-                    <a href={row.target} rel="noopener nofollow" target="_blank">
-                      {row.label || row.platform || row.target}
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </table>
-          </div>
-        </>
-      )}
+<Admin
+  title="Now"
+  here="/my-admin"
+  signedIn={signedIn}
+  secret={secret}
+  wrongWord={wrongWord}
+  refresh={60}
+  note="The last five minutes. This page reloads itself every 60 seconds."
+>
+  <div class="cards">
+    <div class="card live">
+      <div class="n">{num(live.people)}</div>
+      <div class="t">people here right now</div>
     </div>
-  </body>
-</html>
+    <div class="card">
+      <div class="n">{num(live.views)}</div>
+      <div class="t">pages opened in 5 minutes</div>
+    </div>
+    <div class="card">
+      <div class="n">{num(todayRow.people)}</div>
+      <div class="t">people today</div>
+    </div>
+    <div class="card">
+      <div class="n">{num(todayRow.views)}</div>
+      <div class="t">page views today</div>
+    </div>
+    <div class="card">
+      <div class="n">{num(todayRow.clicks)}</div>
+      <div class="t">links clicked today</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>What they are looking at</h2>
+    <p class="say">The last 20 pages opened, newest first.</p>
+    {looking.length === 0 && <p class="empty">Nothing yet.</p>}
+    <table>
+      {looking.map((row) => (
+        <tr>
+          <td style="width:88px">{clock(row.ts)}</td>
+          <td>
+            <a href={row.path}>{humanize(row.path, row.label)}</a>
+            <span class="tag">{sectionName(row.page_type)}</span>
+          </td>
+          <td class="num">{row.country || '??'}</td>
+          <td class="num">page {row.step || 1}</td>
+          <td class="num">{row.device}</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>The last 30 clicks out</h2>
+    <p class="say">
+      Every link that sends a reader away. That hand-off is the job of this
+      site.
+    </p>
+    {clicks.length === 0 && <p class="empty">No clicks yet.</p>}
+    <table>
+      <tr>
+        <th>Time</th>
+        <th>What</th>
+        <th>From page</th>
+        <th>Where it went</th>
+      </tr>
+      {clicks.map((row) => (
+        <tr>
+          <td>{clock(row.ts)}</td>
+          <td>
+            {words(row.name)}
+            {row.country && <span class={row.kind === 'buy' ? 'tag buy' : 'tag'}>{row.country}</span>}
+          </td>
+          <td><a href={row.path}>{humanize(row.path, '')}</a></td>
+          <td>
+            <a href={row.target} rel="noopener nofollow" target="_blank">
+              {row.label || row.platform || row.target}
+            </a>
+          </td>
+        </tr>
+      ))}
+    </table>
+  </div>
+</Admin>

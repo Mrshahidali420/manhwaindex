@@ -2,7 +2,7 @@
 export const prerender = true
 import Base from '../layouts/Base.astro'
 
-const updated = 'September 13, 2026'
+const updated = 'September 15, 2026'
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -10,7 +10,7 @@ const jsonld = {
   name: 'Privacy policy',
   url: 'https://manhwaindex.com/privacy',
   description: 'What manhwaindex collects, what it does not collect, and the third parties involved.',
-  dateModified: '2026-09-13',
+  dateModified: '2026-09-15',
 }
 ---
 
@@ -59,6 +59,31 @@ const jsonld = {
           <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener nofollow">Google Analytics opt-out add-on</a>,
           a tracker blocker, or your browser cookie controls.
         </p>
+
+        <h2>Our own visit counter</h2>
+        <p>
+          We also run a small counter of our own, so we can see which pages are useful
+          without opening Google Analytics. It records the page address, the page title,
+          your approximate country, whether you are on a phone or a computer, how long a
+          page was on screen, and which link you clicked to leave.
+        </p>
+        <ul>
+          <li>
+            It sets <strong>no cookie</strong>. It saves one random number in your browser
+            storage, so we can tell a returning reader from a new one. That number is not
+            a name, and it is not linked to anything else.
+          </li>
+          <li>
+            We do not keep your IP address. Only the country that Cloudflare reports is
+            stored.
+          </li>
+          <li>Step-by-step records are deleted after 30 days. Only daily totals are kept.</li>
+          <li>
+            To clear it, delete site data for manhwaindex.com in your browser settings.
+            A tracker blocker also stops it, and it never runs if your browser blocks
+            scripts.
+          </li>
+        </ul>
 
         <h2>Advertising</h2>
         <p>

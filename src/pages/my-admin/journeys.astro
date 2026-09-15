@@ -1,0 +1,157 @@
+---
+/**
+ * Journeys. One visit, step by step, in the order it happened.
+ *
+ * This page can only read the one-by-one `events` table, so it can never look
+ * further back than 30 days. "All time" is not offered here.
+ */
+import Admin from '../../layouts/Admin.astro'
+import { envOf } from '../../lib/runtime.js'
+import {
+  gate,
+  ask,
+  rangeOf,
+  clock,
+  fmtDwell,
+  humanize,
+  num,
+  sectionName,
+  words,
+} from '../../lib/admin.js'
+import { edgesFor } from '../../lib/admin-data.js'
+
+export const prerender = false
+
+const env = envOf(Astro)
+const { db, secret, signedIn, wrongWord } = await gate(Astro, env)
+if (secret && !signedIn && Astro.request.method !== 'POST') {
+  return Astro.redirect('/my-admin')
+}
+
+// The default window is the last 24 hours. "All time" cannot be drawn here, so
+// it is turned into the last 30 days.
+let range = rangeOf(Astro.url, '24h')
+if (range.mode === 'all') range = rangeOf(new URL('?range=30d', Astro.url), '30d')
+
+const HOW_MANY = 25
+const where = range.sinceTs ? 'ts > ?' : 'day >= ?'
+const bound = range.sinceTs || range.fromDay
+
+let visits = []
+let edges = []
+
+if (signedIn) {
+  const [heads, moves] = await Promise.all([
+    ask(
+      db,
+      `SELECT session, COUNT(*) AS steps, MIN(ts) AS started,
+              MAX(country) AS country, MAX(device) AS device
+       FROM events
+       WHERE ${where} AND session <> '' AND kind <> 'leave'
+       GROUP BY session HAVING steps >= 2
+       ORDER BY started DESC LIMIT ${HOW_MANY}`,
+      bound
+    ),
+    edgesFor(db, range),
+  ])
+  edges = moves
+
+  if (heads.length > 0) {
+    const ids = heads.map((row) => row.session)
+    const holes = ids.map(() => '?').join(',')
+    const rows = await ask(
+      db,
+      `SELECT session, ts, kind, name, path, label, page_type, platform, dwell
+       FROM events WHERE session IN (${holes})
+       ORDER BY session, ts`,
+      ...ids
+    )
+
+    const byId = new Map(ids.map((id) => [id, []]))
+    for (const row of rows) byId.get(row.session)?.push(row)
+
+    visits = heads.map((head) => {
+      const steps = []
+      for (const row of byId.get(head.session) || []) {
+        if (row.kind === 'view') {
+          steps.push({ page: humanize(row.path, row.label), type: row.page_type, did: [], stayed: 0 })
+          continue
+        }
+        const last = steps[steps.length - 1]
+        if (!last) continue
+        if (row.kind === 'leave') last.stayed = Math.max(last.stayed, row.dwell || 0)
+        else last.did.push(row.platform || words(row.name))
+      }
+      return { ...head, steps }
+    })
+  }
+}
+
+const edgeTop = edges[0]?.moves || 1
+---
+
+<Admin
+  title="Journeys"
+  here="/my-admin/journeys"
+  range={range}
+  signedIn={signedIn}
+  secret={secret}
+  wrongWord={wrongWord}
+  note={`${range.label}. The last ${HOW_MANY} visits that opened more than one page.`}
+>
+  <div class="panel">
+    <h2>Recent visits, step by step</h2>
+    <p class="say">
+      One line is one person, in one visit. Read it left to right. Pink text is
+      a click out to a platform or a shop.
+    </p>
+    {visits.length === 0 && <p class="empty">No multi-page visits in this window yet.</p>}
+    {visits.map((visit) => (
+      <div style="padding:10px 0;border-top:1px solid var(--edge)">
+        <div class="say" style="margin:0 0 4px">
+          {clock(visit.started)} · {visit.country || '??'} · {visit.device} ·{' '}
+          {num(visit.steps.length)} pages
+        </div>
+        <div class="chain">
+          {visit.steps.map((step, i) => (
+            <>
+              {i > 0 && <span class="arrow">&#8594;</span>}
+              <span class="hop">{step.page}</span>
+              <span class="tag">{sectionName(step.type)}</span>
+              {step.did.length > 0 && <span class="did"> clicked: {step.did.join(', ')}</span>}
+              {step.stayed > 0 && <span class="say"> ({fmtDwell(step.stayed)})</span>}
+            </>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div class="panel">
+    <h2>Common moves between parts of the site</h2>
+    <p class="say">
+      Which section leads to which. "Arrived from outside" means the visit
+      started on that page.
+    </p>
+    {edges.length === 0 && <p class="empty">Nothing yet.</p>}
+    <table>
+      {edges.map((row) => (
+        <tr>
+          <td style="width:260px">
+            {sectionName(row.from_type)} <span class="arrow">&#8594;</span>{' '}
+            {sectionName(row.to_type)}
+          </td>
+          <td>
+            <div class="bar" style={`width:${Math.max(2, (row.moves / edgeTop) * 100)}%`}></div>
+          </td>
+          <td class="num" style="width:110px">{num(row.moves)} times</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <p class="say">
+    Step-by-step records are kept for 30 days and then removed. The move counts
+    above are kept forever.
+  </p>
+</Admin>

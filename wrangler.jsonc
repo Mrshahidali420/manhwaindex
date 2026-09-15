@@ -35,5 +35,9 @@
       "database_id": "a31cde34-a594-4430-b415-79869e4f4435"
     }
   ],
+  // Ten minutes after midnight UTC the Worker adds up the day that just ended
+  // and throws away raw rows older than 30 days. See src/lib/rollup.js. Cron
+  // runs are free on the Workers free plan: one run is one request.
+  "triggers": { "crons": ["10 0 * * *"] },
   "main": "src/worker.js"
 }

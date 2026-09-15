@@ -1,0 +1,195 @@
+---
+/**
+ * Sections. Manhwa, manga, manhua, anime, characters and the shop, side by
+ * side, so it is clear which part of the site earns its keep.
+ */
+import Admin from '../../layouts/Admin.astro'
+import { envOf } from '../../lib/runtime.js'
+import { gate, rangeOf, fmtDwell, handOff, num, sectionName, sourceName } from '../../lib/admin.js'
+import { typesFor, countriesFor, sourcesFor, clicksFor } from '../../lib/admin-data.js'
+
+export const prerender = false
+
+const env = envOf(Astro)
+const { db, secret, signedIn, wrongWord } = await gate(Astro, env)
+if (secret && !signedIn && Astro.request.method !== 'POST') {
+  return Astro.redirect('/my-admin')
+}
+
+const range = rangeOf(Astro.url)
+
+// The four libraries first, then the pages that support them.
+const MAIN = ['manhwa', 'manga', 'manhua', 'anime']
+const EXTRA = ['character', 'shop', 'home', 'browse']
+
+let types = []
+let countries = []
+let sources = []
+let clickRows = []
+
+if (signedIn) {
+  ;[types, countries, sources, clickRows] = await Promise.all([
+    typesFor(db, range),
+    countriesFor(db, range),
+    sourcesFor(db, range),
+    clicksFor(db, range),
+  ])
+}
+
+/** Top platforms for one section. */
+function platformsOf(type) {
+  const map = new Map()
+  for (const row of clickRows) {
+    if (row.page_type !== type) continue
+    const name = row.platform || row.shop_kind || 'shop'
+    map.set(name, (map.get(name) || 0) + (row.clicks || 0))
+  }
+  return [...map.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, clicks]) => `${name} (${num(clicks)})`)
+}
+
+const byType = new Map(types.map((row) => [row.page_type, row]))
+
+function cardFor(type) {
+  const row = byType.get(type) || {}
+  return {
+    type,
+    views: row.views || 0,
+    entries: row.entries || 0,
+    clicks: row.clicks || 0,
+    rate: handOff(row.clicks, row.views),
+    avg: row.dwell_n ? row.dwell_sum / row.dwell_n : 0,
+    platforms: platformsOf(type),
+  }
+}
+
+const main = MAIN.map(cardFor)
+const extra = EXTRA.map(cardFor).filter((card) => card.views > 0)
+
+const seen = main.filter((card) => card.views > 0)
+const bestSeen = [...seen].sort((a, b) => b.views - a.views)[0]
+const bestRate = [...seen].filter((c) => c.views >= 20).sort((a, b) => b.rate - a.rate)[0]
+
+let headline = 'There is not enough traffic yet to name a winner.'
+if (bestSeen) {
+  headline = `${sectionName(bestSeen.type)} brings the most readers.`
+  if (bestRate && bestRate.type !== bestSeen.type) {
+    headline += ` But ${sectionName(bestRate.type)} turns them into clicks best, at ${bestRate.rate} in every 100.`
+  } else if (bestRate) {
+    headline += ` It also turns them into clicks best, at ${bestRate.rate} in every 100.`
+  }
+}
+
+const countryTop = countries[0]?.views || 1
+const utms = sources.filter((row) => String(row.source || '').startsWith('utm:'))
+---
+
+<Admin
+  title="Sections"
+  here="/my-admin/sections"
+  range={range}
+  signedIn={signedIn}
+  secret={secret}
+  wrongWord={wrongWord}
+  note={`${range.label}. ${headline}`}
+>
+  <div class="panel">
+    <h2>The four libraries</h2>
+    <p class="say">
+      Hand-off is clicks for every 100 views. "Arrived here first" is how many
+      visits started in this part of the site.
+    </p>
+    <table>
+      <tr>
+        <th>Section</th>
+        <th class="num">Views</th>
+        <th class="num">Arrived here first</th>
+        <th class="num">Clicks</th>
+        <th class="num">Hand-off</th>
+        <th class="num">Time on page</th>
+        <th>Top platforms</th>
+      </tr>
+      {main.concat(extra).map((card) => (
+        <tr>
+          <td>{sectionName(card.type)}</td>
+          <td class="num">{num(card.views)}</td>
+          <td class="num">{range.mode === 'all' ? '—' : num(card.entries)}</td>
+          <td class="num">{num(card.clicks)}</td>
+          <td class="num">{card.rate}%</td>
+          <td class="num">{fmtDwell(card.avg)}</td>
+          <td>{card.platforms.join(' · ') || '—'}</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <div class="two">
+    <div class="panel">
+      <h2>Countries</h2>
+      <p class="say">Where your readers are. This decides which Amazon shop to show.</p>
+      {countries.length === 0 && <p class="empty">Nothing yet.</p>}
+      <table>
+        {countries.map((row) => (
+          <tr>
+            <td style="width:60px">{row.country || '??'}</td>
+            <td>
+              <div class="bar" style={`width:${Math.max(2, (row.views / countryTop) * 100)}%`}></div>
+            </td>
+            <td class="num" style="width:90px">{num(row.views)}</td>
+          </tr>
+        ))}
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Where visitors come from</h2>
+      <p class="say">The site that sent them, or your own tagged link.</p>
+      {sources.length === 0 && <p class="empty">Nothing yet.</p>}
+      <table>
+        <tr>
+          <th>Source</th>
+          <th class="num">Views</th>
+          <th class="num">Started here</th>
+        </tr>
+        {sources.map((row) => (
+          <tr>
+            <td>{sourceName(row.source)}</td>
+            <td class="num">{num(row.views)}</td>
+            <td class="num">{num(row.entries)}</td>
+          </tr>
+        ))}
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Search words</h2>
+    <p class="say">
+      Google does not tell a website which words a person typed. No counter can
+      show that, not this one and not Google Analytics. The real list is in
+      Google Search Console:
+      <a href="https://search.google.com/search-console" rel="noopener" target="_blank">
+        open Search Console
+      </a>. Use the page list on the Pages tab to see which titles bring people
+      in.
+    </p>
+    <h2 style="margin-top:14px">Your own tagged links</h2>
+    <p class="say">
+      You can label any link you post yourself. Add
+      <code>?utm_source=reddit&amp;utm_campaign=sololeveling</code> to the end of
+      the address. Every visit from that link then shows below.
+    </p>
+    {utms.length === 0 && <p class="empty">No tagged links used yet.</p>}
+    <table>
+      {utms.map((row) => (
+        <tr>
+          <td>{sourceName(row.source)}</td>
+          <td class="num">{num(row.views)} views</td>
+          <td class="num">{num(row.entries)} started here</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+</Admin>

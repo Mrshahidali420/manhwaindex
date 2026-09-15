@@ -1,0 +1,226 @@
+---
+/**
+ * Clicks. Where the readers go when they leave, and from which page.
+ *
+ * Three questions: which platform do people pick to read or watch, which kind
+ * of thing do they buy, and which page sent them there.
+ */
+import Admin from '../../layouts/Admin.astro'
+import { envOf } from '../../lib/runtime.js'
+import { gate, ask, rangeOf, humanize, num, sectionName, words } from '../../lib/admin.js'
+import { clicksFor, totalsFor } from '../../lib/admin-data.js'
+
+export const prerender = false
+
+const env = envOf(Astro)
+const { db, secret, signedIn, wrongWord } = await gate(Astro, env)
+if (secret && !signedIn && Astro.request.method !== 'POST') {
+  return Astro.redirect('/my-admin')
+}
+
+const range = rangeOf(Astro.url)
+
+/** A shop kind, said as a word. */
+const SHOPS = {
+  books: 'Books and volumes',
+  figures: 'Figures and statues',
+  discs: 'Blu-ray and DVD',
+  merch: 'Other merchandise',
+}
+
+let rows = []
+let totals = {}
+let fromPages = []
+
+if (signedIn) {
+  ;[rows, totals] = await Promise.all([clicksFor(db, range), totalsFor(db, range)])
+
+  // The raw table only keeps 30 days, so this exact list is only offered for
+  // the short ranges. "All time" gets the platform totals above instead.
+  if (range.mode !== 'all') {
+    const since = range.sinceTs
+    fromPages = await ask(
+      db,
+      `SELECT path, label, platform, kind, COUNT(*) AS clicks
+       FROM events
+       WHERE ${since ? 'ts > ?' : 'day >= ?'} AND kind IN ('read','watch','buy')
+       GROUP BY path, platform, kind
+       ORDER BY clicks DESC LIMIT 40`,
+      since || range.fromDay
+    )
+  }
+}
+
+/** Add up one field over the rows that match. */
+function sum(list, pick) {
+  return list.reduce((n, row) => n + (pick(row) ? row.clicks || 0 : 0), 0)
+}
+
+// --- platforms, split into read and watch
+const platformMap = new Map()
+for (const row of rows) {
+  if (row.kind !== 'read' && row.kind !== 'watch') continue
+  const name = row.platform || 'unknown'
+  const found = platformMap.get(name) || { name, read: 0, watch: 0, total: 0 }
+  found[row.kind] += row.clicks || 0
+  found.total += row.clicks || 0
+  platformMap.set(name, found)
+}
+const platforms = [...platformMap.values()].sort((a, b) => b.total - a.total).slice(0, 20)
+const platformTop = platforms[0]?.total || 1
+
+// --- shops
+const shopMap = new Map()
+for (const row of rows) {
+  if (row.kind !== 'buy') continue
+  const name = row.shop_kind || 'merch'
+  shopMap.set(name, (shopMap.get(name) || 0) + (row.clicks || 0))
+}
+const shops = [...shopMap.entries()]
+  .map(([name, clicks]) => ({ name, clicks }))
+  .sort((a, b) => b.clicks - a.clicks)
+const shopTop = shops[0]?.clicks || 1
+
+// --- which section sends the clicks
+const typeMap = new Map()
+for (const row of rows) {
+  const name = row.page_type || 'other'
+  const found = typeMap.get(name) || { name, read: 0, watch: 0, buy: 0, total: 0 }
+  if (found[row.kind] != null) found[row.kind] += row.clicks || 0
+  found.total += row.clicks || 0
+  typeMap.set(name, found)
+}
+const byType = [...typeMap.values()].sort((a, b) => b.total - a.total)
+
+const reads = sum(rows, (r) => r.kind === 'read')
+const watches = sum(rows, (r) => r.kind === 'watch')
+const buys = sum(rows, (r) => r.kind === 'buy')
+---
+
+<Admin
+  title="Clicks"
+  here="/my-admin/clicks"
+  range={range}
+  signedIn={signedIn}
+  secret={secret}
+  wrongWord={wrongWord}
+  note={`${range.label}. Every link that hands a reader over to an official platform or a shop.`}
+>
+  <div class="cards">
+    <div class="card">
+      <div class="n">{num(reads)}</div>
+      <div class="t">read clicks</div>
+    </div>
+    <div class="card">
+      <div class="n">{num(watches)}</div>
+      <div class="t">watch clicks</div>
+    </div>
+    <div class="card">
+      <div class="n">{num(buys)}</div>
+      <div class="t">buy clicks</div>
+    </div>
+    <div class="card">
+      <div class="n">{num(totals.views)}</div>
+      <div class="t">page views</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Which platform people pick</h2>
+    <p class="say">
+      Blue is read. Purple is watch. The longest bar is the platform your
+      readers trust most, so give it the top spot on the page.
+    </p>
+    {platforms.length === 0 && <p class="empty">No read or watch clicks yet.</p>}
+    <table>
+      {platforms.map((row) => (
+        <tr>
+          <td style="width:180px">{row.name}</td>
+          <td>
+            {row.read > 0 && (
+              <div class="bar read" style={`width:${Math.max(2, (row.read / platformTop) * 100)}%`}></div>
+            )}
+            {row.watch > 0 && (
+              <div class="bar watch" style={`width:${Math.max(2, (row.watch / platformTop) * 100)}%`}></div>
+            )}
+          </td>
+          <td class="num" style="width:150px">
+            {row.read > 0 && <span>{num(row.read)} read</span>}
+            {row.read > 0 && row.watch > 0 && <span> · </span>}
+            {row.watch > 0 && <span>{num(row.watch)} watch</span>}
+          </td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>What people want to buy</h2>
+    <p class="say">
+      Each bar is one kind of product. Put more of the winner on your pages.
+    </p>
+    {shops.length === 0 && <p class="empty">No buy clicks yet.</p>}
+    <table>
+      {shops.map((row) => (
+        <tr>
+          <td style="width:180px">{SHOPS[row.name] || words(row.name)}</td>
+          <td>
+            <div class="bar buy" style={`width:${Math.max(2, (row.clicks / shopTop) * 100)}%`}></div>
+          </td>
+          <td class="num" style="width:90px">{num(row.clicks)}</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Which part of the site sends the clicks</h2>
+    <p class="say">A section with many views but few clicks needs better links.</p>
+    <table>
+      <tr>
+        <th>Section</th>
+        <th class="num">Read</th>
+        <th class="num">Watch</th>
+        <th class="num">Buy</th>
+        <th class="num">All clicks</th>
+      </tr>
+      {byType.map((row) => (
+        <tr>
+          <td>{sectionName(row.name)}</td>
+          <td class="num">{num(row.read)}</td>
+          <td class="num">{num(row.watch)}</td>
+          <td class="num">{num(row.buy)}</td>
+          <td class="num">{num(row.total)}</td>
+        </tr>
+      ))}
+    </table>
+  </div>
+
+  {range.mode !== 'all' && (
+    <div class="panel">
+      <h2>Top pages that send people away</h2>
+      <p class="say">
+        The exact page, and where it sent them. This list only covers the last
+        30 days, because that is how long the step-by-step record is kept.
+      </p>
+      {fromPages.length === 0 && <p class="empty">No clicks yet.</p>}
+      <table>
+        <tr>
+          <th>Page</th>
+          <th>Went to</th>
+          <th class="num">Clicks</th>
+        </tr>
+        {fromPages.map((row) => (
+          <tr>
+            <td><a href={row.path}>{humanize(row.path, row.label)}</a></td>
+            <td>
+              {row.platform || 'shop'}
+              <span class={row.kind === 'buy' ? 'tag buy' : 'tag'}>{row.kind}</span>
+            </td>
+            <td class="num">{num(row.clicks)}</td>
+          </tr>
+        ))}
+      </table>
+    </div>
+  )}
+</Admin>
