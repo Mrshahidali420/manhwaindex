@@ -140,6 +140,63 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       gtag('js', new Date())
       gtag('config', 'G-R1V6DJN1L3')
 
+      // Our own counter, beside Google's.
+      //
+      // Why both: Google Analytics answers the same questions, but only after
+      // a day of processing and only through a report builder. This one writes
+      // straight into our own Cloudflare database, so /my-admin can show the
+      // last few minutes in plain words. It is also ours: no sampling, no
+      // consent wall, no account to lose.
+      //
+      // It costs one extra request per page. Robots do not run scripts, so a
+      // row here is always a real person, which is exactly why the counts are
+      // worth reading.
+      var MI_PATH = '/_a'
+
+      // One id per browser, kept locally, so a returning reader is one person
+      // and not two. It is a random number and nothing else: it cannot be
+      // traced back to a name, an address or an account.
+      function miVisitor() {
+        try {
+          var id = localStorage.getItem('mi_v')
+          if (!id) {
+            id = Math.random().toString(36).slice(2) + Date.now().toString(36)
+            localStorage.setItem('mi_v', id)
+          }
+          return id
+        } catch (e) {
+          return ''
+        }
+      }
+
+      function mi(row) {
+        row.path = location.pathname
+        row.page_type = location.pathname.split('/')[1] || 'home'
+        row.device = window.innerWidth < 700 ? 'phone' : 'desktop'
+        row.visitor = miVisitor()
+        try {
+          var from = document.referrer ? new URL(document.referrer) : null
+          row.referrer =
+            from && from.hostname !== location.hostname ? from.hostname : ''
+        } catch (e) {
+          row.referrer = ''
+        }
+        var text = JSON.stringify(row)
+        // sendBeacon still arrives after the page is gone, which is the whole
+        // point for a link that navigates away.
+        try {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(MI_PATH, new Blob([text], { type: 'application/json' }))
+            return
+          }
+        } catch (e) {}
+        try {
+          fetch(MI_PATH, { method: 'POST', body: text, keepalive: true })
+        } catch (e) {}
+      }
+
+      mi({ name: 'page_view', kind: 'view' })
+
       // Every link that leaves the site is worth counting, because leaving is
       // the whole job here: this site answers "where do I read, watch or buy
       // this" and then hands the reader over. One listener on the document
@@ -196,6 +253,19 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
             .trim()
             .slice(0, 100),
           page_path: location.pathname,
+        })
+
+        // The same click, in our own database, under the same name.
+        mi({
+          name: name.slice(0, 40),
+          kind: kind ? 'buy' : go || 'other',
+          label: (label ? label.textContent : link.textContent || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 120),
+          platform: site || (kind ? 'Amazon' : url.hostname),
+          shop_kind: kind || '',
+          target: url.href,
         })
       })
     </script>

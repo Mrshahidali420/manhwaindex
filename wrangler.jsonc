@@ -24,5 +24,16 @@
   "observability": {
     "enabled": true
   },
+  // Our own visitor counter. A small script on every page posts one row here,
+  // and /my-admin reads it back. Bots do not run scripts, so only real people
+  // are counted, and the free allowance of 100,000 writes a day is far more
+  // than this site can use.
+  "d1_databases": [
+    {
+      "binding": "ANALYTICS",
+      "database_name": "manhwaindex-analytics",
+      "database_id": "a31cde34-a594-4430-b415-79869e4f4435"
+    }
+  ],
   "main": "src/worker.js"
 }
