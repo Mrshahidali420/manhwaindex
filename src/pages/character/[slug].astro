@@ -32,6 +32,31 @@ const leadKind = kindOfAppearance(lead)
 const word = wordOf(leadKind)
 const verb = verbOf(leadKind)
 
+// Every kind of thing this character actually turns up in. A reader who met
+// them in the anime types "anime"; a reader who met them in the comic types
+// the comic word. When both are true, both belong in the title, because they
+// are two different searches for the same page.
+//
+// The comic word goes first: the comic is where the character was made, and a
+// name search nearly always carries the comic word with it.
+const mediaWords = [...new Set(person.appearsIn.map((a) => wordOf(kindOfAppearance(a))))]
+  .sort((a, b) => (a === 'anime' ? 1 : 0) - (b === 'anime' ? 1 : 0))
+  .slice(0, 2)
+const media = mediaWords.join(' and ')
+
+// Double quotes inside a story's name are punctuation, not words. They cost two
+// letters each and add nothing to a search.
+const unquote = (text) => String(text || '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim()
+
+// The story's whole name stays in the title, however long it runs.
+//
+// Google shows about sixty letters on a phone and cuts the rest, but it still
+// READS the rest, and the words it reads still count when it decides which
+// page answers a search. A shortened name would lose those words for good, to
+// win nothing: the part a reader sees -- the character's name -- sits at the
+// front either way.
+const pageHeading = `${unquote(person.name)} — ${unquote(lead.title)} ${media} character`
+
 // The character record holds only a thumbnail of the story. The story's own
 // record holds the official places to read it, who made it and what it is
 // about, and all of that belongs on this page too: a reader who lands here
@@ -68,7 +93,30 @@ const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 const bioPlain = person.description ? bioText(person.description) : ''
 const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220))
 
-const description = `${person.name} is a character in the ${word} ${lead.title}. Who they are, every title they appear in, and the official places to ${verb} each one.`
+// The old description was the same sentence on every character page with only
+// the name swapped, which says nothing a searcher cannot already see in the
+// title. These are the facts this page actually holds, so the line is different
+// on every page and answers part of the question before the click.
+//
+// An alias is only worth printing when it is short and in the reader's own
+// script. A native-script alias is the same name again to a Japanese reader and
+// noise to everyone else, and it eats the room the closing promise needs.
+const alias = person.aliases.find((a) => a.length <= 20 && /^[ -~]+$/.test(a))
+const said = (bits) => bits.filter(Boolean).join(', ')
+const opening = `${person.name} is a ${lead.role === 'MAIN' ? 'main character' : 'character'} in the ${word} ${unquote(lead.title)}.`
+const promise = ` Full profile, every title they appear in, and where to ${verb} it legally.`
+
+// Tried longest first, and the first one that fits is kept. The story's own
+// name is never shortened here: a description that names the wrong story is
+// worse than one Google trims, because Google trims the END and a wrong name
+// sits at the front where the reader reads it.
+const description =
+  [
+    `${opening} ${said([person.age && `Age ${person.age}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
+    `${opening} ${said([person.age && `Age ${person.age}`, person.gender])}.${promise}`,
+    `${opening}${promise}`,
+    `${opening} Where to ${verb} it legally.`,
+  ].find((line) => line.length <= 165) || `${opening} Where to ${verb} it legally.`
 
 // A portrait with no bio says nothing worth indexing. The page stays
 // reachable and keeps passing links, but it is kept out of the index.
@@ -94,7 +142,7 @@ const jsonld = {
 ---
 
 <Base
-  title={`${person.name} — ${lead.title} character, and where to ${verb} it`}
+  title={pageHeading}
   description={description}
   canonical={`/character/${person.slug}`}
   image={person.image}
