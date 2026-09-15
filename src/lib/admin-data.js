@@ -61,7 +61,7 @@ function biggest(rows, field = 'views', limit = 100) {
 // The same shape, counted from the raw table.
 const RAW_COUNTS = `
   SUM(kind = 'view') AS views,
-  COUNT(DISTINCT CASE WHEN kind = 'view' THEN visitor END) AS people,
+  COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END) AS people,
   SUM(kind = 'view' AND step = 1) AS entries,
   SUM(kind IN ('buy','read','watch','other')) AS clicks,
   SUM(kind = 'buy') AS buys,

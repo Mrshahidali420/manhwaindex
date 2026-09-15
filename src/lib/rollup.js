@@ -47,7 +47,7 @@ async function rollOneDay(db, day) {
          (day, views, people, sessions, bounces, clicks, buys, reads, watches, dwell_sum, dwell_n)
        SELECT ?,
          SUM(kind = 'view'),
-         COUNT(DISTINCT CASE WHEN kind = 'view' THEN visitor END),
+         COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          COUNT(DISTINCT CASE WHEN kind = 'view' AND session <> '' THEN session END),
          0,
          SUM(kind IN ('buy','read','watch','other')),
@@ -78,7 +78,7 @@ async function rollOneDay(db, day) {
          (day, page_type, views, people, entries, clicks, buys, reads, watches, dwell_sum, dwell_n)
        SELECT ?, page_type,
          SUM(kind = 'view'),
-         COUNT(DISTINCT CASE WHEN kind = 'view' THEN visitor END),
+         COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          SUM(kind = 'view' AND step = 1),
          SUM(kind IN ('buy','read','watch','other')),
          SUM(kind = 'buy'), SUM(kind = 'read'), SUM(kind = 'watch'),
@@ -97,7 +97,7 @@ async function rollOneDay(db, day) {
          MAX(page_type),
          COALESCE(MAX(CASE WHEN kind = 'view' AND label <> '' THEN label END), ''),
          SUM(kind = 'view'),
-         COUNT(DISTINCT CASE WHEN kind = 'view' THEN visitor END),
+         COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          SUM(kind = 'view' AND step = 1),
          SUM(kind IN ('buy','read','watch','other')),
          SUM(kind = 'buy'), SUM(kind = 'read'), SUM(kind = 'watch'),
@@ -134,7 +134,7 @@ async function rollOneDay(db, day) {
       `INSERT OR REPLACE INTO daily_countries (day, country, page_type, views, people, clicks)
        SELECT ?, country, page_type,
          SUM(kind = 'view'),
-         COUNT(DISTINCT CASE WHEN kind = 'view' THEN visitor END),
+         COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          SUM(kind IN ('buy','read','watch','other'))
        FROM events WHERE day = ? GROUP BY country, page_type`
     )
@@ -143,7 +143,7 @@ async function rollOneDay(db, day) {
   const clicks = db
     .prepare(
       `INSERT OR REPLACE INTO daily_clicks (day, kind, platform, shop_kind, page_type, clicks, people)
-       SELECT ?, kind, platform, shop_kind, page_type, COUNT(*), COUNT(DISTINCT visitor)
+       SELECT ?, kind, platform, shop_kind, page_type, COUNT(*), COUNT(DISTINCT CASE WHEN visitor <> '' THEN visitor END)
        FROM events WHERE day = ? AND kind NOT IN ('view','leave')
        GROUP BY kind, platform, shop_kind, page_type`
     )
