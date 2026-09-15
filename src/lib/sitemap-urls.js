@@ -2,7 +2,6 @@ import {
   comics,
   anime,
   charactersWithPages,
-  charactersIndexable,
   genres,
   comicsOfCountry,
   animeByPopularity,
@@ -111,7 +110,7 @@ const animeUrls = () =>
   }))
 
 const characterUrls = () =>
-  charactersIndexable.map((person) => ({ loc: `${SITE}/character/${person.slug}`, priority: '0.6' }))
+  charactersWithPages.map((person) => ({ loc: `${SITE}/character/${person.slug}`, priority: '0.6' }))
 
 /** Split a long list into numbered parts, so no single file is huge. */
 function split(name, urls) {

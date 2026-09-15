@@ -30,10 +30,6 @@ const answer = freeAnswer(item, kind)
 const home = `/${kind}/${item.slug}`
 const paidRows = [...answer.paid, ...answer.unknown]
 
-// A page with no platform at all cannot answer its own question. It stays
-// reachable, so a reader who lands on it still gets the truth, but it is
-// kept out of the index rather than sold as content.
-const thin = answer.free.length === 0 && paidRows.length === 0
 
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
 const faq = [
@@ -72,7 +68,6 @@ const jsonld = [
   description={answer.description}
   image={item.cover}
   jsonld={jsonld}
-  noindex={thin}
   crumbs={[{ name: kindLabel, href: `/${kind}` }, { name: item.title, href: home }, { name: 'Free' }]}
 >
   <div class="shell title-page">

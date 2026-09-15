@@ -2,7 +2,6 @@
 import Base from '../../layouts/Base.astro'
 import Platforms from '../../components/Platforms.astro'
 import {
-  characterIsThin,
   kindOfAppearance,
   truncate,
   bioHtml,
@@ -135,9 +134,6 @@ const description =
     `${opening} Where to ${verb} it legally.`,
   ].find((line) => line.length <= 165) || `${opening} Where to ${verb} it legally.`
 
-// A portrait with no bio says nothing worth indexing. The page stays
-// reachable and keeps passing links, but it is kept out of the index.
-const thin = characterIsThin(person)
 const updated = new Date().toISOString().slice(0, 10)
 
 const jsonld = {
@@ -167,7 +163,6 @@ const jsonld = {
   canonical={`/character/${person.slug}`}
   image={person.image}
   jsonld={faq.length ? [jsonld, faqJsonld(faq)] : jsonld}
-  noindex={thin}
   crumbs={[{ name: 'Characters', href: '/character' }, { name: person.name }]}
 >
   <div class="shell">

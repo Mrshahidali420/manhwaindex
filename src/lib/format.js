@@ -114,13 +114,6 @@ export function characterHasPage(c) {
   return Boolean(c.image) && c.appearsIn.length > 0
 }
 
-// A page with a portrait and no bio says nothing a search engine wants.
-// It stays reachable and keeps passing links, but it is kept out of the
-// index and out of the sitemap.
-export function characterIsThin(c) {
-  return !c.description || bioText(c.description).length < 40
-}
-
 export function charactersOf(item) {
   return (item.characters || []).filter((c) => c.image)
 }

@@ -28,9 +28,6 @@ const answer = likeAnswer(item, kind)
 const home = `/${kind}/${item.slug}`
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
 
-// Fewer than three picks is a list, not a page. It stays reachable and out
-// of the index.
-const thin = answer.picks.length < 3
 
 const jsonld = [
   {
@@ -65,7 +62,6 @@ const jsonld = [
   description={answer.description}
   image={item.cover}
   jsonld={jsonld}
-  noindex={thin}
   crumbs={[{ name: kindLabel, href: `/${kind}` }, { name: item.title, href: home }, { name: 'Similar' }]}
 >
   <div class="shell title-page">

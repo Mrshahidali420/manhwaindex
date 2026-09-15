@@ -20,7 +20,7 @@ const readJson = (name) =>
 const comicsRaw = readJson('comics')
 const animeRaw = readJson('anime')
 const characterData = readJson('characters')
-import { characterHasPage, characterIsThin, genreSlug } from './format.js'
+import { characterHasPage, genreSlug } from './format.js'
 
 // Public URLs carry clean slugs, never database ids (see reslug.mjs).
 reslugAll(comicsRaw, animeRaw, characterData)
@@ -94,7 +94,6 @@ export function findCharacter(slug) {
 }
 
 export const charactersWithPages = characters.filter(characterHasPage)
-export const charactersIndexable = charactersWithPages.filter((c) => !characterIsThin(c))
 
 // --- genres -----------------------------------------------------------------
 // Every genre that appears in the catalog, with counts, biggest first.
