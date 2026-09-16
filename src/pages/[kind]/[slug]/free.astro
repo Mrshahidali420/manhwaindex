@@ -43,7 +43,7 @@ const buys = shopLinks(item, countryOf(Astro))
 // answer the second question too: "fine, but what IS it?". Everything below is
 // read from the same record the title page uses, so the two can never disagree.
 const genres = (item.genres || []).slice(0, 4)
-const cast = charactersOf(item).slice(0, 8)
+const cast = charactersOf(item).slice(0, 12)
 
 const rawSynopsis = (item.description || '').replace(/\n{2,}/g, '\n\n').trim()
 const creditMatch = rawSynopsis.match(/\(Source:\s*([^)]+)\)/i)
