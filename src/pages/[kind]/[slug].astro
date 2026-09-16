@@ -17,6 +17,7 @@ import { loadTitle, envOf, countryOf, notFound } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
 import { shopLinks } from '../../lib/shop-links.js'
+import { BUY_POPULARITY } from '../../lib/buy.mjs'
 import BuyBox from '../../components/BuyBox.astro'
 
 // This page is rendered by the Worker when someone asks for it. It is not
@@ -300,6 +301,19 @@ if (freeSplit(links).free.length > 0) {
     lead: isComic ? 'The free question' : 'The free question',
     title: `Where to ${verb} ${item.title} free and legal`,
     note: 'How much each platform gives away, and what the rest costs',
+  })
+}
+// A reader who has decided they want to OWN it is asking a different
+// question from the table above. Only stories people really search for get
+// that page, so the link only shows when the page exists.
+if ((item.popularity || 0) >= BUY_POPULARITY) {
+  answerPages.push({
+    href: `/${kind}/${item.slug}/buy`,
+    lead: 'If you want to own it',
+    title: `Where to buy ${item.title}`,
+    note: isComic
+      ? 'Printed volumes, figures, art books and posters, in your own store'
+      : 'Discs, figures, art books and posters, in your own store',
   })
 }
 if (similar.length >= 4) {

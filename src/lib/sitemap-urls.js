@@ -149,6 +149,8 @@ export const sitemapParts = [
   ...split('character', characterUrls()),
   ...split('answers-free', answerUrls.free.map((path) => ({ loc: `${SITE}${path}`, priority: '0.7' }))),
   ...split('answers-like', answerUrls.like.map((path) => ({ loc: `${SITE}${path}`, priority: '0.6' }))),
+  ...split('answers-buy', (answerUrls.buy || []).map((path) => ({ loc: `${SITE}${path}`, priority: '0.7' }))),
+  ...split('character-buy', (answerUrls.charBuy || []).map((path) => ({ loc: `${SITE}${path}`, priority: '0.6' }))),
 ]
 
 export const today = () => new Date().toISOString().slice(0, 10)

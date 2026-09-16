@@ -22,6 +22,8 @@ import { reslugAll } from '../src/lib/reslug.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
 import { freeSplit, linksOf } from '../src/lib/answers.mjs'
+import { shopName, FIGURE_POPULARITY } from '../src/lib/shop-links.js'
+import { BUY_POPULARITY } from '../src/lib/buy.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -357,12 +359,33 @@ function main() {
   // Which titles have earned an answer page. A page that cannot answer its
   // own question is a thin page, so the gates are strict and the sitemap
   // only ever lists what passed them. The Worker still renders the rest.
-  const answerUrls = { free: [], like: [] }
+  const answerUrls = { free: [], like: [], buy: [], charBuy: [] }
   for (const item of titles) {
     const path = `/${kindOf(item)}/${item.slug}`
     if (freeSplit(linksOf(item)).free.length > 0) answerUrls.free.push(`${path}/free`)
     if ((item.similar || []).length >= 4) answerUrls.like.push(`${path}/like`)
+    // A buy page is only worth having for a story people search for. Under
+    // the line it was almost certainly never printed in English, so every
+    // shop link would open an empty shelf.
+    if ((item.popularity || 0) >= BUY_POPULARITY && shopName(item).length >= 2) {
+      answerUrls.buy.push(`${path}/buy`)
+    }
   }
+  // The same for characters, but the line is higher: a figure of one named
+  // person only gets made for a story that sold enough to pay for the mould.
+  // The lead is picked exactly as the page picks it, or the sitemap would
+  // list pages the Worker answers with a 404.
+  for (const person of pages) {
+    const rows = person.appearsIn || []
+    const main = rows.filter((a) => a.role === 'MAIN')
+    const from = main.length ? main : rows
+    const lead = from.find((a) => a.kind !== 'anime') || from[0]
+    if (!lead) continue
+    if ((lead.popularity || 0) < FIGURE_POPULARITY) continue
+    if (String(person.name || '').trim().length < 2) continue
+    answerUrls.charBuy.push(`/character/${person.slug}/buy`)
+  }
+
   writeFileSync(join(ROOT, 'data', 'answer-urls.json'), JSON.stringify(answerUrls))
 
   const manifest = { titleShards: t.count, characterShards: c.count, builtAt: Date.now() }
@@ -373,7 +396,7 @@ function main() {
   console.log(`MAL extras folded into ${titlesWithExtras} of ${titles.length} records`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`shard files ${t.count + c.count}  (the free plan allows 20,000 files in total)`)
-  console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like`)
+  console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like, ${answerUrls.buy.length} buy, ${answerUrls.charBuy.length} character buy`)
 }
 
 main()

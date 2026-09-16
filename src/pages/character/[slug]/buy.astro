@@ -1,0 +1,196 @@
+---
+/**
+ * "Where to buy X merch."
+ *
+ * A character is what a figure is actually made of, so this is the page that
+ * answers a merch search honestly. Only characters from a story big enough to
+ * have merch made of it get one: see FIGURE_POPULARITY in shop-links.js.
+ */
+import Base from '../../../layouts/Base.astro'
+import BuyBox from '../../../components/BuyBox.astro'
+import { loadCharacter, loadTitle, envOf, countryOf, notFound } from '../../../lib/runtime.js'
+import { faqJsonld } from '../../../lib/answers.mjs'
+import { kindOfAppearance } from '../../../lib/format.js'
+import { characterShopLinks, FIGURE_POPULARITY } from '../../../lib/shop-links.js'
+import { characterBuyAnswer } from '../../../lib/buy.mjs'
+
+const person = await loadCharacter(envOf(Astro), Astro.params.slug)
+if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
+
+// The same lead the profile page picks: a comic wins over its own anime.
+const best = (rows) => rows.find((a) => a.kind !== 'anime') || rows[0]
+const main = person.appearsIn.filter((a) => a.role === 'MAIN')
+const lead = best(main.length ? main : person.appearsIn)
+const leadKind = kindOfAppearance(lead)
+
+// The gate. Under this line no figure of this person was ever made, so the
+// page would be a shelf with nothing on it.
+if ((lead.popularity || 0) < FIGURE_POPULARITY) return notFound(Astro)
+
+const series = await loadTitle(envOf(Astro), leadKind, lead.slug)
+const buys = characterShopLinks(person, series || lead, countryOf(Astro))
+if (buys.length === 0) return notFound(Astro)
+const merchIsCharacter = buys.some((row) => row.kind === 'figures')
+
+const answer = characterBuyAnswer(person, lead, series, leadKind, merchIsCharacter)
+const profile = `/character/${person.slug}`
+const seriesHome = `/${leadKind}/${lead.slug}`
+
+const siblings = (series?.characters || [])
+  .filter((c) => c.image && c.slug !== person.slug)
+  .slice(0, 11)
+
+const facts = [
+  ['From', lead.title],
+  ['Role', lead.role === 'MAIN' ? 'Main character' : 'Supporting character'],
+  ...(person.age ? [['Age', person.age]] : []),
+  ...(person.gender ? [['Gender', person.gender]] : []),
+  ...(series?.startYear ? [['Story started', String(series.startYear)]] : []),
+  [
+    'Appears in',
+    `${person.appearsIn.length} ${person.appearsIn.length === 1 ? 'title' : 'titles'}`,
+  ],
+  ...(person.favourites ? [['AniList favourites', person.favourites.toLocaleString()]] : []),
+]
+
+const jsonld = [
+  {
+    '@type': 'WebPage',
+    '@id': `https://manhwaindex.com${profile}/buy#page`,
+    url: `https://manhwaindex.com${profile}/buy`,
+    name: answer.heading,
+    inLanguage: 'en',
+    dateModified: new Date().toISOString().slice(0, 10),
+    about: { '@id': `https://manhwaindex.com${profile}#person` },
+  },
+  faqJsonld(answer.faq),
+]
+---
+
+<Base
+  title={answer.pageTitle}
+  description={answer.description}
+  image={person.image}
+  jsonld={jsonld}
+  crumbs={[
+    { name: 'Characters', href: '/character' },
+    { name: person.name, href: profile },
+    { name: 'Merch' },
+  ]}
+>
+  <div class="shell title-page">
+    <div class="cover-rail">
+      <div class="cover-wrap">
+        <img class="cover" src={person.image} alt={`${person.name} portrait`} width="440" height="587" loading="eager" fetchpriority="high" decoding="async" />
+      </div>
+    </div>
+
+    <header class="title-head">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <a href="/character">Characters</a>
+        <a href={profile}>{person.name}</a>
+      </nav>
+      <h1>{answer.heading}</h1>
+      <ul class="title-head__meta">
+        <li>{lead.role === 'MAIN' ? 'Main character' : 'Supporting character'}</li>
+        <li><a href={seriesHome}>{lead.title}</a></li>
+        {series?.startYear && <li>{series.startYear}</li>}
+      </ul>
+    </header>
+
+    <div class="title-body">
+      <p class="title-answer">{answer.lede}</p>
+
+      {/* The reader came here to buy. The shelves go first. */}
+      <BuyBox
+        heading={merchIsCharacter ? `Own a piece of ${person.name}` : `Own ${lead.title}`}
+        sub="Official shops, in your own country's store."
+        rows={buys}
+      />
+
+      {
+        answer.paragraphs.map((block) => (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>{block.heading}</h2>
+            </div>
+            <p class="overview">{block.text}</p>
+          </section>
+        ))
+      }
+
+      <section class="answer">
+        <div class="answer__head">
+          <h2>The facts</h2>
+        </div>
+        <dl class="facts">
+          {
+            facts.map(([label, value]) => (
+              <div>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      {
+        siblings.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>The rest of the cast</h2>
+              <p>Tap a face to see that character, and the merch made of them.</p>
+            </div>
+            <ul class="people">
+              {siblings.map((mate) => (
+                <li>
+                  <a href={`/character/${mate.slug}`}>
+                    <img src={mate.image} alt={`${mate.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
+                    <b>{mate.name}</b>
+                    <span>{mate.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      <section class="answer">
+        <div class="answer__head">
+          <h2>Common questions</h2>
+        </div>
+        <dl class="qa">
+          {
+            answer.faq.map((row) => (
+              <div>
+                <dt>{row.q}</dt>
+                <dd>{row.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <a class="crosslink" href={`${seriesHome}/buy`}>
+        <div>
+          <span class="crosslink__lead">The story itself</span>
+          <span class="crosslink__title">Where to buy {lead.title}</span>
+          <span class="crosslink__lead">Printed volumes, discs, art books and posters</span>
+        </div>
+      </a>
+
+      <a class="crosslink" href={profile}>
+        <div>
+          <span class="crosslink__lead">Everything we know about them</span>
+          <span class="crosslink__title">{person.name}</span>
+          <span class="crosslink__lead">
+            Every title they appear in, and where to read or watch it legally
+          </span>
+        </div>
+      </a>
+    </div>
+  </div>
+</Base>

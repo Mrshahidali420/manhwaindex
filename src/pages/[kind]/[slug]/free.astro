@@ -12,6 +12,7 @@ import Platforms from '../../../components/Platforms.astro'
 import { loadTitle, envOf, countryOf, notFound } from '../../../lib/runtime.js'
 import { freeAnswer, verbOf, wordOf, faqJsonld, listWords } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
+import { BUY_POPULARITY } from '../../../lib/buy.mjs'
 import BuyBox from '../../../components/BuyBox.astro'
 import { statusWord, charactersOf, genreSlug } from '../../../lib/format.js'
 
@@ -277,6 +278,21 @@ const jsonld = [
               <span class="crosslink__lead">Finished it already?</span>
               <span class="crosslink__title">Stories like {item.title}</span>
               <span class="crosslink__lead">Picks you can {verb} legally too</span>
+            </div>
+          </a>
+        )
+      }
+
+      {
+        /* A reader who just learned a story is worth reading is the readiest
+           buyer we ever get. The buy page only exists for stories people
+           search for, so the link is gated the same way. */
+        (item.popularity || 0) >= BUY_POPULARITY && (
+          <a class="crosslink" href={`${home}/buy`}>
+            <div>
+              <span class="crosslink__lead">Want to own it?</span>
+              <span class="crosslink__title">Where to buy {item.title}</span>
+              <span class="crosslink__lead">Printed volumes, figures and posters, in your own store</span>
             </div>
           </a>
         )

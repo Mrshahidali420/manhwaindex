@@ -239,7 +239,7 @@ export function shelfLinks(item) {
  * and an empty shop earns nothing and looks broken, so those pages are given
  * the printed volumes of the story instead. Those always exist.
  */
-const FIGURE_POPULARITY = 40000
+export const FIGURE_POPULARITY = 40000
 
 /**
  * Merch for one character.

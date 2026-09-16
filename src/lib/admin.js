@@ -150,7 +150,7 @@ const titleCase = (part) =>
 // its last piece alone gives every one of them the same name, "Free", and the
 // report cannot say which story earned the click. The story name goes first,
 // because the story is the thing being reported on.
-const ANSWER_PAGES = { free: 'Free', like: 'Similar' }
+const ANSWER_PAGES = { free: 'Free', like: 'Similar', buy: 'Buy' }
 
 /** A page address, said as a name. */
 export function humanize(path, label) {

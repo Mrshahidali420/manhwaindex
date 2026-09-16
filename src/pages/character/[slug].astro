@@ -209,6 +209,16 @@ const jsonld = {
       />
     )}
 
+    {merchIsCharacter && (
+      <a class="crosslink" href={`/character/${person.slug}/buy`}>
+        <div>
+          <span class="crosslink__lead">The full merch page</span>
+          <span class="crosslink__title">Where to buy {person.name} merch</span>
+          <span class="crosslink__lead">Figures, posters and apparel, in your own store</span>
+        </div>
+      </a>
+    )}
+
     {person.description && (
       <section class="section">
         <div class="section__head">
