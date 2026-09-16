@@ -1521,6 +1521,11 @@ main:has(.title-page) {
   background: linear-gradient(to top, rgb(22 51 125 / 0.18), transparent 75%);
   transition: border-color 140ms var(--ease-dawn), box-shadow 140ms var(--ease-dawn);
 }
+/* Two of these can stack. Without a gap their borders touch and the pair
+   reads as one box, so the second link is never seen. */
+.crosslink + .crosslink {
+  margin-top: 0.8rem;
+}
 .crosslink:hover {
   border-color: var(--rose);
   box-shadow: 0 10px 30px -12px rgb(224 104 138 / 0.35);

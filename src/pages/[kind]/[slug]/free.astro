@@ -268,13 +268,19 @@ const jsonld = [
         </dl>
       </section>
 
-      <a class="crosslink" href={`${home}/like`}>
-        <div>
-          <span class="crosslink__lead">Finished it already?</span>
-          <span class="crosslink__title">Stories like {item.title}</span>
-          <span class="crosslink__lead">Picks you can {verb} legally too</span>
-        </div>
-      </a>
+      {
+        /* Only when there is something to show. An empty "similar" page is a
+           worse click than no click. */
+        (item.similar || []).length > 0 && (
+          <a class="crosslink" href={`${home}/like`}>
+            <div>
+              <span class="crosslink__lead">Finished it already?</span>
+              <span class="crosslink__title">Stories like {item.title}</span>
+              <span class="crosslink__lead">Picks you can {verb} legally too</span>
+            </div>
+          </a>
+        )
+      }
 
       <a class="crosslink" href={home}>
         <div>
