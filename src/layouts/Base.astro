@@ -425,6 +425,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
 
     <header class="masthead">
       <div class="shell masthead__inner">
+        <div class="masthead__brand">
         <a class="wordmark" href="/" aria-label="Manhwa Index home">
           <svg class="wordmark__mark" width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
             <path d="M4 4h24v17.5L21.5 28H4Z" fill="none" stroke="currentColor" stroke-width="2.5" />
@@ -432,6 +433,8 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           </svg>
           manhwa<span>index</span>
         </a>
+          <span class="masthead__tag">Where to read it, legally</span>
+        </div>
 
         <button
           class="menu-btn"
@@ -448,6 +451,10 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
 
         <div class="masthead__menu" id="site-menu">
           <div class="finder" id="finder">
+            <svg class="finder__icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.6-3.6" />
+            </svg>
             <input
               id="finder-input"
               type="search"
