@@ -24,6 +24,59 @@ import { wordOf, verbOf, listWords } from './answers.mjs'
  */
 export const BUY_POPULARITY = 10000
 
+/**
+ * A story is sold under more than one name.
+ *
+ * "Solo Leveling" is printed as "Na Honjaman Level Up" and as "Only I Level
+ * Up". A buyer who knows only the fan name types that name, and a page that
+ * never says that name cannot answer them. AniList already keeps the list, so
+ * every buy page can carry it at no cost.
+ *
+ * Only Latin-script names are kept. The native name gets its own line, and a
+ * Russian or Chinese alias helps nobody reading this page in English.
+ */
+const LATIN = /^[ -~À-ɏ'’!?.,:&()-]+$/
+
+const sameWord = (a, b) => String(a || '').toLowerCase() === String(b || '').toLowerCase()
+
+/** Every other name this story is sold under, best first. */
+export function otherNames(item) {
+  const out = []
+  for (const name of [item.titleRomaji, ...(item.synonyms || [])]) {
+    const clean = String(name || '').trim()
+    if (!clean || !LATIN.test(clean)) continue
+    if (sameWord(clean, item.title)) continue
+    if (out.some((kept) => sameWord(kept, clean))) continue
+    out.push(clean)
+  }
+  return out.slice(0, 5)
+}
+
+/** The same job for a person. AniList calls their list `aliases`. */
+export function otherCharNames(person) {
+  const out = []
+  for (const name of person.aliases || []) {
+    const clean = String(name || '').trim()
+    if (!clean || !LATIN.test(clean)) continue
+    if (sameWord(clean, person.name)) continue
+    if (out.some((kept) => sameWord(kept, clean))) continue
+    out.push(clean)
+  }
+  return out.slice(0, 4)
+}
+
+/**
+ * One alias, set beside the real name in the title tag.
+ *
+ * Only while the pair still fits what a phone shows. A bracket that opens on
+ * screen and never closes reads as broken, so a long alias is dropped whole
+ * rather than cut in half.
+ */
+const withAlias = (name, names, room = 46) =>
+  names.length && name.length + names[0].length <= room
+    ? `${name} (${names[0]})`
+    : name
+
 const unquote = (text) =>
   String(text || '')
     .split('"')
@@ -60,13 +113,17 @@ export function buyAnswer(item, kind) {
   const episodes = !isComic && item.episodes ? item.episodes : 0
   const studio = !isComic && item.studios && item.studios[0] ? item.studios[0] : ''
   const running = item.status === 'RELEASING'
+  const names = otherNames(item)
 
   // The title tag. The story's whole name stays in it however long it runs:
   // Google cuts what it shows on a phone but still reads the rest, and the
   // rest is what decides which search this page answers.
+  // The alias rides along in the title tag, because "buy na honjaman level
+  // up" is a different search from "buy solo leveling" and both are buyers.
+  const sold = withAlias(title, names)
   const pageTitle = isComic
-    ? `Buy ${title} — ${word} volumes, figures and merch`
-    : `Buy ${title} — Blu-ray, DVD, figures and merch`
+    ? `Buy ${sold} — ${word} volumes, figures and merch`
+    : `Buy ${sold} — Blu-ray, DVD, figures and merch`
 
   const heading = `Where to buy ${title}`
 
@@ -112,6 +169,15 @@ export function buyAnswer(item, kind) {
         }A disc set only exists if a distributor licensed ${title} for your region, and that is their decision, not ours. The disc link opens a live search so you see what is really in print today. The figure and poster links search the merch shelf, which usually stays stocked long after the discs go out of print.`,
   })
 
+  if (names.length) {
+    paragraphs.push({
+      heading: `Other names for ${title}`,
+      text: `${title} is also sold as ${listWords(names)}${
+        item.titleNative ? `, and as ${item.titleNative} in its own language` : ''
+      }. A publisher picks one name for the cover, and a shop copies whatever the cover says, so the same story can sit under two names in the same shop. If a search below comes back empty, type one of these other names into the shop own box instead. It is the same story and the same volumes.`,
+    })
+  }
+
   paragraphs.push({
     heading: 'Why there are no prices on this page',
     text: `We are an index, not a shop. We hold no stock, take no payment and ship nothing. Showing a price would mean keeping our own copy of Amazon's data, and a kept price goes wrong within hours. So every link here opens the shop itself with the name already typed in. The price, the edition and the stock you see are the shop's own, and they are right at the second you look.`,
@@ -137,6 +203,15 @@ export function buyAnswer(item, kind) {
     })
   }
 
+  if (names.length) {
+    faq.push({
+      q: `Is ${title} the same as ${names[0]}?`,
+      a: `Yes. One story, more than one name. ${title} is also sold as ${listWords(
+        names,
+      )}. Whichever name is printed on the cover, the story inside is the same one, and the shop links on this page cover all of them.`,
+    })
+  }
+
   faq.push({
     q: `Are there ${title} figures?`,
     a: `Figures are only made for stories that sold enough to pay for the mould, so we cannot promise one exists. The merch link on this page searches the figure shelf for ${title}, and what comes back is what is really being sold.`,
@@ -147,7 +222,7 @@ export function buyAnswer(item, kind) {
     a: `Sometimes, yes, and legally. Some official platforms give part of a story away to bring readers in. Our free page for ${title} lists every one that does, and says plainly when none does.`,
   })
 
-  return { pageTitle, heading, description, lede, paragraphs, faq, word, verb, isComic }
+  return { pageTitle, heading, description, lede, paragraphs, faq, word, verb, isComic, names }
 }
 
 // --------------------------------------------------------------- a character
@@ -165,10 +240,12 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
   const word = wordOf(leadKind)
   const verb = verbOf(leadKind)
   const isMain = lead.role === 'MAIN'
+  const names = otherCharNames(person)
 
+  const called = withAlias(who, names, 34)
   const pageTitle = merchIsCharacter
-    ? `Buy ${who} figures and merch — ${from}`
-    : `Buy ${who} merch — ${from} ${word} and figures`
+    ? `Buy ${called} figures and merch — ${from}`
+    : `Buy ${called} merch — ${from} ${word} and figures`
 
   const heading = `Where to buy ${who} merch`
 
@@ -193,6 +270,15 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
       : `Nobody has made a figure of ${who} that we can find, and we would rather say so than send you to an empty shelf. What does exist is ${from} itself: the printed volumes, and whatever merch carries the series name. Those links are below. If ${from} grows, this page grows with it: the shelves are chosen from the story's own numbers and are re-checked every day.`,
   })
 
+  if (names.length) {
+    paragraphs.push({
+      heading: `Other names for ${who}`,
+      text: `${who} is also written as ${listWords(names)}${
+        person.native ? `, and as ${person.native} in the original` : ''
+      }. A name that crosses from one language to another rarely arrives spelled the same way twice, and a box in a shop carries whichever spelling that shop used. If one spelling finds nothing on the shelf, try the next one.`,
+    })
+  }
+
   paragraphs.push({
     heading: 'Why there are no prices on this page',
     text: `We are an index, not a shop. We hold no stock, take no payment and ship nothing. A price copied out of a shop goes stale within hours, so we keep none. Every link opens the shop itself with the name already typed in, and the price, the edition and the stock you see are the shop's own at the second you look.`,
@@ -206,6 +292,15 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
       ? `${from} is popular enough that figures of its cast are made and sold, so a ${who} figure is likely. We hold no stock list, so the figure link on this page searches the real shelf and shows you what is there right now.`
       : `We cannot find one. ${from} has not sold at the level that pays for a character figure. The links on this page offer the story itself instead, which does exist in print.`,
   })
+
+  if (names.length) {
+    faq.push({
+      q: `Is ${who} the same person as ${names[0]}?`,
+      a: `Yes. ${who} is also written as ${listWords(
+        names,
+      )}. One character, more than one spelling of the same name.`,
+    })
+  }
 
   faq.push({
     q: `What is ${who} from?`,
@@ -221,7 +316,7 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
       : `Posters of one character are rare for a story this size. The merch link on this page searches the ${from} shelf, which is where art of ${who} would sit if it exists.`,
   })
 
-  return { pageTitle, heading, description, lede, paragraphs, faq, word, verb }
+  return { pageTitle, heading, description, lede, paragraphs, faq, word, verb, names }
 }
 
 export { capitalise }

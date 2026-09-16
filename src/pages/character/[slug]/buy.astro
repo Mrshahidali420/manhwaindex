@@ -62,6 +62,7 @@ const jsonld = [
     inLanguage: 'en',
     dateModified: new Date().toISOString().slice(0, 10),
     about: { '@id': `https://manhwaindex.com${profile}#person` },
+    alternateName: [person.native, ...answer.names].filter(Boolean),
   },
   faqJsonld(answer.faq),
 ]
@@ -92,6 +93,10 @@ const jsonld = [
         <a href={profile}>{person.name}</a>
       </nav>
       <h1>{answer.heading}</h1>
+      {person.native && <p class="title-head__native">{person.native}</p>}
+      {answer.names.length > 0 && (
+        <p class="title-head__aka">Also written as {answer.names.join(' · ')}</p>
+      )}
       <ul class="title-head__meta">
         <li>{lead.role === 'MAIN' ? 'Main character' : 'Supporting character'}</li>
         <li><a href={seriesHome}>{lead.title}</a></li>
