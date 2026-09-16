@@ -272,7 +272,8 @@ img {
   position: relative;
   grid-column: 1 / -1;
   flex-wrap: wrap;
-  gap: 0.2rem 1.3rem;
+  justify-content: center;
+  gap: 0.2rem 1.6rem;
   font-size: 0.875rem;
   margin-top: 0.9rem;
   padding-block: 0.65rem;
@@ -285,7 +286,7 @@ img {
   inset-inline: 0;
   top: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgb(36 65 143 / 0.8), rgb(36 65 143 / 0));
+  background: linear-gradient(90deg, rgb(36 65 143 / 0), rgb(36 65 143 / 0.8) 50%, rgb(36 65 143 / 0));
 }
 .masthead nav a {
   position: relative;
@@ -307,7 +308,7 @@ img {
   border-radius: 2px;
   background: var(--rose);
   transform: scaleX(0);
-  transform-origin: left;
+  transform-origin: center;
   transition: transform 180ms var(--ease-dawn);
 }
 .masthead nav a:hover {
@@ -2512,6 +2513,7 @@ main:has(.title-page) {
   }
   .masthead nav {
     flex-direction: column;
+    justify-content: flex-start;
     gap: 0;
     margin-top: 0.85rem;
     padding-block: 0;
