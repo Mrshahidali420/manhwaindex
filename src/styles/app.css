@@ -692,13 +692,26 @@ img {
 
 /* ---------- cover grid: actors standing on the band ----------------------- */
 
+/* Rows of covers, centred.
+ *
+ * This was a grid of stretchy columns. When a list held one more cover than a
+ * row could hold, that last cover sat alone against the left edge with a wide
+ * empty space beside it, and the page read as broken. Cards now keep one width
+ * and each row is centred, so a short last row looks meant.
+ */
 .grid {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  --card: 158px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1.9rem 1.25rem;
+}
+.grid > .card {
+  flex: 0 1 var(--card);
+  min-width: 0;
 }
 
 .card a {
@@ -785,6 +798,8 @@ img {
 /* shelf variant scrolls sideways like a batten of instruments */
 .grid--shelf {
   display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   overflow-x: auto;
   gap: 1.1rem;
   padding-block: 0.35rem 0.9rem;
@@ -2024,12 +2039,18 @@ main:has(.title-page) {
   letter-spacing: 0.1em;
 }
 .people {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  --face: 108px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1.1rem 0.9rem;
   list-style: none;
   margin: 0;
   padding: 0;
+}
+.people > li {
+  flex: 0 1 var(--face);
+  min-width: 0;
 }
 .people a {
   text-decoration: none;
@@ -2318,6 +2339,8 @@ main:has(.title-page) {
   /* cast scrolls sideways so the section stays one screen tall */
   .people {
     display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     overflow-x: auto;
     gap: 0.7rem;
     padding-bottom: 0.5rem;
@@ -2361,7 +2384,7 @@ main:has(.title-page) {
     grid-template-columns: 1fr;
   }
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    --card: 108px;
     gap: 1.4rem 0.9rem;
   }
   .person {
