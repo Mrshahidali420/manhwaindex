@@ -181,13 +181,20 @@ img {
   z-index: 5;
 }
 
+/* Two rows, on purpose.
+ *
+ * This was one flex row set to wrap. The brand, the search box and ten nav
+ * links need more room than the 1180px page gives them, so the nav fell to a
+ * second line on its own and left a hole beside the brand and a hole beside
+ * the links. The rows are now declared, so the header holds the same shape at
+ * every desktop width and every item starts on the same left edge.
+ */
 .masthead__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 420px);
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding-block: 0.85rem;
-  flex-wrap: wrap;
+  column-gap: 1.5rem;
+  padding-block: 0.85rem 0;
 }
 
 .wordmark {
@@ -234,8 +241,13 @@ img {
 
 .masthead nav {
   display: flex;
-  gap: 1.35rem;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.35rem;
   font-size: 0.9rem;
+  margin-top: 0.8rem;
+  padding-block: 0.7rem;
+  border-top: 1px solid rgb(36 65 143 / 0.35);
 }
 .masthead nav a {
   color: var(--dawn-dim);
@@ -256,7 +268,9 @@ img {
 
 .finder {
   position: relative;
-  flex: 1 1 240px;
+  grid-column: 2;
+  justify-self: end;
+  width: 100%;
   max-width: 420px;
 }
 .finder input {
@@ -2393,16 +2407,20 @@ main:has(.title-page) {
   }
   /* Mobile header: [logo] ........ [menu button]. The panel opens below. */
   .masthead__inner {
+    grid-template-columns: 1fr auto;
+    column-gap: 1rem;
     padding-block: 0.65rem;
   }
   .menu-btn {
     display: inline-flex;
+    justify-self: end;
   }
   .masthead__menu {
     display: none;
   }
   body.menu-open .masthead__menu {
     display: block;
+    grid-column: 1 / -1;
     width: 100%;
     padding-block: 0.85rem 0.35rem;
     border-top: 1px solid rgb(36 65 143 / 0.45);
@@ -2417,6 +2435,8 @@ main:has(.title-page) {
     flex-direction: column;
     gap: 0;
     margin-top: 0.85rem;
+    padding-block: 0;
+    border-top: 0;
   }
   .masthead nav a {
     display: block;
