@@ -3011,3 +3011,33 @@ main:has(.title-page) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* The way back to the full title page. Most readers land on an answer page
+   from search, so this is the loudest thing under the answer itself. */
+.jump {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  padding: 0.9rem 1rem;
+  margin: 1.4rem 0 1.8rem;
+  border: 1px solid var(--rose);
+  background: linear-gradient(to right, rgb(224 104 138 / 0.14), rgb(22 51 125 / 0.14));
+  transition: border-color 140ms var(--ease-dawn), box-shadow 140ms var(--ease-dawn), transform 140ms var(--ease-dawn);
+}
+.jump:hover,
+.jump:focus-visible {
+  border-color: var(--rose-soft);
+  box-shadow: 0 12px 34px -14px rgb(224 104 138 / 0.5);
+}
+.jump img { width: 46px; aspect-ratio: 2 / 3; object-fit: cover; flex: none; }
+.jump__text { display: block; min-width: 0; flex: 1; }
+.jump__lead { display: block; color: var(--dawn-dim); font-size: 0.8rem; }
+.jump__title { display: block; font-weight: 700; font-size: 1.05rem; color: var(--dawn); }
+.jump__arrow { flex: none; color: var(--rose-soft); transition: transform 140ms var(--ease-dawn); }
+.jump:hover .jump__arrow { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) {
+  .jump, .jump__arrow { transition: none; }
+  .jump:hover .jump__arrow { transform: none; }
+}
