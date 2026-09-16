@@ -140,14 +140,28 @@ export function withRange(path, range) {
 
 // -------------------------------------------------------------- plain English
 
+/** One piece of a path, said as words: "solo-leveling" -> "Solo Leveling". */
+const titleCase = (part) =>
+  String(part || '')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+
+// The answer pages hang off a title: /manhwa/solo-leveling/free. Naming one by
+// its last piece alone gives every one of them the same name, "Free", and the
+// report cannot say which story earned the click. The story name goes first,
+// because the story is the thing being reported on.
+const ANSWER_PAGES = { free: 'Free', like: 'Similar' }
+
 /** A page address, said as a name. */
 export function humanize(path, label) {
   if (label) return label
   if (!path || path === '/') return 'Home'
   const parts = path.replace(/^\//, '').split('/')
   const last = parts[parts.length - 1] || ''
-  const words = last.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-  return words || path
+  if (parts.length === 3 && ANSWER_PAGES[last]) {
+    return `${titleCase(parts[1])} — ${ANSWER_PAGES[last]}`
+  }
+  return titleCase(last) || path
 }
 
 /** The section a page belongs to, said as a word. */

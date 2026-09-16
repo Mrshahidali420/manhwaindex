@@ -7,8 +7,10 @@
  * page writes itself for a title added tomorrow. See src/lib/answers.mjs.
  */
 import Base from '../../../layouts/Base.astro'
-import { loadTitle, envOf, notFound } from '../../../lib/runtime.js'
+import { loadTitle, envOf, countryOf, notFound } from '../../../lib/runtime.js'
 import { likeAnswer, verbOf, wordOf, listWords } from '../../../lib/answers.mjs'
+import { shopLinks } from '../../../lib/shop-links.js'
+import BuyBox from '../../../components/BuyBox.astro'
 
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
 const KINDS = new Set(['manhwa', 'manga', 'manhua', 'anime'])
@@ -27,6 +29,10 @@ const word = wordOf(kind)
 const answer = likeAnswer(item, kind)
 const home = `/${kind}/${item.slug}`
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
+
+// A reader who came looking for "something like X" already loves X. The offer
+// is for X itself, not for the picks: those each have their own page.
+const buys = shopLinks(item, countryOf(Astro))
 
 
 const jsonld = [
@@ -136,6 +142,16 @@ const jsonld = [
             <p class="overview">{block.text}</p>
           </section>
         ))
+      }
+
+      {
+        buys.length > 0 && (
+          <BuyBox
+            heading={`Own ${item.title}`}
+            sub="The official books, discs and figures, straight from Amazon."
+            rows={buys}
+          />
+        )
       }
 
       <a class="crosslink" href={home}>

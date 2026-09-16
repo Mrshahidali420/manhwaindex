@@ -9,8 +9,10 @@
  */
 import Base from '../../../layouts/Base.astro'
 import Platforms from '../../../components/Platforms.astro'
-import { loadTitle, envOf, notFound } from '../../../lib/runtime.js'
+import { loadTitle, envOf, countryOf, notFound } from '../../../lib/runtime.js'
 import { freeAnswer, verbOf, wordOf, faqJsonld, listWords } from '../../../lib/answers.mjs'
+import { shopLinks } from '../../../lib/shop-links.js'
+import BuyBox from '../../../components/BuyBox.astro'
 
 const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
 const KINDS = new Set(['manhwa', 'manga', 'manhua', 'anime'])
@@ -29,6 +31,12 @@ const word = wordOf(kind)
 const answer = freeAnswer(item, kind)
 const home = `/${kind}/${item.slug}`
 const paidRows = [...answer.paid, ...answer.unknown]
+
+// This page outranks the title page for the question people actually type, so
+// it is where most readers land -- and until now it was the only title page
+// with no way to buy anything. A reader who just learned a story is worth
+// reading is the readiest buyer we ever get, and we were sending them away.
+const buys = shopLinks(item, countryOf(Astro))
 
 
 const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
@@ -133,6 +141,20 @@ const jsonld = [
               <p>None listed.</p>
             </Fragment>
           </Platforms>
+        )
+      }
+
+      {
+        buys.length > 0 && (
+          <BuyBox
+            heading={`Own ${item.title}`}
+            sub={
+              answer.free.length > 0
+                ? 'Free is for reading it. This is for keeping it.'
+                : 'No platform gives it away, so here is the official way to own it.'
+            }
+            rows={buys}
+          />
         )
       }
 
