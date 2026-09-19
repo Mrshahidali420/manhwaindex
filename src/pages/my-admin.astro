@@ -88,12 +88,18 @@ if (signedIn) {
  * Where this one page view came from, in three words or less.
  * A tagged link wins, then another website, then one of our own pages, and
  * last of all a person who typed the address.
+ *
+ * An outside site only counts on the FIRST page of a visit. The browser keeps
+ * the first referrer on a page, so pressing Back to a page that arrived from
+ * Google reports Google a second time. That is the same arrival, not a new
+ * one, and counting it twice would make search look busier than it is.
  */
 function cameFrom(row) {
-  if (row.campaign) return sourceName(`utm:${row.campaign}`)
-  if (row.referrer) return sourceName(row.referrer)
+  const first = (row.step || 1) === 1
+  if (first && row.campaign) return sourceName(`utm:${row.campaign}`)
+  if (first && row.referrer) return sourceName(row.referrer)
   if (row.prev) return `from ${humanize(row.prev, '')}`
-  return 'Typed the address'
+  return first ? 'Typed the address' : 'Came back'
 }
 ---
 
