@@ -436,6 +436,22 @@ export function titleFaq(item, kind) {
     }
   }
 
+  const leads = (item.characters || [])
+    .filter((c) => c.role === 'MAIN' && c.name)
+    .map((c) => c.name)
+    .slice(0, 4)
+  if (leads.length) {
+    faq.push({
+      q: `Who is the main character of ${item.title}?`,
+      a:
+        (leads.length === 1
+          ? `${leads[0]} is the main character of ${item.title}.`
+          : `${item.title} follows ${listWords(leads)}.`) +
+        ` Every face in the cast has its own page on this site, with age, ` +
+        `height and every other title they turn up in.`,
+    })
+  }
+
   if (item.chapters || item.episodes) {
     faq.push({
       q: `How many ${unit} does ${item.title} have?`,
@@ -445,7 +461,7 @@ export function titleFaq(item, kind) {
     })
   }
 
-  return faq.slice(0, 6)
+  return faq.slice(0, 7)
 }
 
 /**
@@ -478,6 +494,17 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
     a: `${who} is a ${role} in the ${word} ${lead.title}.${bio ? ` ${bio}` : ''}`,
   })
 
+  // "how old is X" is the second heaviest search that reaches this page, after
+  // the bare name. The number is already printed in the facts table above, so
+  // this only puts it in the words a person actually types.
+  if (person.age) {
+    faq.push({
+      q: `How old is ${who}?`,
+      a: `${who} is ${person.age}. This is the age given in the official ` +
+        `profile for ${lead.title}.`,
+    })
+  }
+
   // People ask this more than any other question about a character, and the
   // answer is already written in the profile above.
   if (height) {
@@ -485,6 +512,15 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
       q: `How tall is ${who}?`,
       a: `${who} is ${height}. This is the height given in the official ` +
         `profile for ${lead.title}.`,
+    })
+  }
+
+  // "when is X's birthday" and "X birthday" both reach this page today.
+  if (person.birthday) {
+    faq.push({
+      q: `When is ${who}'s birthday?`,
+      a: `${who} was born on ${person.birthday}, the date AniList carries in ` +
+        `the official profile.`,
     })
   }
 
@@ -534,11 +570,26 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
     })
   }
 
-  if (person.aliases?.length) {
+  if (person.aliases?.length || person.native) {
+    const other = (person.aliases || []).slice(0, 4)
     faq.push({
-      q: `What else is ${who} called?`,
-      a: `${who} is also called ${listWords(person.aliases.slice(0, 4))}.` +
-        (person.native ? ` The original name is ${person.native}.` : ''),
+      q: `What is ${who}'s full name?`,
+      a:
+        `The full name is ${who}.` +
+        (person.native ? ` In the original script it is written ${person.native}.` : '') +
+        (other.length ? ` They are also called ${listWords(other)}.` : ''),
+    })
+  }
+
+  // "is X the main character", and the bare "X main character" search that
+  // carries a story name with it.
+  if (lead.role === 'MAIN' || lead.role === 'SUPPORTING') {
+    faq.push({
+      q: `Is ${who} the main character of ${lead.title}?`,
+      a:
+        lead.role === 'MAIN'
+          ? `Yes. AniList lists ${who} as a main character of ${lead.title}.`
+          : `No. ${who} is a supporting character in ${lead.title}, not a lead.`,
     })
   }
 
@@ -550,7 +601,7 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
     })
   }
 
-  return faq.slice(0, 6)
+  return faq.slice(0, 9)
 }
 
 /** JSON-LD for a question set. Google reads this; a person reads the block. */

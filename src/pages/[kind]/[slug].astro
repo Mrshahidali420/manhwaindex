@@ -324,6 +324,16 @@ if (similar.length >= 4) {
     note: `${similar.length} close matches, each with its official platforms`,
   })
 }
+// A whole cast list. The block above only shows the first twelve faces, and
+// people search for the rest by the story name.
+if (cast.length >= 6) {
+  answerPages.push({
+    href: `/${kind}/${item.slug}/characters`,
+    lead: 'Everyone in it',
+    title: `All characters in ${item.title}`,
+    note: `${charactersOf(item).length} faces, each with its own page`,
+  })
+}
 
 // Facts this site works out for itself: how wide the official coverage is,
 // how the anime and the comic line up, and the order to read the series in.

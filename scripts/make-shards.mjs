@@ -359,11 +359,16 @@ function main() {
   // Which titles have earned an answer page. A page that cannot answer its
   // own question is a thin page, so the gates are strict and the sitemap
   // only ever lists what passed them. The Worker still renders the rest.
-  const answerUrls = { free: [], like: [], buy: [], charBuy: [] }
+  const answerUrls = { free: [], like: [], buy: [], charBuy: [], cast: [] }
   for (const item of titles) {
     const path = `/${kindOf(item)}/${item.slug}`
     if (freeSplit(linksOf(item)).free.length > 0) answerUrls.free.push(`${path}/free`)
     if ((item.similar || []).length >= 4) answerUrls.like.push(`${path}/like`)
+    // "all members of X" and "X characters" are real searches and the title
+    // page only shows the first twelve faces. Under six faces the title page
+    // already shows them all, so a separate page would say nothing new.
+    const faces = (item.characters || []).filter((c) => c.image)
+    if (faces.length >= 6) answerUrls.cast.push(`${path}/characters`)
     // A buy page is only worth having for a story people search for. Under
     // the line it was almost certainly never printed in English, so every
     // shop link would open an empty shelf.
@@ -396,7 +401,7 @@ function main() {
   console.log(`MAL extras folded into ${titlesWithExtras} of ${titles.length} records`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`shard files ${t.count + c.count}  (the free plan allows 20,000 files in total)`)
-  console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like, ${answerUrls.buy.length} buy, ${answerUrls.charBuy.length} character buy`)
+  console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like, ${answerUrls.buy.length} buy, ${answerUrls.charBuy.length} character buy, ${answerUrls.cast.length} cast`)
 }
 
 main()
