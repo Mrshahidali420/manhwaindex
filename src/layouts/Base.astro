@@ -198,10 +198,24 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       if (miMissing) MI_HUMAN_MS = 1500
       var miHuman = false
       var miWaiting = []
+      // Which of the three proofs arrived. Kept so the reports can say whether
+      // a visit was a person moving or only a page left open.
+      var miProof = 'wait'
 
-      function miWake() {
+      // A browser driven by a program says so, and a headless one says so in
+      // its own name. Neither is a reader. Dropping them here costs nothing
+      // and saves a request every time.
+      var miRobot = false
+      try {
+        miRobot =
+          navigator.webdriver === true ||
+          navigator.userAgent.indexOf('HeadlessChrome') !== -1
+      } catch (e) {}
+
+      function miWake(event) {
         if (miHuman) return
         miHuman = true
+        miProof = (event && event.type) || 'wait'
         var held = miWaiting
         miWaiting = []
         for (var i = 0; i < held.length; i++) mi(held[i])
@@ -341,6 +355,8 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           if (localStorage.getItem('mi_off') === '1') return
         } catch (e) {}
 
+        if (miRobot) return
+
         // Held, not dropped. The row keeps its own stamp, so a reader who
         // scrolls after six seconds still lands in the report at the second
         // the page was opened.
@@ -355,6 +371,13 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         if (miMissing && row.kind === 'view') {
           row.kind = 'missing'
           row.name = 'not_found'
+        }
+
+        // The proof that let this visit through, kept on the row itself. A
+        // page that is only ever proved by the clock, never by a hand, is a
+        // page nobody touched.
+        if (row.kind === 'view' || row.kind === 'missing') {
+          row.name = row.name + '_' + miProof
         }
 
         row.path = location.pathname
