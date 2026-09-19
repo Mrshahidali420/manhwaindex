@@ -187,20 +187,17 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // people who were never people: forty countries, one page each, never a
       // second page.
       //
-      // Three things count as proof, and any one of them is enough: a scroll,
-      // a tap or key press, or four seconds on screen. A reader meets one of
-      // those without trying. A crawler meets none of them.
-      var MI_HUMAN_MS = 4000
-      // A page that does not exist gets a shorter wait. A reader needs a moment
-      // to read "not found" and go back, and that moment is all we need. A
-      // crawler is already gone.
+      // Only a movement counts: a scroll, a mouse move, a tap, a click or a
+      // key. Time on the page is NOT proof, and the reports proved it. Every
+      // one of the ghost visits held its page open for eight to thirty eight
+      // seconds and was let through by the clock alone, and not one of them
+      // ever moved. A reader moves without thinking about it.
       var miMissing = document.documentElement.getAttribute('data-missing') === '1'
-      if (miMissing) MI_HUMAN_MS = 1500
       var miHuman = false
       var miWaiting = []
       // Which of the three proofs arrived. Kept so the reports can say whether
       // a visit was a person moving or only a page left open.
-      var miProof = 'wait'
+      var miProof = 'none'
 
       // A browser driven by a program says so, and a headless one says so in
       // its own name. Neither is a reader. Dropping them here costs nothing
@@ -223,14 +220,10 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
 
       var miOnce = { passive: true, once: true }
       window.addEventListener('scroll', miWake, miOnce)
+      window.addEventListener('mousemove', miWake, miOnce)
       window.addEventListener('pointerdown', miWake, miOnce)
       window.addEventListener('keydown', miWake, miOnce)
       window.addEventListener('touchstart', miWake, miOnce)
-      // The clock only counts a page that is really on screen, so a tab opened
-      // in the background does not wake the counter by itself.
-      setTimeout(function () {
-        if (document.visibilityState === 'visible') miWake()
-      }, MI_HUMAN_MS)
 
       function miRandom() {
         return Math.random().toString(36).slice(2) + Date.now().toString(36)

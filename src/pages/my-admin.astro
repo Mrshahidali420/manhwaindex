@@ -60,7 +60,7 @@ if (signedIn) {
     ask(
       db,
       `SELECT ts, name, kind, path, label, page_type, platform, country, target
-       FROM events WHERE kind NOT IN ('view','leave') ORDER BY ts DESC LIMIT 30`
+       FROM events WHERE kind NOT IN ('view','leave','missing') ORDER BY ts DESC LIMIT 30`
     ),
     // Addresses people asked for that are not here. Grouped, because one bad
     // link on somebody else's site sends the same wrong address over and over,
