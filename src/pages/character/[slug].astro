@@ -153,9 +153,15 @@ const promised = [
   voiced && 'Voice Actor',
 ].filter(Boolean)
 
+// A character who turns up in both the comic and the anime has two answers,
+// and a title that names a voice actor then offers only "where to read" reads
+// as a mistake. So the closing promise follows what the page really lists.
+const bothMedia = mediaWords.length > 1
+const goTo = bothMedia ? 'Read or Watch' : verb === 'watch' ? 'Watch' : 'Read'
+
 const titleTail = promised.length
-  ? `: ${promised.join(', ')} and Where to ${verb === 'watch' ? 'Watch' : 'Read'}`
-  : `: Full Profile and Where to ${verb === 'watch' ? 'Watch' : 'Read'}`
+  ? `: ${promised.join(', ')} and Where to ${goTo}`
+  : `: Full Profile and Where to ${goTo}`
 
 const pageTitle = `${pageHeading}${titleTail}`
 
