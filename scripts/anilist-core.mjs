@@ -461,7 +461,14 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
     // from every title page, and search sends us real traffic for exactly those
     // names. Nothing is fetched twice for this: the record was already in hand.
     .filter((c) => c.name && c.image)
-    .map((c) => ({ ...c, appearsIn: c.appearsIn.sort((x, y) => y.popularity - x.popularity) }))
+    // Every record leaves here with the same shape. A record built from a cast
+    // entry knows only a name and a face, and a page that read the missing
+    // alias list straight off the record answered a reader with a 500.
+    .map((c) => ({
+      ...c,
+      aliases: c.aliases || [],
+      appearsIn: c.appearsIn.sort((x, y) => y.popularity - x.popularity),
+    }))
     .sort((x, y) => (y.appearsIn[0]?.popularity || 0) - (x.appearsIn[0]?.popularity || 0))
 
   writeFileSync(join(DATA_DIR, 'characters.json'), JSON.stringify(characterList))
