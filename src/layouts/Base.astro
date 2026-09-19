@@ -134,9 +134,12 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
     {graph && <script type="application/ld+json" set:html={JSON.stringify(graph)} />}
 
     <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="preconnect" href="https://challenges.cloudflare.com" />
 
-    <!-- Google Analytics 4. Declared in /privacy. -->
-    <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-R1V6DJN1L3"></script>
+    <!-- Google Analytics 4. Declared in /privacy. Google's own script is not
+         here: it is fetched further down, and only once a real browser has
+         been proved. Until then every gtag call simply waits in dataLayer,
+         which is what dataLayer is for. -->
     <script is:inline>
       window.dataLayer = window.dataLayer || []
       function gtag() { dataLayer.push(arguments) }
@@ -155,6 +158,23 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // row here is always a real person, which is exactly why the counts are
       // worth reading.
       var MI_PATH = '/_a'
+      // Where the page trades one Turnstile ticket for a half hour pass, and
+      // the public key of our Turnstile widget. The key is meant to be public:
+      // it names the widget and nothing else. The secret that checks a ticket
+      // lives in the Worker and is never in a page or in the repository.
+      var MI_PASS_PATH = '/_p'
+      var MI_SITEKEY = '0x4AAAAAAE8pcD79Cqtyp6rS'
+      var MI_TURNSTILE =
+        'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=miTurnstileReady'
+      // The pass we hold right now. Nothing is sent to our database or to
+      // Google without it.
+      var miPass = ''
+      try {
+        var miKept = JSON.parse(sessionStorage.getItem('mi_pass') || 'null')
+        // A minute of headroom, so a pass never dies in flight.
+        if (miKept && miKept.dies > Date.now() + 60000) miPass = miKept.pass
+      } catch (e) {}
+      var miGoogleLoaded = false
       // A visit used to cost three requests: open, click, leave. That was 82%
       // of the whole free Workers allowance, and the site began answering 504
       // once the allowance ran out. Rows now wait in the tab and go out in one
@@ -216,6 +236,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         var held = miWaiting
         miWaiting = []
         for (var i = 0; i < held.length; i++) mi(held[i])
+        miAskForPass()
       }
 
       var miOnce = { passive: true, once: true }
@@ -413,6 +434,9 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // Send everything that is waiting, once.
       function miFlush() {
         if (!miQueue.length) return
+        // No pass, nothing leaves the page. The rows stay in the queue and go
+        // out the moment a pass arrives.
+        if (!miPass) return
         var now = Date.now()
         var rows = miQueue.map(function (row) {
           var out = {}
@@ -422,7 +446,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         })
         miQueue = []
         miSave()
-        var text = JSON.stringify({ rows: rows })
+        var text = JSON.stringify({ pass: miPass, rows: rows })
         // sendBeacon still arrives after the page is gone, which is the whole
         // point for a link that navigates away.
         try {
@@ -434,6 +458,81 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         try {
           fetch(MI_PATH, { method: 'POST', body: text, keepalive: true })
         } catch (e) {}
+      }
+
+      // Google's counter, fetched only once a real browser is proved. Every
+      // gtag call made before this point is already waiting in dataLayer and
+      // is sent the moment the script arrives, so nothing is lost.
+      function miGoogle() {
+        if (miGoogleLoaded) return
+        miGoogleLoaded = true
+        var tag = document.createElement('script')
+        tag.async = true
+        tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-R1V6DJN1L3'
+        document.head.appendChild(tag)
+      }
+
+      function miPassArrived(pass) {
+        miPass = pass
+        try {
+          sessionStorage.setItem(
+            'mi_pass',
+            JSON.stringify({ pass: pass, dies: Number(pass.split('.')[0]) })
+          )
+        } catch (e) {}
+        miGoogle()
+        miFlush()
+      }
+
+      // Ask Cloudflare whether a real browser is here.
+      //
+      // Nothing the page can measure works any more. The crawler that fills
+      // these reports runs a real browser on home internet lines in forty six
+      // countries, holds a page open for up to thirty eight seconds, and
+      // scrolls. From inside the page it is a reader. Turnstile looks at it
+      // from outside, where it is not.
+      //
+      // The reader never sees this and never clicks anything. It runs once per
+      // half hour, not once per page.
+      var miAsking = false
+      function miAskForPass() {
+        if (miPass) {
+          miGoogle()
+          miFlush()
+          return
+        }
+        if (miAsking) return
+        miAsking = true
+
+        var box = document.createElement('div')
+        box.style.display = 'none'
+        document.body.appendChild(box)
+
+        window.miTurnstileReady = function () {
+          try {
+            window.turnstile.render(box, {
+              sitekey: MI_SITEKEY,
+              callback: function (ticket) {
+                fetch(MI_PASS_PATH, {
+                  method: 'POST',
+                  body: JSON.stringify({ token: ticket }),
+                })
+                  .then(function (answer) {
+                    return answer.ok ? answer.json() : null
+                  })
+                  .then(function (given) {
+                    if (given && given.pass) miPassArrived(given.pass)
+                  })
+                  .catch(function () {})
+              },
+            })
+          } catch (e) {}
+        }
+
+        var loader = document.createElement('script')
+        loader.async = true
+        loader.src = MI_TURNSTILE
+        document.head.appendChild(loader)
       }
 
       // A queue left over from an abandoned tab goes out on the next page.

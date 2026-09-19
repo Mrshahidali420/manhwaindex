@@ -56,6 +56,10 @@ async function recordEvent(request, env) {
   }
   if (!body || typeof body !== 'object') return done
 
+  // No pass, nothing written. This is the whole defence: a browser driven by a
+  // program cannot get a Turnstile ticket, so it can never hold a pass.
+  if (!(await passIsGood(body.pass, env))) return done
+
   // Everything written is cut to a sane length first. A row is only ever read
   // back by us, but a database row should never be allowed to grow without a
   // limit set here.
@@ -124,6 +128,87 @@ async function recordEvent(request, env) {
   return done
 }
 
+
+// Where the page asks for a pass. It sends one Turnstile ticket and gets back
+// a pass that lasts half an hour.
+//
+// Turnstile is Cloudflare's own "is a real browser here" test. It is free and
+// the reader never sees it. It exists because nothing the page itself can
+// measure works any more: the crawler that fills these reports runs a real
+// browser on home internet lines in forty six countries, waits on the page for
+// up to thirty eight seconds, and scrolls. It looks exactly like a reader from
+// the inside. From the outside, to Cloudflare, it does not.
+const PASS_PATH = '/_p'
+const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+// A Turnstile ticket is good once and dies after five minutes, so the page
+// cannot keep sending it. The worker trades it for a pass of our own, and the
+// pass is what travels with every later beacon.
+const PASS_MINUTES = 30
+
+const enc = new TextEncoder()
+
+async function sign(key, message) {
+  const k = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(key),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const mac = await crypto.subtle.sign('HMAC', k, enc.encode(message))
+  return Array.from(new Uint8Array(mac))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/**
+ * Trade one Turnstile ticket for a pass. The pass is the minute it dies plus a
+ * signature, so the worker can check it later without keeping a list.
+ */
+async function issuePass(request, env) {
+  const no = new Response('no', { status: 403, headers: { 'cache-control': 'no-store' } })
+  if (!env || !env.TURNSTILE_SECRET || !env.PASS_KEY) return no
+
+  let token = ''
+  try {
+    const raw = await request.text()
+    if (raw.length > 4096) return no
+    token = String(JSON.parse(raw).token || '')
+  } catch (e) {
+    return no
+  }
+  if (!token) return no
+
+  try {
+    const form = new FormData()
+    form.append('secret', env.TURNSTILE_SECRET)
+    form.append('response', token)
+    const ip = request.headers.get('cf-connecting-ip')
+    if (ip) form.append('remoteip', ip)
+    const answer = await fetch(VERIFY_URL, { method: 'POST', body: form })
+    const verdict = await answer.json()
+    if (!verdict || verdict.success !== true) return no
+  } catch (e) {
+    return no
+  }
+
+  const dies = Date.now() + PASS_MINUTES * 60000
+  const pass = dies + '.' + (await sign(env.PASS_KEY, String(dies)))
+  return new Response(JSON.stringify({ pass }), {
+    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+  })
+}
+
+/** True only for a pass this worker signed itself and that is still alive. */
+async function passIsGood(pass, env) {
+  if (!env || !env.PASS_KEY || typeof pass !== 'string') return false
+  const cut = pass.indexOf('.')
+  if (cut < 1) return false
+  const dies = Number(pass.slice(0, cut))
+  if (!dies || dies < Date.now()) return false
+  return pass.slice(cut + 1) === (await sign(env.PASS_KEY, String(dies)))
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
@@ -131,6 +216,11 @@ export default {
 
     const target = redirects[path]
     if (target) return Response.redirect(`${url.origin}${target}${url.search}`, 301)
+
+    if (url.pathname === PASS_PATH) {
+      if (request.method !== 'POST') return new Response(null, { status: 405 })
+      return issuePass(request, env)
+    }
 
     if (url.pathname === BEACON_PATH) {
       if (request.method !== 'POST') return new Response(null, { status: 405 })
