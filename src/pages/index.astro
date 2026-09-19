@@ -51,7 +51,8 @@ const jsonld = {
     'Find the official place to read any manhwa, manga or manhua, and the official place to watch the anime.',
 }
 /**
- * These tiles are only 91 pixels wide on a phone. AniList keeps a copy 230
+ * These tiles, and the cover strips behind the headline, are never wider than
+ * 122 pixels on a screen. AniList keeps a copy 230
  * pixels wide in its "medium" folder, with the same file name. That copy is
  * still more than twice the size we show, and about five times lighter.
  */
@@ -84,13 +85,13 @@ const tinyCover = (url) =>
       {
         skyline.map((item, i) => (
           <img
-            src={item.cover}
+            src={tinyCover(item.cover)}
             alt={`Cover of ${item.title}`}
             width="230"
             height="345"
             loading={i < 5 ? 'eager' : 'lazy'}
             decoding="async"
-            fetchpriority={i === 4 ? 'high' : undefined}
+            fetchpriority={i < 5 ? 'low' : undefined}
           />
         ))
       }
