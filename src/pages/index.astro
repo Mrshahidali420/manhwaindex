@@ -50,6 +50,14 @@ const jsonld = {
   description:
     'Find the official place to read any manhwa, manga or manhua, and the official place to watch the anime.',
 }
+/**
+ * These tiles are only 91 pixels wide on a phone. AniList keeps a copy 230
+ * pixels wide in its "medium" folder, with the same file name. That copy is
+ * still more than twice the size we show, and about five times lighter.
+ */
+const tinyCover = (url) =>
+  url && url.includes('/cover/large/') ? url.replace('/cover/large/', '/cover/medium/') : url
+
 ---
 
 <Base
@@ -165,7 +173,7 @@ const jsonld = {
             {airing.map((a) => (
               <li>
                 <a href={`/anime/${a.slug}`}>
-                  <img src={a.cover} alt={`Cover of ${a.title}`} width="52" height="74" loading="lazy" decoding="async" />
+                  <img src={tinyCover(a.cover)} alt={`Cover of ${a.title}`} width="52" height="74" loading="lazy" decoding="async" />
                   <span>
                     <b>{a.title}</b>
                     <em>
