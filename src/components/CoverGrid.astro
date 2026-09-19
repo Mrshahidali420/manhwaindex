@@ -30,6 +30,16 @@ const metaOf = (item) => {
   const bits = [kind.charAt(0).toUpperCase() + kind.slice(1), statusWord(item.status)]
   return bits.join(' · ')
 }
+/**
+ * AniList keeps a small copy of every cover. The address differs in two
+ * places: the folder (large becomes medium) and the file name prefix (bx
+ * becomes b). An ordinary phone screen takes the small one, which is about
+ * thirty times lighter. A very sharp screen still gets the big one.
+ */
+const smallCover = (url) =>
+  url && url.includes('/cover/large/bx')
+    ? url.replace('/cover/large/bx', '/cover/medium/b')
+    : null
 ---
 
 <ul class={shelf ? 'grid grid--shelf' : 'grid'}>
@@ -38,12 +48,15 @@ const metaOf = (item) => {
       const marks = marksOf(item) || []
       const shown = marks.slice(0, 4)
       const extra = marks.length - shown.length
+      const small = smallCover(item.cover)
       return (
         <li class="card">
           <a href={hrefOf(item)}>
             <span class="card__art">
               <img
                 src={item.cover}
+                srcset={small ? `${small} 230w, ${item.cover} 460w` : undefined}
+                sizes={small ? '(max-width: 700px) 110px, 160px' : undefined}
                 alt={`Cover of ${item.title}`}
                 width="230"
                 height="345"
