@@ -176,6 +176,40 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // if the site ever passes 40,000 real page views a day.
       var MI_LEAVE_SAMPLE = 2
 
+      // Nothing is counted until the visitor proves a person is there.
+      //
+      // A crawler opens the page, reads the words out of it and is gone inside
+      // a second. It never scrolls, never taps and never stays. Counting it was
+      // costing a real request every time, and it filled the reports with
+      // people who were never people: forty countries, one page each, never a
+      // second page.
+      //
+      // Three things count as proof, and any one of them is enough: a scroll,
+      // a tap or key press, or four seconds on screen. A reader meets one of
+      // those without trying. A crawler meets none of them.
+      var MI_HUMAN_MS = 4000
+      var miHuman = false
+      var miWaiting = []
+
+      function miWake() {
+        if (miHuman) return
+        miHuman = true
+        var held = miWaiting
+        miWaiting = []
+        for (var i = 0; i < held.length; i++) mi(held[i])
+      }
+
+      var miOnce = { passive: true, once: true }
+      window.addEventListener('scroll', miWake, miOnce)
+      window.addEventListener('pointerdown', miWake, miOnce)
+      window.addEventListener('keydown', miWake, miOnce)
+      window.addEventListener('touchstart', miWake, miOnce)
+      // The clock only counts a page that is really on screen, so a tab opened
+      // in the background does not wake the counter by itself.
+      setTimeout(function () {
+        if (document.visibilityState === 'visible') miWake()
+      }, MI_HUMAN_MS)
+
       function miRandom() {
         return Math.random().toString(36).slice(2) + Date.now().toString(36)
       }
@@ -299,6 +333,15 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           if (localStorage.getItem('mi_off') === '1') return
         } catch (e) {}
 
+        // Held, not dropped. The row keeps its own stamp, so a reader who
+        // scrolls after six seconds still lands in the report at the second
+        // the page was opened.
+        if (!miHuman) {
+          if (!row.t) row.t = Date.now()
+          miWaiting.push(row)
+          return
+        }
+
         row.path = location.pathname
         row.page_type = location.pathname.split('/')[1] || 'home'
         row.device = window.innerWidth < 700 ? 'phone' : 'desktop'
@@ -323,7 +366,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         } catch (e) {}
 
         // The row waits here. It is stamped now so the batch keeps real times.
-        row.t = Date.now()
+        if (!row.t) row.t = Date.now()
         miQueue.push(row)
         miSave()
         if (miQueue.length >= MI_QUEUE_MAX) miFlush()
