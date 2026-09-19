@@ -30,6 +30,14 @@ const metaOf = (item) => {
   const bits = [kind.charAt(0).toUpperCase() + kind.slice(1), statusWord(item.status)]
   return bits.join(' · ')
 }
+/**
+ * AniList keeps three sizes of every cover. Only the folder in the address
+ * changes; the file name stays the same. The "medium" folder holds a copy
+ * 230 pixels wide, about three times lighter than the one we store. An
+ * ordinary phone takes that one. A very sharp screen still takes the big one.
+ */
+const smallCover = (url) =>
+  url && url.includes('/cover/large/') ? url.replace('/cover/large/', '/cover/medium/') : null
 ---
 
 <ul class={shelf ? 'grid grid--shelf' : 'grid'}>
@@ -38,12 +46,15 @@ const metaOf = (item) => {
       const marks = marksOf(item) || []
       const shown = marks.slice(0, 4)
       const extra = marks.length - shown.length
+      const small = smallCover(item.cover)
       return (
         <li class="card">
           <a href={hrefOf(item)}>
             <span class="card__art">
               <img
                 src={item.cover}
+                srcset={small ? `${small} 230w, ${item.cover} 460w` : undefined}
+                sizes={small ? '(max-width: 700px) 110px, 160px' : undefined}
                 alt={`Cover of ${item.title}`}
                 width="230"
                 height="345"
