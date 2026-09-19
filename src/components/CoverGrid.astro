@@ -20,7 +20,11 @@ const hrefOf = (item) =>
 const marksOf = (item) =>
   (base ? base === '/anime' : item.kind === 'anime') ? item.watchLinks : item.readLinks
 
-/** One quiet line of facts under the title: ★ 8.4 · Manhwa · Finished */
+/**
+ * One quiet line of facts under the title: Manhwa · Finished.
+ * The score used to sit here. It now rides on the cover itself, where the eye
+ * already is. See .card__score in src/styles/app.css.
+ */
 const metaOf = (item) => {
   const kind = item.kind === 'anime' ? 'Anime' : formatWord(item)
   const bits = [kind.charAt(0).toUpperCase() + kind.slice(1), statusWord(item.status)]
@@ -37,18 +41,20 @@ const metaOf = (item) => {
       return (
         <li class="card">
           <a href={hrefOf(item)}>
-            <img
-              src={item.cover}
-              alt={`Cover of ${item.title}`}
-              width="230"
-              height="345"
-              loading={i < eager ? 'eager' : 'lazy'}
-              fetchpriority={i < eager ? 'high' : undefined}
-              decoding="async"
-            />
+            <span class="card__art">
+              <img
+                src={item.cover}
+                alt={`Cover of ${item.title}`}
+                width="230"
+                height="345"
+                loading={i < eager ? 'eager' : 'lazy'}
+                fetchpriority={i < eager ? 'high' : undefined}
+                decoding="async"
+              />
+              {item.score ? <b class="card__score">{(item.score / 10).toFixed(1)}</b> : null}
+            </span>
             <p class="card__title">{item.title}</p>
             <p class="card__meta">
-              {item.score ? <b>★ {(item.score / 10).toFixed(1)}</b> : null}
               <span>{metaOf(item)}</span>
             </p>
             <p class="card__marks">

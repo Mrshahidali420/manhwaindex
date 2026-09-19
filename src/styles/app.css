@@ -809,6 +809,52 @@ img {
   text-decoration: none;
   display: block;
 }
+.card__art {
+  position: relative;
+  display: block;
+}
+/* The score, read straight off the art.
+   It is the one number that answers "is this any good", so it sits on the
+   cover where the eye already is, not three lines below it. It rides the
+   same lift as the cover on hover, so the two never come apart. */
+.card__score {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--dawn);
+  background: rgb(5 5 8 / 0.78);
+  border: 1px solid var(--cobalt-line);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  transition: translate 180ms var(--ease-dawn), border-color 180ms var(--ease-dawn),
+    color 180ms var(--ease-dawn);
+}
+.card__score::before {
+  content: '\2605';
+  color: var(--rose);
+  font-size: 0.82em;
+}
+.card a:hover .card__score,
+.card a:focus-visible .card__score {
+  translate: 0 -4px;
+  border-color: var(--dawn);
+  color: var(--day);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card a:hover .card__score,
+  .card a:focus-visible .card__score {
+    translate: none;
+  }
+}
 .card img {
   width: 100%;
   height: auto; /* the height attribute must not beat the aspect-ratio */
