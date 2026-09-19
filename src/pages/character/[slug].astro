@@ -137,6 +137,28 @@ const description =
     `${opening} Where to ${verb} it legally.`,
   ].find((line) => line.length <= 165) || `${opening} Where to ${verb} it legally.`
 
+// The title tag, built after the facts are known.
+//
+// The old title said the name and the story and stopped there. At position 3
+// that earns about half the clicks the slot is worth, because it only repeats
+// what the searcher already typed and promises nothing. Search Console showed
+// exactly that: pages sitting in the top five with a click rate under 5%.
+//
+// So the title now ends with the facts this page really holds. Nothing is
+// promised that the page cannot show, and the tail is chosen from what the
+// record gave us, longest true one first.
+const promised = [
+  person.age && 'Age',
+  height && 'Height',
+  voiced && 'Voice Actor',
+].filter(Boolean)
+
+const titleTail = promised.length
+  ? `: ${promised.join(', ')} and Where to ${verb === 'watch' ? 'Watch' : 'Read'}`
+  : `: Full Profile and Where to ${verb === 'watch' ? 'Watch' : 'Read'}`
+
+const pageTitle = `${pageHeading}${titleTail}`
+
 const updated = new Date().toISOString().slice(0, 10)
 
 const jsonld = {
@@ -161,7 +183,7 @@ const jsonld = {
 ---
 
 <Base
-  title={pageHeading}
+  title={pageTitle}
   description={description}
   canonical={`/character/${person.slug}`}
   image={person.image}

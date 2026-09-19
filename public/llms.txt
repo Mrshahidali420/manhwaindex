@@ -26,7 +26,8 @@ platform lists and airing dates stay current.
 - [Anime](https://manhwaindex.com/anime) — anime series and films
 - [Genres](https://manhwaindex.com/genre) — every genre
 - [Characters](https://manhwaindex.com/character) — characters
-- [Where to read](https://manhwaindex.com/where-to-read) — how the platforms compare
+- [Where to read](https://manhwaindex.com/where-to-read) — every official manhwa site, free and paid
+- [Where to watch](https://manhwaindex.com/where-to-watch) — every legal anime streaming service, free ones first
 - [Sitemap](https://manhwaindex.com/sitemap.xml) — full URL index
 
 ## How to cite

@@ -1,7 +1,21 @@
 ---
+/**
+ * "Where to read manhwa."
+ *
+ * This is a hub page, not a title page. Search Console and keyword research
+ * both say the same thing: people type "where to read manhwa", "manhwa
+ * websites" and "manhwa sites", and almost nobody types the word "legally".
+ * So the page is titled in the words people use, and it earns the trust story
+ * in the body instead of in the title tag.
+ *
+ * Every row on it is built from the catalog and from platform-facts.js, so a
+ * platform added tomorrow appears here with no extra work.
+ */
 export const prerender = true
 import Base from '../layouts/Base.astro'
-import { comics, anime, platform, hubSlugOf } from '../lib/catalog.js'
+import { comics, platform, hubSlugOf } from '../lib/catalog.js'
+import { factsFor, PAY, FREE } from '../lib/platform-facts.js'
+import { faqJsonld } from '../lib/answers.mjs'
 import Mark from '../components/Mark.astro'
 
 // One row per platform we link to, with how many titles it carries here.
@@ -18,98 +32,208 @@ function tally(items, key) {
   return [...map.entries()]
     // A platform with its own hub page becomes a link. The rest stay plain
     // text, because a link to a page we do not build is a 404.
-    .map(([name, count]) => ({ name, count, hub: hubSlugOf(name), ...platform(name) }))
+    .map(([name, count]) => ({
+      name,
+      count,
+      hub: hubSlugOf(name),
+      facts: factsFor(name),
+      ...platform(name),
+    }))
     .sort((a, b) => b.count - a.count)
 }
 
-const readingAll = tally(comics, 'readLinks')
-const streamingAll = tally(anime, 'watchLinks')
+const all = tally(comics, 'readLinks')
 const MIN_TITLES = 5
-const reading = readingAll.filter((p) => p.count >= MIN_TITLES)
-const streaming = streamingAll.filter((p) => p.count >= MIN_TITLES)
-const readingRest = readingAll.length - reading.length
-const streamingRest = streamingAll.length - streaming.length
+const listed = all.filter((p) => p.count >= MIN_TITLES)
+const rest = all.length - listed.length
 
-const jsonld = {
-  '@context': 'https://schema.org',
-  '@type': 'WebPage',
-  name: 'Where to read manhwa, manga and manhua legally',
-  url: 'https://manhwaindex.com/where-to-read',
-  description:
-    'Every official platform this index links to, with what it costs and how many titles it carries.',
-}
+// Three groups, because "is it free" is the only question a reader really asks
+// first. A platform with no facts row falls to the last group rather than
+// getting a guess.
+const isFree = (p) => p.facts.pay === PAY.ADS || p.facts.pay === PAY.LIBRARY
+const isMonthly = (p) => p.facts.pay === PAY.SUB || p.facts.pay === PAY.SUB_FREE
+const free = listed.filter(isFree)
+const monthly = listed.filter(isMonthly)
+const perChapter = listed.filter((p) => !isFree(p) && !isMonthly(p))
+
+const titles = comics.length
+const freeNames = free.map((p) => p.name)
+
+const groups = [
+  {
+    id: 'free',
+    phase: 'night',
+    h: 'Free manhwa sites',
+    p: 'No card needed. You pay with an advert, or with a short wait.',
+    rows: free,
+  },
+  {
+    id: 'monthly',
+    phase: 'first',
+    h: 'One price a month, read everything',
+    p: 'Best if you read a lot. Most of these have a free tier or a trial.',
+    rows: monthly,
+  },
+  {
+    id: 'coins',
+    phase: 'dawn',
+    h: 'Pay for the chapters you want',
+    p: 'You buy coins and spend them chapter by chapter. Early chapters are usually free.',
+    rows: perChapter,
+  },
+]
+
+const faq = [
+  {
+    q: 'Where can I read manhwa?',
+    a: `On the official apps and sites of the people who make it. This page lists ${all.length} of them. WEBTOON, Tapas and MANGA Plus are free with adverts. Tappytoon, Lezhin and Piccoma sell coins. Manta and Toomics charge once a month.`,
+  },
+  {
+    q: 'Which manhwa sites are free?',
+    a: `${freeNames.slice(0, 6).join(', ')} let you read without paying. Most of them hold back only the newest chapters.`,
+  },
+  {
+    q: 'What is the difference between manhwa, manga and manhua?',
+    a: 'Manhwa is Korean and scrolls top to bottom on a phone. Manga is Japanese and reads right to left. Manhua is Chinese. This index carries all three.',
+  },
+  {
+    q: 'Is this a manhwa reading site?',
+    a: 'No. This site holds no chapters. It only tells you which official platform carries a story, so the people who drew it get paid.',
+  },
+  {
+    q: 'How do I find where one story is?',
+    a: `Type its name into the search box at the top. There are ${titles.toLocaleString()} comics in the index, and every title page names the platforms that carry it.`,
+  },
+]
+
+const jsonld = [
+  {
+    '@type': 'WebPage',
+    '@id': 'https://manhwaindex.com/where-to-read#page',
+    url: 'https://manhwaindex.com/where-to-read',
+    name: 'Where to read manhwa',
+    inLanguage: 'en',
+    dateModified: new Date().toISOString().slice(0, 10),
+    description: `Every official manhwa, manga and manhua site this index links to: ${all.length} platforms, sorted by what they cost.`,
+  },
+  {
+    '@type': 'ItemList',
+    name: 'Official manhwa reading platforms',
+    numberOfItems: listed.length,
+    itemListElement: listed.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: p.name,
+      url: p.hub ? `https://manhwaindex.com/platform/${p.hub}` : undefined,
+    })),
+  },
+  faqJsonld(faq),
+]
 ---
 
 <Base
-  title="Where to Read Manhwa Legally | Official Platforms"
-  description="The official reading apps and streaming platforms this index links to: WEBTOON, Tapas, Tappytoon, MANGA Plus, Crunchyroll, Netflix and more — with what each one costs."
+  title="Where to Read Manhwa — Every Official Manhwa Site, Free and Paid"
+  description="The manhwa websites that actually hold the chapters: WEBTOON, Tapas, Tappytoon, Lezhin, Manta, Piccoma and more. Sorted by what each one costs, with how many titles it carries."
   canonical="/where-to-read"
   jsonld={jsonld}
 >
   <div class="shell">
     <section class="section">
       <div class="section__head">
-        <h1>Where to read, without the guesswork</h1>
+        <h1>Where to read manhwa</h1>
         <p>
-          This index answers one question: where can you legally read or watch a series?
-          Here is every official platform we link to, and what it costs to start.
+          Every site below is run by the people who own the story, or by the
+          publisher they sold it to. We hold no chapters here. We only point at
+          the door. {all.length} reading platforms, sorted by what they cost.
         </p>
       </div>
 
       <ol class="how">
         <li>
-          <b>Search a title</b>
-          <span>Type any of the {(comics.length + anime.length).toLocaleString()} titles into the search box above.</span>
+          <b>Pick how you want to pay</b>
+          <span>Free with adverts, one price a month, or coins for single chapters.</span>
         </li>
         <li>
-          <b>Open its page</b>
-          <span>Every title page lists the platforms that officially carry it.</span>
+          <b>Or search the story by name</b>
+          <span>{titles.toLocaleString()} comics are in the index. Each page names the platforms that carry it.</span>
         </li>
         <li>
-          <b>Pick a platform</b>
-          <span>Each link opens the rights holder — free tiers first when they exist. We host nothing.</span>
+          <b>Open the platform</b>
+          <span>The link goes straight to the rights holder. Free tiers come first.</span>
         </li>
       </ol>
     </section>
 
-    <section class="section" data-phase="night">
+    {
+      groups.filter((g) => g.rows.length > 0).map((g) => (
+        <section class="section" id={g.id} data-phase={g.phase}>
+          <div class="section__head">
+            <h2>{g.h}</h2>
+            <p>{g.p}</p>
+          </div>
+          <ul class="ledger">
+            {g.rows.map((p) => (
+              <li style={`--mark:${p.color}`}>
+                <Mark site={p.name} />
+                <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
+                <span>
+                  {p.facts.free && p.facts.free !== FREE.NONE
+                    ? `Free: ${p.facts.free.toLowerCase()}`
+                    : p.note || 'Official'}
+                  {p.facts.region && p.facts.region !== 'Worldwide' ? ` · ${p.facts.region}` : ''}
+                </span>
+                <em>{p.count.toLocaleString()} titles</em>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    {
+      rest > 0 && (
+        <p class="ledger__rest">
+          …and {rest} smaller platforms with a handful of titles each. They show
+          up on the pages of the titles they carry.
+        </p>
+      )
+    }
+
+    <section class="section" data-phase="hold">
       <div class="section__head">
-        <h2>Reading platforms</h2>
-        <p>Where the comics live. The count is how many titles in this index each one carries.</p>
+        <h2>Why not the free reading sites you already know</h2>
+        <p>The honest answer, in three lines.</p>
       </div>
-      <ul class="ledger">
-        {
-          reading.map((p) => (
-            <li style={`--mark:${p.color}`}>
-              <Mark site={p.name} />
-              <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
-              <span>{p.note || 'Official'}</span>
-              <em>{p.count.toLocaleString()} titles</em>
-            </li>
-          ))
-        }
-      </ul>
-      {readingRest > 0 && <p class="ledger__rest">…and {readingRest} smaller platforms with a handful of titles each.</p>}
+      <ol class="how">
+        <li>
+          <b>The artist gets nothing</b>
+          <span>A scan site sells your attention to advert brokers. None of it reaches the person who drew the page.</span>
+        </li>
+        <li>
+          <b>The chapters go missing</b>
+          <span>Those sites change address every few months. An official app keeps your place for years.</span>
+        </li>
+        <li>
+          <b>Most of it is free anyway</b>
+          <span>{freeNames.slice(0, 4).join(', ')} give you the back catalogue for nothing.</span>
+        </li>
+      </ol>
     </section>
 
-    <section class="section" data-phase="first">
+    <section class="section">
       <div class="section__head">
-        <h2>Streaming platforms</h2>
-        <p>Where the anime adaptations stream.</p>
+        <h2>Common questions</h2>
       </div>
-      <ul class="ledger">
+      <dl class="qa">
         {
-          streaming.map((p) => (
-            <li style={`--mark:${p.color}`}>
-              <Mark site={p.name} />
-              <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
-              <span>{p.note || 'Official'}</span>
-              <em>{p.count.toLocaleString()} anime</em>
-            </li>
+          faq.map((row) => (
+            <div>
+              <dt>{row.q}</dt>
+              <dd>{row.a}</dd>
+            </div>
           ))
         }
-      </ul>
-      {streamingRest > 0 && <p class="ledger__rest">…and {streamingRest} smaller platforms.</p>}
+      </dl>
     </section>
 
     <section class="section" data-phase="day">
@@ -120,7 +244,7 @@ const jsonld = {
         <li><a href="/manhwa">Manhwa →</a></li>
         <li><a href="/manga">Manga →</a></li>
         <li><a href="/manhua">Manhua →</a></li>
-        <li><a href="/anime">Anime →</a></li>
+        <li><a href="/where-to-watch">Where to watch anime →</a></li>
       </ul>
     </section>
   </div>

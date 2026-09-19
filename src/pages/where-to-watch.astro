@@ -1,0 +1,248 @@
+---
+/**
+ * "Where to watch anime."
+ *
+ * The twin of /where-to-read, for the streaming side. Keyword research says
+ * the anime side of this question is roughly six times the size of the comic
+ * side, and Search Console already shows this site ranking 8 to 27 for long
+ * "where to watch X" questions. This page is the hub those long questions
+ * should point at.
+ *
+ * Nothing here is typed by hand. Every row comes from the catalog and from
+ * platform-facts.js, so a service added tomorrow appears with no extra work.
+ */
+export const prerender = true
+import Base from '../layouts/Base.astro'
+import { anime, platform, hubSlugOf } from '../lib/catalog.js'
+import { factsFor, PAY, FREE } from '../lib/platform-facts.js'
+import { faqJsonld } from '../lib/answers.mjs'
+import Mark from '../components/Mark.astro'
+
+// One row per service we link to, with how many anime it carries here.
+function tally(items, key) {
+  const map = new Map()
+  for (const item of items) {
+    const seen = new Set()
+    for (const link of item[key] || []) {
+      if (seen.has(link.site)) continue
+      seen.add(link.site)
+      map.set(link.site, (map.get(link.site) || 0) + 1)
+    }
+  }
+  return [...map.entries()]
+    .map(([name, count]) => ({
+      name,
+      count,
+      hub: hubSlugOf(name),
+      facts: factsFor(name),
+      ...platform(name),
+    }))
+    .sort((a, b) => b.count - a.count)
+}
+
+const all = tally(anime, 'watchLinks')
+const MIN_TITLES = 5
+const listed = all.filter((p) => p.count >= MIN_TITLES)
+const rest = all.length - listed.length
+
+// "Can I watch it without paying" is the first question, so it sets the order.
+// A service with no facts row falls to the paid group rather than being called
+// free on a guess.
+const isFree = (p) => p.facts.pay === PAY.ADS || p.facts.pay === PAY.LIBRARY
+const hasFreeTier = (p) => p.facts.pay === PAY.SUB_FREE
+const free = listed.filter(isFree)
+const partFree = listed.filter(hasFreeTier)
+const paid = listed.filter((p) => !isFree(p) && !hasFreeTier(p))
+
+const freeNames = [...free, ...partFree].map((p) => p.name)
+
+const groups = [
+  {
+    id: 'free',
+    phase: 'night',
+    h: 'Free anime sites, no card needed',
+    p: 'These are legal and free. You watch an advert instead of paying.',
+    rows: free,
+  },
+  {
+    id: 'free-tier',
+    phase: 'first',
+    h: 'Free to start, more if you pay',
+    p: 'A real free tier with adverts, and a monthly plan that removes them.',
+    rows: partFree,
+  },
+  {
+    id: 'paid',
+    phase: 'dawn',
+    h: 'Monthly plans',
+    p: 'No free tier. You need an account and a card.',
+    rows: paid,
+  },
+]
+
+const faq = [
+  {
+    q: 'Where can I watch anime for free?',
+    a: `${free.map((p) => p.name).slice(0, 4).join(', ')} are free and legal, paid for by adverts. Crunchyroll and Bilibili TV also have free tiers with adverts. This page lists ${all.length} services in all.`,
+  },
+  {
+    q: 'What is the best place to watch anime?',
+    a: 'There is no single best one, because no service holds everything. Crunchyroll carries the most new seasonal shows. Netflix holds its own originals. The fastest way is to search the show by name and see who actually has it.',
+  },
+  {
+    q: 'Are free anime sites legal?',
+    a: 'The ones on this page are. Every service here is licensed by the studio or the publisher. We list no pirate sites and we host nothing ourselves.',
+  },
+  {
+    q: 'Does this site stream anime?',
+    a: 'No. This site holds no episodes. It only answers where a show legally is, then sends you to that service.',
+  },
+  {
+    q: 'How do I find where one show is?',
+    a: `Type its name into the search box at the top. There are ${anime.length.toLocaleString()} anime in the index, and every page names the services that carry it in your country.`,
+  },
+]
+
+const jsonld = [
+  {
+    '@type': 'WebPage',
+    '@id': 'https://manhwaindex.com/where-to-watch#page',
+    url: 'https://manhwaindex.com/where-to-watch',
+    name: 'Where to watch anime',
+    inLanguage: 'en',
+    dateModified: new Date().toISOString().slice(0, 10),
+    description: `Every legal anime streaming service this index links to: ${all.length} of them, free ones first.`,
+  },
+  {
+    '@type': 'ItemList',
+    name: 'Legal anime streaming services',
+    numberOfItems: listed.length,
+    itemListElement: listed.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: p.name,
+      url: p.hub ? `https://manhwaindex.com/platform/${p.hub}` : undefined,
+    })),
+  },
+  faqJsonld(faq),
+]
+---
+
+<Base
+  title="Where to Watch Anime — Every Legal Streaming Site, Free Ones First"
+  description="The anime websites that actually hold the episodes: Crunchyroll, Netflix, Tubi, YouTube, Bilibili TV, HIDIVE and more. Which are free, which need a card, and how many shows each one carries."
+  canonical="/where-to-watch"
+  jsonld={jsonld}
+>
+  <div class="shell">
+    <section class="section">
+      <div class="section__head">
+        <h1>Where to watch anime</h1>
+        <p>
+          Every service below is licensed by the studio. We hold no episodes
+          here. We only say who has the show. {all.length} streaming services,
+          and the free ones are at the top.
+        </p>
+      </div>
+
+      <ol class="how">
+        <li>
+          <b>Start with the free ones</b>
+          <span>Some services below cost nothing and are still fully legal.</span>
+        </li>
+        <li>
+          <b>Or search the show by name</b>
+          <span>{anime.length.toLocaleString()} anime are in the index. Each page names who carries it.</span>
+        </li>
+        <li>
+          <b>Open the service</b>
+          <span>The link goes straight to the show, not to a home page.</span>
+        </li>
+      </ol>
+    </section>
+
+    {
+      groups.filter((g) => g.rows.length > 0).map((g) => (
+        <section class="section" id={g.id} data-phase={g.phase}>
+          <div class="section__head">
+            <h2>{g.h}</h2>
+            <p>{g.p}</p>
+          </div>
+          <ul class="ledger">
+            {g.rows.map((p) => (
+              <li style={`--mark:${p.color}`}>
+                <Mark site={p.name} />
+                <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
+                <span>
+                  {p.facts.free && p.facts.free !== FREE.NONE
+                    ? `Free: ${p.facts.free.toLowerCase()}`
+                    : p.facts.pay || p.note || 'Official'}
+                  {p.facts.region && p.facts.region !== 'Worldwide' ? ` · ${p.facts.region}` : ''}
+                </span>
+                <em>{p.count.toLocaleString()} anime</em>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    {
+      rest > 0 && (
+        <p class="ledger__rest">
+          …and {rest} smaller services with a few shows each. They show up on the
+          pages of the shows they carry.
+        </p>
+      )
+    }
+
+    <section class="section" data-phase="hold">
+      <div class="section__head">
+        <h2>Why not the free streaming sites you already know</h2>
+        <p>The honest answer, in three lines.</p>
+      </div>
+      <ol class="how">
+        <li>
+          <b>The studio gets nothing</b>
+          <span>A pirate stream sells your attention to advert brokers. None of it reaches the people who made the show.</span>
+        </li>
+        <li>
+          <b>The subtitles are worse</b>
+          <span>A licensed stream is subtitled by the people paid to do it, in the resolution the studio sent.</span>
+        </li>
+        <li>
+          <b>A lot of it is free anyway</b>
+          <span>{freeNames.slice(0, 4).join(', ')} cost nothing and are fully legal.</span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Common questions</h2>
+      </div>
+      <dl class="qa">
+        {
+          faq.map((row) => (
+            <div>
+              <dt>{row.q}</dt>
+              <dd>{row.a}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </section>
+
+    <section class="section" data-phase="day">
+      <div class="section__head">
+        <h2>Start browsing</h2>
+      </div>
+      <ul class="chips">
+        <li><a href="/anime">All anime →</a></li>
+        <li><a href="/schedule">What airs this week →</a></li>
+        <li><a href="/mood">By mood →</a></li>
+        <li><a href="/where-to-read">Where to read manhwa →</a></li>
+      </ul>
+    </section>
+  </div>
+</Base>

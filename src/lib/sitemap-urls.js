@@ -37,6 +37,7 @@ function coreUrls() {
     { loc: `${SITE}/character`, priority: '0.9' },
     { loc: `${SITE}/genre`, priority: '0.9' },
     { loc: `${SITE}/where-to-read`, priority: '0.9' },
+    { loc: `${SITE}/where-to-watch`, priority: '0.9' },
     { loc: `${SITE}/schedule`, priority: '0.9' },
     { loc: `${SITE}/mood`, priority: '0.9' },
     ...MOODS.map((mood) => ({ loc: `${SITE}/mood/${mood.slug}`, priority: '0.8' })),
