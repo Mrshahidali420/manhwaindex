@@ -236,10 +236,6 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         var held = miWaiting
         miWaiting = []
         for (var i = 0; i < held.length; i++) mi(held[i])
-        // Google is not made to wait for the pass. A pass only decides what
-        // WE write down. If Turnstile is ever blocked in a reader's browser,
-        // Google must still count that reader.
-        miGoogle()
         miAskForPass()
       }
 
