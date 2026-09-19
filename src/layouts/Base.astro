@@ -13,6 +13,9 @@ const {
   crumbs = [],
   preloadImage,
   noindex = false,
+  // Set only by the 404 page. It makes the counter record the address that
+  // was asked for, so a broken link can be found and fixed.
+  missing = false,
 } = Astro.props
 
 const site = 'https://manhwaindex.com'
@@ -96,7 +99,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-missing={missing ? '1' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -188,6 +191,11 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // a tap or key press, or four seconds on screen. A reader meets one of
       // those without trying. A crawler meets none of them.
       var MI_HUMAN_MS = 4000
+      // A page that does not exist gets a shorter wait. A reader needs a moment
+      // to read "not found" and go back, and that moment is all we need. A
+      // crawler is already gone.
+      var miMissing = document.documentElement.getAttribute('data-missing') === '1'
+      if (miMissing) MI_HUMAN_MS = 1500
       var miHuman = false
       var miWaiting = []
 
@@ -340,6 +348,13 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           if (!row.t) row.t = Date.now()
           miWaiting.push(row)
           return
+        }
+
+        // The address that was asked for and was not there. Kept by name so
+        // the admin page can list the broken links people actually hit.
+        if (miMissing && row.kind === 'view') {
+          row.kind = 'missing'
+          row.name = 'not_found'
         }
 
         row.path = location.pathname

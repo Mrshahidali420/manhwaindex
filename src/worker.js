@@ -29,7 +29,7 @@ const MAX_AGE = 86400000
 
 // The only words allowed in the kind column. Anything else becomes 'other', so
 // a made up value can never widen a table or break a count.
-const KINDS = new Set(['view', 'read', 'watch', 'buy', 'other', 'leave'])
+const KINDS = new Set(['view', 'read', 'watch', 'buy', 'other', 'leave', 'missing'])
 
 // The longest time on page we believe: 30 minutes. A tab left open all night
 // must not pull the average up.
