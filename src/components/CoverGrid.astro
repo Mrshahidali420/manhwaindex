@@ -1,7 +1,7 @@
 ---
 import { platform, formatWord, statusWord } from '../lib/format.js'
 
-const { items, base, shelf = false, eager = 0 } = Astro.props
+const { items, base, shelf = false, eager = 0, badges = false } = Astro.props
 
 // One grid can hold both comics and anime, so a single `base` is not always
 // enough. Leave `base` off and each card works out its own address from what
@@ -19,6 +19,15 @@ const hrefOf = (item) =>
 /** Which marks to show under a cover: read links for comics, watch for anime. */
 const marksOf = (item) =>
   (base ? base === '/anime' : item.kind === 'anime') ? item.watchLinks : item.readLinks
+
+/**
+ * Does this title have a free and legal place to read or watch it? The note
+ * on the platform is the only source, so the mark is never invented.
+ */
+const isFree = (item) =>
+  (marksOf(item) || []).some((link) =>
+    (platform(link.site).note || '').toLowerCase().includes('free'),
+  )
 
 /**
  * One quiet line of facts under the title: Manhwa · Finished.
@@ -63,6 +72,7 @@ const smallCover = (url) =>
                 decoding="async"
               />
               {item.score ? <b class="card__score">{(item.score / 10).toFixed(1)}</b> : null}
+              {badges && isFree(item) ? <span class="card__free">Free</span> : null}
             </span>
             <p class="card__title">{item.title}</p>
             <p class="card__meta">

@@ -40,6 +40,10 @@ const links = isComic ? item.readLinks : item.watchLinks
 // The table merges the language editions of a platform into one row, so the
 // count above it has to be counted the same way.
 const siteCount = new Set((links || []).map((l) => l.site)).size
+
+// Full Bloom already ranks near the top of Google, so that one page keeps
+// the shape it had. Everything new here is switched off for it.
+const isProtected = kind === 'manhwa' && slug === 'full-bloom'
 const related = isComic ? item.animeInIndex : item.comicInIndex
 
 // The page title is written the way people actually type the search.
@@ -64,6 +68,19 @@ const nextEp =
 // One title can have several language editions on the same platform, so
 // the same name must not be listed twice.
 const platformNames = [...new Set(links.map((l) => l.site))]
+
+// The quick numbers strip under the title. Only real numbers go in it.
+const freeNow = freeSplit(links).free.length
+const quickStats = isProtected
+  ? []
+  : [
+      item.score ? ['Score', String(item.score), true] : null,
+      isComic && item.chapters ? ['Chapters', String(item.chapters), false] : null,
+      !isComic && item.episodes ? ['Episodes', String(item.episodes), false] : null,
+      siteCount ? ['Legal sites', String(siteCount), false] : null,
+      freeNow ? ['Free tier', String(freeNow), false] : null,
+      item.startYear ? [isComic ? 'Started' : 'First aired', String(item.startYear), false] : null,
+    ].filter(Boolean)
 
 // Our own words, written at build time from the facts in the record. This is
 // the main text of the page. See src/lib/prose.mjs.
@@ -422,6 +439,29 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
 
     <div class="title-body">
 
+      {!isProtected && (
+        <ul class="pills">
+          <li class={item.status === 'RELEASING' ? 'pill pill--live' : 'pill'}>
+            {statusWord(item.status)}
+          </li>
+          {siteCount > 0 && (
+            <li class="pill">
+              {siteCount} legal {siteCount === 1 ? 'place' : 'places'} to {isComic ? 'read' : 'watch'}
+            </li>
+          )}
+        </ul>
+      )}
+
+      {quickStats.length > 2 && (
+        <div class="stats">
+          {quickStats.map(([label, value, hot]) => (
+            <dl class={hot ? 'stats__cell stats__cell--hot' : 'stats__cell'}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </dl>
+          ))}
+        </div>
+      )}
       <p class="title-answer">
         {answer}
         {' '}
@@ -600,14 +640,25 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
               <h2>Common questions</h2>
               <p>Answered from the same facts as the table above.</p>
             </div>
-            <dl class="qa">
-              {faq.map((row) => (
-                <div>
-                  <dt>{row.q}</dt>
-                  <dd>{row.a}</dd>
-                </div>
-              ))}
-            </dl>
+            {isProtected ? (
+              <dl class="qa">
+                {faq.map((row) => (
+                  <div>
+                    <dt>{row.q}</dt>
+                    <dd>{row.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <div class="qa2">
+                {faq.map((row, i) => (
+                  <details open={i === 0}>
+                    <summary>{row.q}</summary>
+                    <p class="qa2__a">{row.a}</p>
+                  </details>
+                ))}
+              </div>
+            )}
           </section>
         )
       }
@@ -727,7 +778,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
               <h2>{order.heading}</h2>
               <p>{order.line}</p>
             </div>
-            <ol class="order">
+            <ol class={isProtected ? 'order' : 'order order--tl'}>
               {order.chain.map((partOf) => (
                 <li class={partOf.self ? 'order__step order__step--self' : 'order__step'}>
                   <span class="order__name">
@@ -738,6 +789,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
                     )}
                   </span>
                   <span class="order__meta">
+                    {partOf.startYear ? `${partOf.startYear} · ` : ''}
                     {partOf.chapters
                       ? `${partOf.chapters} chapters`
                       : partOf.episodes
@@ -820,7 +872,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
               <h2>Readers of {item.title} picked these next</h2>
               <p>Voted for by AniList readers who finished this one. Open any of them to see where to read or watch it legally.</p>
             </div>
-            <CoverGrid items={recs} />
+            <CoverGrid items={recs} badges={!isProtected} />
           </section>
         )
       }
@@ -834,7 +886,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
                 ? `${similarOpen} of these ${similarOpen === 1 ? 'has' : 'have'} an official place to ${isComic ? 'read' : 'watch'} right now. Closest by genre, most-read first.`
                 : `Closest ${word} by genre, most-read first.`}</p>
             </div>
-            <CoverGrid items={similar} base={similarBase} />
+            <CoverGrid items={similar} base={similarBase} badges={!isProtected} />
           </section>
         )
       }

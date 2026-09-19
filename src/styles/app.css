@@ -3229,3 +3229,215 @@ main:has(.title-page) {
   .jump, .jump__arrow { transition: none; }
   .jump:hover .jump__arrow { transform: none; }
 }
+
+/* ------------------------------------------------------------------ *
+ * The quick answer block under the title: status pills and the number
+ * strip. Both only appear on a title page.
+ * ------------------------------------------------------------------ */
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--dawn-dim);
+}
+.pill::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--cobalt-bright);
+}
+.pill--live::before {
+  background: var(--rose);
+  box-shadow: 0 0 0 3px rgb(224 104 138 / 0.22);
+  animation: pill-pulse 2s var(--ease-dawn) infinite;
+}
+@keyframes pill-pulse {
+  50% { box-shadow: 0 0 0 7px rgb(224 104 138 / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill--live::before { animation: none; }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px;
+  background: var(--cobalt);
+  border: 1px solid var(--cobalt);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 0 1.6rem;
+}
+.stats__cell {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  background: var(--night-raised);
+}
+.stats__cell dt {
+  margin: 0 0 0.25rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dawn-faint);
+}
+.stats__cell dd {
+  margin: 0;
+  font-family: var(--stencil);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--dawn);
+}
+.stats__cell--hot dd { color: var(--rose); }
+/* Two columns on a phone. A fifth cell would leave a hole, so it is cut. */
+@media (max-width: 560px) {
+  .stats__cell:nth-child(n + 5) { display: none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * The common questions, folded. The answers stay in the page, so the
+ * search engine still reads every one of them.
+ * ------------------------------------------------------------------ */
+.qa2 details { border-bottom: 1px solid var(--cobalt); }
+.qa2 details:first-child { border-top: 1px solid var(--cobalt); }
+.qa2 summary {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0.2rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--dawn);
+  font-weight: 600;
+}
+.qa2 summary::-webkit-details-marker { display: none; }
+.qa2 summary::before {
+  content: '';
+  width: 0.42rem;
+  height: 0.42rem;
+  flex: none;
+  border-right: 2px solid var(--rose);
+  border-bottom: 2px solid var(--rose);
+  rotate: -45deg;
+  transition: rotate 0.18s var(--ease-dawn);
+}
+.qa2 details[open] summary::before { rotate: 45deg; }
+.qa2 summary:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+.qa2__a {
+  margin: 0;
+  padding: 0 0 1rem 1.55rem;
+  color: var(--dawn-dim);
+  line-height: 1.65;
+}
+@media (prefers-reduced-motion: reduce) {
+  .qa2 summary::before { transition: none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * The reading order, drawn as one line through the story. The numbers
+ * stay; a rose thread now joins them.
+ * ------------------------------------------------------------------ */
+.order--tl { position: relative; }
+.order--tl::before {
+  content: '';
+  position: absolute;
+  left: 1.32rem;
+  top: 1.1rem;
+  bottom: 1.1rem;
+  width: 2px;
+  background: linear-gradient(var(--cobalt-bright), var(--rose));
+  opacity: 0.55;
+}
+.order--tl .order__step { border-left-color: transparent; }
+.order--tl .order__step::before {
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  left: 0.68rem;
+  top: 0.55rem;
+  border-radius: 50%;
+  background: var(--night-raised);
+  border: 2px solid var(--cobalt-bright);
+  font-size: 0.72rem;
+}
+.order--tl .order__step--self::before {
+  border-color: var(--rose);
+  color: var(--day);
+  background: var(--rose);
+  box-shadow: 0 0 0 4px rgb(224 104 138 / 0.2);
+}
+
+/* ------------------------------------------------------------------ *
+ * The free mark on a cover. It is only drawn when the platform itself
+ * says the title is free, so it never lies.
+ * ------------------------------------------------------------------ */
+.card__free {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 2;
+  padding: 0.15rem 0.48rem;
+  border-radius: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--night);
+  background: var(--rose);
+}
+
+/* ------------------------------------------------------------------ *
+ * The bar at the bottom of a phone screen. It is hidden on a computer.
+ * ------------------------------------------------------------------ */
+.dock { display: none; }
+@media (max-width: 640px) {
+  .dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--night-raised);
+    border-top: 1px solid var(--cobalt-line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .dock a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.55rem 0;
+    font-size: 0.66rem;
+    color: var(--dawn-faint);
+    text-decoration: none;
+  }
+  .dock__on {
+    color: var(--rose);
+    box-shadow: inset 0 2px 0 var(--rose);
+  }
+  .dock svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  body { padding-bottom: 3.6rem; }
+}

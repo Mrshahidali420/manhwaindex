@@ -218,6 +218,7 @@ const part = (p, self) => ({
   status: p.status,
   chapters: p.chapters || null,
   episodes: p.episodes || null,
+  startYear: p.startYear || null,
   ...(self ? { self: true } : {}),
 })
 
