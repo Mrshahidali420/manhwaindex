@@ -415,13 +415,29 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
     show.comicInIndex = sources.map((c) => ({ slug: c.slug, title: c.title, readCount: c.readLinks.length }))
   }
 
-  for (const person of CHARACTERS.values()) person.appearsIn = []
+  // The slug ends in the AniList id, so it is the one key that matches in both
+  // the current catalog format and the older one, whose character references
+  // carry no id at all.
+  const bySlug = new Map()
+  for (const person of CHARACTERS.values()) {
+    person.appearsIn = []
+    if (person.slug) bySlug.set(person.slug, person)
+  }
 
   for (const [items, kind] of [[comics, 'comic'], [anime, 'anime']]) {
     for (const item of items) {
       for (const ref of item.characters || []) {
-        const person = CHARACTERS.get(ref.id)
-        if (!person) continue
+        // Every title page links to its cast, so a character with no record
+        // here became a dead link: about one in four of them. The reference
+        // itself carries a name and a face, which is enough for a page, so
+        // build the record from it instead of dropping the reader on a 404.
+        let person = (ref.id != null && CHARACTERS.get(ref.id)) || bySlug.get(ref.slug)
+        if (!person) {
+          if (!ref.slug || !ref.name || !ref.image) continue
+          person = { id: ref.id ?? null, slug: ref.slug, name: ref.name, image: ref.image, appearsIn: [] }
+          CHARACTERS.set(ref.id ?? ref.slug, person)
+          bySlug.set(ref.slug, person)
+        }
         person.appearsIn.push({
           kind,
           slug: item.slug,
@@ -440,7 +456,11 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
   }
 
   const characterList = [...CHARACTERS.values()]
-    .filter((c) => c.name && c.image && (c.appearsIn.some((a) => a.role === 'MAIN') || c.description))
+    // A name and a face are the whole gate. The old gate also demanded a main
+    // role or a written bio, which threw away a quarter of the cast we link to
+    // from every title page, and search sends us real traffic for exactly those
+    // names. Nothing is fetched twice for this: the record was already in hand.
+    .filter((c) => c.name && c.image)
     .map((c) => ({ ...c, appearsIn: c.appearsIn.sort((x, y) => y.popularity - x.popularity) }))
     .sort((x, y) => (y.appearsIn[0]?.popularity || 0) - (x.appearsIn[0]?.popularity || 0))
 

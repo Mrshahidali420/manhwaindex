@@ -66,6 +66,14 @@ jobs:
         continue-on-error: true
         run: node --max-old-space-size=6000 scripts/ingest-daily.mjs
 
+      # A character we only know from a title's cast list has just a name and a
+      # face. This asks AniList for the bio and the other spellings, a slice at
+      # a time, so the queue drains over a few days without slowing a deploy.
+      - name: Fill in thin character pages
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: node scripts/enrich-characters.mjs
+
       # Save BEFORE the build. The fresh records cost API calls, so a broken
       # build must not throw them away. `always()` keeps the save running even
       # when the ingest itself reported a problem.
