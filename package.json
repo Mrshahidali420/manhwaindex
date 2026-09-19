@@ -19,5 +19,7 @@
   },
   "devDependencies": {
     "wrangler": "^4.20.0"
-  }
+  },
+  "license": "UNLICENSED",
+  "author": "Shahid Ali"
 }
