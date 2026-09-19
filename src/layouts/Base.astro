@@ -152,6 +152,20 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // row here is always a real person, which is exactly why the counts are
       // worth reading.
       var MI_PATH = '/_a'
+      // A visit used to cost three requests: open, click, leave. That was 82%
+      // of the whole free Workers allowance, and the site began answering 504
+      // once the allowance ran out. Rows now wait in the tab and go out in one
+      // request when the reader really leaves the site.
+      var MI_QUEUE_MAX = 15
+      var miQueue = []
+      var miGoingInternal = false
+      try {
+        miQueue = JSON.parse(sessionStorage.getItem('mi_q') || '[]')
+        if (!Array.isArray(miQueue)) miQueue = []
+      } catch (e) {
+        miQueue = []
+      }
+
 
       // A visit is over after 30 quiet minutes.
       var MI_GAP = 1800000
@@ -268,7 +282,15 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         }
         miLeave()
       })
-      window.addEventListener('pagehide', miLeave)
+      window.addEventListener('pagehide', function () {
+        miLeave()
+        // Going to another of our pages? The next page keeps the same queue.
+        if (miGoingInternal) {
+          miSave()
+          return
+        }
+        miFlush()
+      })
 
       function mi(row) {
         // The owner's own browser is marked when /my-admin is opened, so his
@@ -300,7 +322,33 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           }
         } catch (e) {}
 
-        var text = JSON.stringify(row)
+        // The row waits here. It is stamped now so the batch keeps real times.
+        row.t = Date.now()
+        miQueue.push(row)
+        miSave()
+        if (miQueue.length >= MI_QUEUE_MAX) miFlush()
+      }
+
+      // Keep the queue across our own pages, so one visit is one request.
+      function miSave() {
+        try {
+          sessionStorage.setItem('mi_q', JSON.stringify(miQueue))
+        } catch (e) {}
+      }
+
+      // Send everything that is waiting, once.
+      function miFlush() {
+        if (!miQueue.length) return
+        var now = Date.now()
+        var rows = miQueue.map(function (row) {
+          var out = {}
+          for (var key in row) if (key !== 't') out[key] = row[key]
+          out.age = Math.max(0, now - (row.t || now))
+          return out
+        })
+        miQueue = []
+        miSave()
+        var text = JSON.stringify({ rows: rows })
         // sendBeacon still arrives after the page is gone, which is the whole
         // point for a link that navigates away.
         try {
@@ -313,6 +361,9 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           fetch(MI_PATH, { method: 'POST', body: text, keepalive: true })
         } catch (e) {}
       }
+
+      // A queue left over from an abandoned tab goes out on the next page.
+      if (miQueue.length >= MI_QUEUE_MAX) miFlush()
 
       mi({ name: 'page_view', kind: 'view', label: miTitle() })
 
@@ -336,7 +387,13 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
 
         var url
         try { url = new URL(link.href, location.href) } catch (e) { return }
-        if (url.hostname === location.hostname) return
+        // One of ours: the queue travels to the next page instead of being
+        // sent, so a three page visit still costs one request.
+        if (url.hostname === location.hostname) {
+          miGoingInternal = true
+          setTimeout(function () { miGoingInternal = false }, 2000)
+          return
+        }
 
         // Each link says for itself what it is, because the component that
         // built it is the only thing that knows. rel="sponsored" cannot be

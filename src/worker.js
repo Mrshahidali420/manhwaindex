@@ -22,7 +22,10 @@ const BEACON_PATH = '/_a'
 
 // A row is small. Anything bigger than this is a mistake or an attack, and is
 // dropped before it reaches the database.
-const MAX_BODY = 2048
+const MAX_BODY = 32768
+// Most visits now arrive as one batch at the end, so a body holds many rows.
+const MAX_ROWS = 25
+const MAX_AGE = 86400000
 
 // The only words allowed in the kind column. Anything else becomes 'other', so
 // a made up value can never widen a table or break a count.
@@ -69,35 +72,52 @@ async function recordEvent(request, env) {
     return n > max ? max : n
   }
 
-  const kind = text(body.kind, 20) || 'view'
+  // One visit used to cost three requests: open, click, leave. On a free
+  // Workers plan that was 82% of the whole daily allowance, and the site
+  // started answering 504 once the allowance ran out. The page now keeps its
+  // rows in the tab and sends them all together when the reader really goes,
+  // so a whole visit costs one request instead of three.
+  const rows = Array.isArray(body.rows) ? body.rows.slice(0, MAX_ROWS) : [body]
   const now = Date.now()
+  const sql =
+    'INSERT INTO events (ts, day, name, kind, path, page_type, label, platform, shop_kind, target, country, referrer, device, visitor, session, step, prev, prev_type, dwell, campaign) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+  const country = text(request.headers.get('cf-ipcountry'), 2)
+
   try {
-    await env.ANALYTICS.prepare(
-      'INSERT INTO events (ts, day, name, kind, path, page_type, label, platform, shop_kind, target, country, referrer, device, visitor, session, step, prev, prev_type, dwell, campaign) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
-    )
-      .bind(
-        now,
-        new Date(now).toISOString().slice(0, 10),
-        text(body.name, 60) || 'page_view',
-        KINDS.has(kind) ? kind : 'other',
-        text(body.path, 200),
-        text(body.page_type, 40),
-        text(body.label, 120),
-        text(body.platform, 60),
-        text(body.shop_kind, 20),
-        text(body.target, 300),
-        text(request.headers.get('cf-ipcountry'), 2),
-        text(body.referrer, 120),
-        text(body.device, 10),
-        text(body.visitor, 40),
-        text(body.session, 40),
-        num(body.step, 500),
-        text(body.prev, 200),
-        text(body.prev_type, 40),
-        num(body.dwell, MAX_DWELL),
-        text(body.campaign, 120)
+    const stmt = env.ANALYTICS.prepare(sql)
+    const batch = []
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue
+      const kind = text(row.kind, 20) || 'view'
+      // The tab says how long ago each row happened, so a batch sent at the
+      // end still keeps the real order and the real times.
+      const ts = now - num(row.age, MAX_AGE)
+      batch.push(
+        stmt.bind(
+          ts,
+          new Date(ts).toISOString().slice(0, 10),
+          text(row.name, 60) || 'page_view',
+          KINDS.has(kind) ? kind : 'other',
+          text(row.path, 200),
+          text(row.page_type, 40),
+          text(row.label, 120),
+          text(row.platform, 60),
+          text(row.shop_kind, 20),
+          text(row.target, 300),
+          country,
+          text(row.referrer, 120),
+          text(row.device, 10),
+          text(row.visitor, 40),
+          text(row.session, 40),
+          num(row.step, 500),
+          text(row.prev, 200),
+          text(row.prev_type, 40),
+          num(row.dwell, MAX_DWELL),
+          text(row.campaign, 120)
+        )
       )
-      .run()
+    }
+    if (batch.length) await env.ANALYTICS.batch(batch)
   } catch (e) {
     // A full day allowance or a dropped connection must not break a page view.
   }
