@@ -2219,6 +2219,14 @@ main:has(.title-page) {
   font-size: 0.76rem;
   color: var(--dawn-faint);
 }
+/* The voice actor, on an anime page only. It sits under the role and is dimmer
+   than it, so the eye still reads name first, role second, voice third. */
+.people .people__voice {
+  font-size: 0.72rem;
+  color: var(--dawn-faint);
+  opacity: 0.82;
+  margin-top: 0.1rem;
+}
 
 /* ---------- character pages, narrow screens --------------------------------- */
 

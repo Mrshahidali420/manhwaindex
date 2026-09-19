@@ -197,6 +197,12 @@ const jsonld = {
 }
 const cast = charactersOf(item).slice(0, 12)
 
+// An anime record also names the person who speaks each part. The full cast
+// page showed that already; this page did not, so a reader who came here for
+// a voice actor found the name nowhere on the page they landed on.
+// A comic has no voices, so the count stays at zero and nothing changes there.
+const voicedCast = isComic ? 0 : cast.filter((c) => c.voice).length
+
 // You may also like: worked out at build time and stored in the record,
 // so the Worker does no searching at request time.
 const similar = item.similar || []
@@ -785,7 +791,11 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
           <section class="answer">
             <div class="answer__head">
               <h2>Who is in it</h2>
-              <p>Tap a face to see every other story that character turns up in.</p>
+              <p>
+                {voicedCast > 0
+                  ? `The voice actor is named under each face. Tap a face to see every other story that character turns up in.`
+                  : 'Tap a face to see every other story that character turns up in.'}
+              </p>
             </div>
             <ul class="people">
               {cast.map((person) => (
@@ -794,6 +804,7 @@ const updatedLong = new Date().toLocaleDateString('en-US', {
                     <img src={person.image} alt={`${person.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
                     <b>{person.name}</b>
                     <span>{person.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
+                    {!isComic && person.voice && <span class="people__voice">{person.voice}</span>}
                   </a>
                 </li>
               ))}
