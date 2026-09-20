@@ -11,6 +11,12 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
+# Yandex gets its own group on purpose. Without one it falls into the
+# catch-all group at the bottom and inherits its Crawl-delay. Yandex is a
+# search engine that sends readers, so it is never rate limited here.
+User-agent: Yandex
+Allow: /
+
 User-agent: DuckDuckBot
 Allow: /
 
