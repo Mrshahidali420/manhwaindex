@@ -57,6 +57,12 @@ Allow: /
 # MJ12bot build databases for other people's SEO tools. GPTBot, CCBot,
 # Bytespider, ClaudeBot and the rest train models. Petal serves
 # an audience this English catalogue does not have.
+# ShapBot is Parallel.ai. It feeds AI agents and data APIs, not a search
+# engine, so it sends no readers. On 20 Sep 2026 it took 1,927 requests in
+# 30 minutes, about three of every four Worker requests.
+User-agent: ShapBot
+Disallow: /
+
 User-agent: GPTBot
 Disallow: /
 
