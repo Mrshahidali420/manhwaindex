@@ -22,6 +22,7 @@ data/answer-urls.json
 data/comics.json
 data/anime.json
 data/characters.json
+data/characters-walk.json
 data/seen.json
 
 # Written by scripts/indexnow.mjs. Lives in the Actions cache, not in git.

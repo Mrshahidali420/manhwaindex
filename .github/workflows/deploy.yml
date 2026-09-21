@@ -45,6 +45,7 @@ jobs:
             data/comics.json
             data/anime.json
             data/characters.json
+            data/characters-walk.json
           key: anilist-data-${{ github.run_id }}
           restore-keys: anilist-data-
 
@@ -69,6 +70,17 @@ jobs:
       # A character we only know from a title's cast list has just a name and a
       # face. This asks AniList for the bio and the other spellings, a slice at
       # a time, so the queue drains over a few days without slowing a deploy.
+      # Every character AniList has, once, then only the new ids each night.
+      # A title fetch carries ten cast members; this brings the rest. The walk
+      # keeps its place in data/characters-walk.json, which rides in the same
+      # cache as the catalog, and it never removes a record.
+      - name: Walk the AniList character list
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        env:
+          CHAR_MAX_CALLS: 1600
+        run: node --max-old-space-size=6000 scripts/ingest-characters.mjs
+
       - name: Fill in thin character pages
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
@@ -85,6 +97,7 @@ jobs:
             data/comics.json
             data/anime.json
             data/characters.json
+            data/characters-walk.json
           key: anilist-data-${{ github.run_id }}
 
       # The catalog grew to ~107,000 titles and each record now carries the
