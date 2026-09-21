@@ -20,11 +20,11 @@ import { shopLinks } from '../../lib/shop-links.js'
 import { BUY_POPULARITY } from '../../lib/buy.mjs'
 import BuyBox from '../../components/BuyBox.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
+import { sectionOf, SECTIONS } from '../../lib/section.mjs'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
-const KINDS = new Set(['manhwa', 'manga', 'manhua', 'anime'])
+const KINDS = new Set(SECTIONS)
 
 const { kind, slug } = Astro.params
 if (!KINDS.has(kind)) return notFound(Astro)
@@ -40,7 +40,7 @@ if (!item) return notFound(Astro)
 
 const isComic = item.kind !== 'anime'
 // The slug alone is not proof: a manhwa must not answer on /manga/.
-if (isComic && (KIND_OF_COUNTRY[item.country] || 'manga') !== kind) return notFound(Astro)
+if (sectionOf(item) !== kind) return notFound(Astro)
 
 const word = isComic ? formatWord(item) : 'anime'
 const links = isComic ? item.readLinks : item.watchLinks
@@ -193,7 +193,8 @@ const jsonld = {
   image: item.cover,
   description: truncate(overview.lede || item.description, 400),
   genre: item.genres,
-  ...(isComic ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
+  ...(item.kind === 'comic' ? { bookFormat: 'https://schema.org/GraphicNovel' } : {}),
+  ...(item.kind === 'novel' ? { bookFormat: 'https://schema.org/EBook' } : {}),
   ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
   ...(item.authors?.length ? { author: item.authors.map((a) => ({ '@type': 'Person', name: a.name })) } : {}),
   // No trailer block here on purpose. Google needs an uploadDate on a video
@@ -266,7 +267,9 @@ const FAMILY_WORDS = { TV: 'anime series', MOVIE: 'anime film', SPECIAL: 'anime 
 const familyWord = (r) =>
   r.type === 'ANIME'
     ? FAMILY_WORDS[r.format] || 'anime'
-    : { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }[r.country] || 'comic'
+    : r.format === 'NOVEL'
+      ? 'novel'
+      : { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }[r.country] || 'comic'
 
 // Which languages have an official release. English leads: it is the
 // question most visitors are really asking. Anime links carry no
@@ -748,7 +751,7 @@ const updatedLong = checkedLong
               <h2>Read the original</h2>
             </div>
             {related.map((rel) => (
-              <a class="crosslink" href={`/manhwa/${rel.slug}`}>
+              <a class="crosslink" href={pathOf(rel)}>
                 <div>
                   <span class="crosslink__lead">The anime is based on this</span>
                   <span class="crosslink__title">{rel.title}</span>

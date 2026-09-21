@@ -170,6 +170,7 @@ export const SECTIONS = {
   manhwa: 'Manhwa',
   manga: 'Manga',
   manhua: 'Manhua',
+  novel: 'Novels',
   anime: 'Anime',
   character: 'Characters',
   shop: 'Shop',

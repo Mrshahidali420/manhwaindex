@@ -19,7 +19,7 @@ import { factsFor, FREE, PAY } from './platform-facts.js'
 
 /* -------------------------------------------------------------- tiny words */
 
-const KIND_WORD = { manhwa: 'manhwa', manhua: 'manhua', manga: 'manga', anime: 'anime' }
+const KIND_WORD = { manhwa: 'manhwa', manhua: 'manhua', manga: 'manga', novel: 'novel', anime: 'anime' }
 const STATUS_WORD = {
   FINISHED: 'finished',
   RELEASING: 'still releasing',
@@ -377,6 +377,7 @@ export function likeAnswer(item, kind) {
 const ASKED_ABOUT = {
   anime: ['Crunchyroll', 'Netflix', 'Hulu', 'Amazon Prime Video'],
   comic: ['WEBTOON', 'Tapas', 'MANGA Plus', 'VIZ'],
+  novel: ['J-Novel Club', 'BookWalker', 'Kobo', 'Amazon Kindle'],
 }
 
 /**
@@ -414,7 +415,7 @@ export function titleFaq(item, kind) {
         : `There is nothing to pay for yet, because no platform has licensed it.`,
   })
 
-  for (const site of ASKED_ABOUT[kind === 'anime' ? 'anime' : 'comic']) {
+  for (const site of ASKED_ABOUT[kind] || ASKED_ABOUT.comic) {
     if (faq.length >= 6) break
     if (onIt.has(site)) {
       const facts = factsFor(site)

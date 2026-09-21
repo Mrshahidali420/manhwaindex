@@ -1,6 +1,6 @@
 ---
 /**
- * The four front doors: /manhwa, /manga, /manhua and /anime.
+ * The five front doors: /manhwa, /manga, /manhua, /novel and /anime.
  *
  * These are the pages most search traffic lands on, and most of it lands on a
  * phone. The grid alone answered nothing, so each page now carries a short
@@ -14,7 +14,7 @@ export const prerender = true
 import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import FilterChips from '../../components/FilterChips.astro'
-import { animeByPopularity, comicsOfCountry, genres } from '../../lib/catalog.js'
+import { animeByPopularity, novelsByPopularity, comicsOfCountry, genres } from '../../lib/catalog.js'
 import { listingJsonld } from '../../lib/listing-jsonld.js'
 
 export const PER_PAGE = 60
@@ -119,6 +119,38 @@ export const KINDS = {
       {
         q: 'Is manhua the same as manhwa?',
         a: 'No. Manhua is Chinese and manhwa is Korean. They look similar — colour, vertical scroll — but they are separate industries with separate platforms.',
+      },
+    ],
+  },
+  novel: {
+    label: 'Novels',
+    verb: 'read',
+    blurb: 'Light novels and web novels, and the official stores and apps that publish them in English.',
+    title: 'Where to read light novels — official platforms for every series',
+    description:
+      'Find where to legally read any light novel or web novel. Official links to J-Novel Club, BookWalker, Kobo, Kindle and more.',
+    items: () => novelsByPopularity,
+    about: [
+      'A light novel is a short Japanese prose novel, usually in a series of small volumes with a handful of illustrations. A web novel is the same kind of story first posted free on a site such as Syosetu or Munpia, often before a publisher picks it up.',
+      'Many of the most-read manhwa and anime began as a novel. When the source is in this index, the novel page links to its comic and its anime, and they link back.',
+      'Novels are sold rather than streamed, so the platform list is mostly stores: J-Novel Club, BookWalker, Kobo and Kindle. The list names who holds the English licence; the page never links to a fan translation.',
+    ],
+    faqs: [
+      {
+        q: 'What is a light novel?',
+        a: 'A light novel is a short Japanese novel aimed at young adult readers, sold in small volumes with a few illustrations. Most anime with a fantasy or isekai setting started as one.',
+      },
+      {
+        q: 'What is the difference between a light novel and a web novel?',
+        a: 'A web novel is posted free by its author on a site such as Syosetu or Munpia. A light novel is the edited, illustrated version a publisher sells. Many stories exist as both.',
+      },
+      {
+        q: 'Where can I read light novels in English?',
+        a: 'J-Novel Club, Yen Press through BookWalker, Kobo and Kindle hold most of the licensed English releases. Open a title and it lists the stores licensed for that series.',
+      },
+      {
+        q: 'Why does a novel have no reading links?',
+        a: 'Because no publisher holds an English licence for it yet. The page says so instead of pointing you at an unofficial translation. If a licence appears, the link shows up the next morning.',
       },
     ],
   },

@@ -1,5 +1,7 @@
 import {
   comics,
+  novels,
+  novelsByPopularity,
   anime,
   charactersWithPages,
   genres,
@@ -8,6 +10,7 @@ import {
   platformHubs,
 } from './catalog.js'
 import { FILTERS } from './filters.js'
+import { sectionOf } from './section.mjs'
 import { MOODS } from './moods.mjs'
 // Written by scripts/make-shards.mjs on every build. It holds only the answer
 // pages that passed their own gate, so the sitemap never offers a thin page.
@@ -15,7 +18,6 @@ import answerUrls from '../../data/answer-urls.json'
 
 export const SITE = 'https://manhwaindex.com'
 
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
 // The listing routes stop building at page 100, so the sitemap must stop
 // there too. A URL we do not build is a 404 for every crawler that follows it.
 const MAX_PAGES = 100
@@ -33,6 +35,7 @@ function coreUrls() {
     { loc: `${SITE}/manhwa`, priority: '0.9' },
     { loc: `${SITE}/manga`, priority: '0.9' },
     { loc: `${SITE}/manhua`, priority: '0.9' },
+    { loc: `${SITE}/novel`, priority: '0.9' },
     { loc: `${SITE}/anime`, priority: '0.9' },
     { loc: `${SITE}/character`, priority: '0.9' },
     { loc: `${SITE}/genre`, priority: '0.9' },
@@ -52,6 +55,7 @@ function coreUrls() {
     manhwa: comicsOfCountry('KR'),
     manga: comicsOfCountry('JP'),
     manhua: comicsOfCountry('CN'),
+    novel: novelsByPopularity,
     anime: animeByPopularity,
   }
   for (const [kind, items] of Object.entries(shelves)) {
@@ -76,6 +80,7 @@ function coreUrls() {
     manhwa: comics.filter((c) => c.country === 'KR').length,
     manga: comics.filter((c) => c.country === 'JP').length,
     manhua: comics.filter((c) => c.country === 'CN' || c.country === 'TW').length,
+    novel: novels.length,
     anime: anime.length,
   }
   for (const [kind, total] of Object.entries(counts)) {
@@ -94,7 +99,7 @@ const comicUrls = (country) =>
   comics
     .filter((c) => (country === 'CN' ? c.country === 'CN' || c.country === 'TW' : c.country === country))
     .map((item) => ({
-      loc: `${SITE}/${KIND_OF_COUNTRY[item.country] || 'manga'}/${item.slug}`,
+      loc: `${SITE}/${sectionOf(item)}/${item.slug}`,
       // Pages that answer the question get crawled first.
       priority: item.readLinks.length > 0 ? '0.8' : '0.5',
       image: item.cover,
@@ -110,6 +115,14 @@ const otherComicUrls = () =>
       image: item.cover,
       caption: `Cover of ${item.title}`,
     }))
+
+const novelUrls = () =>
+  novels.map((item) => ({
+    loc: `${SITE}/novel/${item.slug}`,
+    priority: item.readLinks.length > 0 ? '0.8' : '0.5',
+    image: item.cover,
+    caption: `Cover of ${item.title}`,
+  }))
 
 const animeUrls = () =>
   anime.map((item) => ({
@@ -146,6 +159,7 @@ export const sitemapParts = [
   ...split('manhwa', comicUrls('KR')),
   ...split('manga', [...comicUrls('JP'), ...otherComicUrls()]),
   ...split('manhua', comicUrls('CN')),
+  ...split('novel', novelUrls()),
   ...split('anime', animeUrls()),
   ...split('character', characterUrls()),
   ...split('answers-free', answerUrls.free.map((path) => ({ loc: `${SITE}${path}`, priority: '0.7' }))),

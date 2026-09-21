@@ -3,6 +3,7 @@
 // whole catalog lives in catalog.js and is build-time only.
 import { PLATFORMS, FALLBACK } from './platforms.js'
 import { LOGOS } from './platform-logos.js'
+import { sectionOf } from './section.mjs'
 
 export const platform = (site) => PLATFORMS[site] || FALLBACK
 
@@ -13,7 +14,7 @@ const FORMAT_WORDS = {
   JP: 'manga',
   TW: 'manhua',
 }
-export const formatWord = (item) => FORMAT_WORDS[item.country] || 'comic'
+export const formatWord = (item) => (item.kind === 'novel' ? 'novel' : FORMAT_WORDS[item.country] || 'comic')
 
 const STATUS_WORDS = {
   FINISHED: 'Finished',
@@ -107,7 +108,7 @@ export function genreSlug(name) {
 }
 
 export const pathOf = (item, kind) =>
-  kind === 'anime' ? `/anime/${item.slug}` : `/${formatWord(item)}/${item.slug}`
+  kind === 'anime' ? `/anime/${item.slug}` : `/${sectionOf(item)}/${item.slug}`
 
 // A character is worth its own page only if we can say something about it.
 export function characterHasPage(c) {
@@ -118,12 +119,7 @@ export function charactersOf(item) {
   return (item.characters || []).filter((c) => c.image)
 }
 
-export function kindOfAppearance(appearance) {
-  if (appearance.kind === 'anime') return 'anime'
-  if (appearance.country === 'KR') return 'manhwa'
-  if (appearance.country === 'CN' || appearance.country === 'TW') return 'manhua'
-  return 'manga'
-}
+export const kindOfAppearance = sectionOf
 
 // Extra data pulled by scripts/enrich-mal.mjs: MAL score via Jikan, and
 // cross-site links via anime-offline-database.

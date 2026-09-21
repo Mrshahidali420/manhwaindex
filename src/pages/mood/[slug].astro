@@ -14,8 +14,7 @@ import { comics, anime } from '../../lib/catalog.js'
 import { MOODS, pickForMood } from '../../lib/moods.mjs'
 import { listingJsonld } from '../../lib/listing-jsonld.js'
 import { faqJsonld, listWords } from '../../lib/answers.mjs'
-
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
+import { sectionOf } from '../../lib/section.mjs'
 
 export function getStaticPaths() {
   return MOODS.map((mood) => ({ params: { slug: mood.slug }, props: { mood } }))
@@ -28,7 +27,7 @@ const pickedAnime = pickForMood(anime, mood, 24)
 
 // The grids link by kind, so the comics have to be split up first.
 const buckets = { manhwa: [], manga: [], manhua: [] }
-for (const c of pickedComics) buckets[KIND_OF_COUNTRY[c.country] || 'manga'].push(c)
+for (const c of pickedComics) buckets[sectionOf(c)].push(c)
 
 const kinds = Object.entries(buckets).filter(([, items]) => items.length > 0)
 const total = pickedComics.length + pickedAnime.length

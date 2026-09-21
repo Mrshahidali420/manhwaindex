@@ -11,7 +11,8 @@
     "deploy": "wrangler deploy",
     "ingest:full": "node --max-old-space-size=6000 scripts/ingest-full.mjs",
     "ingest:daily": "node --max-old-space-size=6000 scripts/ingest-daily.mjs",
-    "ingest:characters": "node --max-old-space-size=6000 scripts/ingest-characters.mjs"
+    "ingest:characters": "node --max-old-space-size=6000 scripts/ingest-characters.mjs",
+    "ingest:novels": "node --max-old-space-size=6000 scripts/ingest-novels.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.13",

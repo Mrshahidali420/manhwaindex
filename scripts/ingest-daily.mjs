@@ -208,10 +208,10 @@ async function main() {
   }
 
   // Merge: a fresh record replaces the old one, in place, keeping list order.
-  const merge = (list, kind) => {
+  const merge = (list, kinds) => {
     const byId = new Map(list.map((x) => [x.id, x]))
     for (const item of fetched.values()) {
-      if (item.kind !== kind) continue
+      if (!kinds.includes(item.kind)) continue
       byId.set(item.id, item)
     }
     const out = [...byId.values()]
@@ -219,8 +219,9 @@ async function main() {
     return out
   }
 
-  const nextComics = merge(comics, 'comic')
-  const nextAnime = merge(anime, 'anime')
+  // Novels live in comics.json beside the comics; the site splits them by kind.
+  const nextComics = merge(comics, ['comic', 'novel'])
+  const nextAnime = merge(anime, ['anime'])
   const kept = await fetchKeptCharacters(keep.characters, nextComics, nextAnime)
   const stats = assembleAndWrite(nextComics, nextAnime, startedAt)
 

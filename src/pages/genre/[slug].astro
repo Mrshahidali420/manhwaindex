@@ -15,27 +15,28 @@ import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
 import { genres, ofGenre } from '../../lib/catalog.js'
 import { listingJsonld } from '../../lib/listing-jsonld.js'
+import { sectionOf } from '../../lib/section.mjs'
 
 export function getStaticPaths() {
   return genres.map((g, i) => {
-    const { comics, anime } = ofGenre(g.name)
+    const { comics, anime, novels } = ofGenre(g.name)
     // Neighbours in the popularity order read as "people who liked this",
     // without us inventing any relationship the data does not hold.
     const siblings = genres
       .filter((other) => other.slug !== g.slug)
       .slice(Math.max(0, i - 6), Math.max(0, i - 6) + 12)
-    return { params: { slug: g.slug }, props: { genre: g, comics, anime, siblings } }
+    return { params: { slug: g.slug }, props: { genre: g, comics, anime, novels, siblings } }
   })
 }
 
-const { genre, comics, anime, siblings } = Astro.props
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
-const LABEL = { manhwa: 'manhwa', manga: 'manga', manhua: 'manhua' }
-const ORIGIN = { manhwa: 'Korean', manga: 'Japanese', manhua: 'Chinese' }
+const { genre, comics, anime, novels = [], siblings } = Astro.props
+const LABEL = { manhwa: 'manhwa', manga: 'manga', manhua: 'manhua', novel: 'novels' }
+const ORIGIN = { manhwa: 'Korean comics', manga: 'Japanese comics', manhua: 'Chinese comics', novel: 'Light and web novels' }
 
 // The grids link by kind, so split the comics up.
-const buckets = { manhwa: [], manga: [], manhua: [] }
-for (const c of comics) buckets[KIND_OF_COUNTRY[c.country] || 'manga'].push(c)
+const buckets = { manhwa: [], manga: [], manhua: [], novel: [] }
+for (const c of comics) buckets[sectionOf(c)].push(c)
+for (const n of novels) buckets.novel.push(n)
 
 const sections = Object.entries(buckets)
   .filter(([, items]) => items.length > 0)
@@ -44,7 +45,7 @@ const sections = Object.entries(buckets)
     kind,
     heading: `${genre.name} ${LABEL[kind]}`,
     short: LABEL[kind][0].toUpperCase() + LABEL[kind].slice(1),
-    blurb: `${ORIGIN[kind]} comics tagged ${genre.name.toLowerCase()}, most-read first. Each one lists the official apps that carry it.`,
+    blurb: `${ORIGIN[kind]} tagged ${genre.name.toLowerCase()}, most-read first. Each one lists the official apps that carry it.`,
     base: `/${kind}`,
     items,
   }))
@@ -52,7 +53,7 @@ const sections = Object.entries(buckets)
 const lower = genre.name.toLowerCase()
 const topComic = comics[0]
 const topAnime = anime[0]
-const total = comics.length + anime.length
+const total = comics.length + novels.length + anime.length
 
 const faqs = [
   {

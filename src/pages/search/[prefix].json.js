@@ -1,5 +1,6 @@
 export const prerender = true
-import { comics, anime } from '../../lib/catalog.js'
+import { comics, novels, anime } from '../../lib/catalog.js'
+import { sectionOf } from '../../lib/section.mjs'
 
 // The header search box used to fetch one file holding every title. At 107,036
 // titles that file was 28 MB: over Cloudflare's 25 MB asset limit, and far too
@@ -12,8 +13,6 @@ import { comics, anime } from '../../lib/catalog.js'
 // What this gives up: matching the middle of a word. "ower" no longer finds
 // "Tower". Every search engine works that way, and it buys back the 95,000
 // titles a single capped file had to drop.
-
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
 
 /**
  * Most records a single slice may hold.
@@ -79,7 +78,8 @@ function record(item, kind) {
 const shards = (() => {
   const map = new Map()
   const rows = [
-    ...comics.map((c) => [c, record(c, KIND_OF_COUNTRY[c.country] || 'manga')]),
+    ...comics.map((c) => [c, record(c, sectionOf(c))]),
+    ...novels.map((n) => [n, record(n, 'novel')]),
     ...anime.map((a) => [a, record(a, 'anime')]),
   ].sort((a, b) => (b[0].popularity || 0) - (a[0].popularity || 0))
 

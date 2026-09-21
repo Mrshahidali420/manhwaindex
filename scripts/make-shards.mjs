@@ -19,6 +19,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
 import { reslugAll } from '../src/lib/reslug.mjs'
+import { sectionOf } from '../src/lib/section.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
 import { freeSplit, linksOf } from '../src/lib/answers.mjs'
@@ -57,9 +58,7 @@ function attachEnrich(titles) {
   return hits
 }
 
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
-export const kindOf = (item) =>
-  item.kind === 'anime' ? 'anime' : KIND_OF_COUNTRY[item.country] || 'manga'
+export const kindOf = sectionOf
 
 /** Write one folder of shards. The count is fixed: see shard-key.js. */
 function writeShards(dir, records, count, keyOf) {
@@ -182,7 +181,7 @@ function precompute(titles) {
     for (const rel of item.relations || []) {
       const found = byId.get(rel.id)
       rel.hit = found
-        ? { kind: found.kind === 'anime' ? 'anime' : 'comic', item: { slug: found.slug, country: found.country } }
+        ? { kind: found.kind, item: { slug: found.slug, country: found.country, kind: found.kind } }
         : null
     }
 

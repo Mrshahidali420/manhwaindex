@@ -99,6 +99,32 @@ jobs:
           path: data/characters-walk.json
           key: characters-walk-${{ github.run_id }}
 
+      # Every light and web novel AniList has, once, then only the new ones
+      # each night through the daily probes. Novels live in comics.json with
+      # kind 'novel'; the walk's place has its own cache entry, like the
+      # character walk, so the catalog cache path list never changes.
+      - name: Restore the novel walk position
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/novels-walk.json
+          key: novels-walk-${{ github.run_id }}
+          restore-keys: novels-walk-
+
+      - name: Walk the AniList novel list
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        env:
+          NOVEL_MAX_CALLS: 1200
+        run: node --max-old-space-size=6000 scripts/ingest-novels.mjs
+
+      - name: Save the novel walk position
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && hashFiles('data/novels-walk.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/novels-walk.json
+          key: novels-walk-${{ github.run_id }}
+
       - name: Fill in thin character pages
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true

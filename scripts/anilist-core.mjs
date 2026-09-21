@@ -62,7 +62,16 @@ export const MEDIA_FIELDS = `
 /** Walk the id space. This is the only way to reach every title. */
 export const BY_IDS_QUERY = `query ($ids: [Int]) {
   Page(page: 1, perPage: ${IDS_PER_CALL}) {
-    media(id_in: $ids, isAdult: false, format_not_in: [NOVEL]) {
+    media(id_in: $ids, isAdult: false) {
+      ${MEDIA_FIELDS}
+    }
+  }
+}`
+
+/** Walk the id space for light and web novels only (the one-time novel fetch). */
+export const NOVELS_BY_IDS_QUERY = `query ($ids: [Int]) {
+  Page(page: 1, perPage: ${IDS_PER_CALL}) {
+    media(id_in: $ids, type: MANGA, format: NOVEL, isAdult: false) {
       ${MEDIA_FIELDS}
     }
   }
@@ -72,7 +81,7 @@ export const BY_IDS_QUERY = `query ($ids: [Int]) {
 export const RECENT_QUERY = `query ($page: Int, $type: MediaType) {
   Page(page: $page, perPage: ${IDS_PER_CALL}) {
     pageInfo { hasNextPage }
-    media(type: $type, isAdult: false, format_not_in: [NOVEL], sort: UPDATED_AT_DESC) {
+    media(type: $type, isAdult: false, sort: UPDATED_AT_DESC) {
       ${MEDIA_FIELDS}
     }
   }
@@ -82,7 +91,7 @@ export const RECENT_QUERY = `query ($page: Int, $type: MediaType) {
 export const NEWEST_QUERY = `query ($page: Int, $type: MediaType) {
   Page(page: $page, perPage: ${IDS_PER_CALL}) {
     pageInfo { hasNextPage }
-    media(type: $type, isAdult: false, format_not_in: [NOVEL], sort: ID_DESC) {
+    media(type: $type, isAdult: false, sort: ID_DESC) {
       ${MEDIA_FIELDS}
     }
   }
@@ -95,14 +104,14 @@ export const NEWEST_QUERY = `query ($page: Int, $type: MediaType) {
 export const PROBE_RECENT_QUERY = `query ($page: Int, $type: MediaType) {
   Page(page: $page, perPage: ${IDS_PER_CALL}) {
     pageInfo { hasNextPage }
-    media(type: $type, isAdult: false, format_not_in: [NOVEL], sort: UPDATED_AT_DESC) { id updatedAt }
+    media(type: $type, isAdult: false, sort: UPDATED_AT_DESC) { id updatedAt }
   }
 }`
 
 export const PROBE_NEW_QUERY = `query ($page: Int, $type: MediaType) {
   Page(page: $page, perPage: ${IDS_PER_CALL}) {
     pageInfo { hasNextPage }
-    media(type: $type, isAdult: false, format_not_in: [NOVEL], sort: ID_DESC) { id updatedAt }
+    media(type: $type, isAdult: false, sort: ID_DESC) { id updatedAt }
   }
 }`
 
@@ -183,6 +192,9 @@ const READ_PLATFORMS = [
   'Kodansha', 'Azuki', 'Coolmic', 'WebComics', 'Bomtoon', 'Lalatoon',
   'Toomics', 'Webnovel', 'Pocket Comics', 'NETCOMICS', 'Bilibili Comics',
   'KuaiKan Manhua', 'Tencent Comics', 'Dongman Manhua', 'ONO',
+  // Light and web novels.
+  'BookWalker', 'BOOK WALKER', 'J-Novel Club', 'Kobo', 'Ridibooks', 'Munpia',
+  'Kakao Page', 'Syosetu', 'Kadokawa', 'Cross Infinite World', 'Amazon Kindle',
 ]
 
 const isReadLink = (link) =>
@@ -211,7 +223,11 @@ export function cutBio(text) {
   return (end > 200 ? head.slice(0, end + 1) : head).trim()
 }
 
-export function shape(media, kind = media.type === 'ANIME' ? 'anime' : 'comic') {
+/** 'anime', 'novel' (a light or web novel) or 'comic'. */
+export const kindOfMedia = (media) =>
+  media.type === 'ANIME' ? 'anime' : media.format === 'NOVEL' ? 'novel' : 'comic'
+
+export function shape(media, kind = kindOfMedia(media)) {
   const title = media.title.english || media.title.romaji || media.title.native
   const links = media.externalLinks || []
   const relations = (media.relations?.edges || []).map((e) => ({
@@ -224,7 +240,7 @@ export function shape(media, kind = media.type === 'ANIME' ? 'anime' : 'comic') 
   }))
 
   return {
-    kind, // 'comic' | 'anime'
+    kind, // 'comic' | 'novel' | 'anime'
     id: media.id,
     malId: media.idMal,
     slug: `${slugify(title)}-${media.id}`,
@@ -425,7 +441,7 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
       .filter((r) => r.type === 'MANGA' && /SOURCE|ADAPTATION|PARENT|PREQUEL/i.test(r.relation || ''))
       .map((r) => comicById.get(r.id))
       .filter(Boolean)
-    show.comicInIndex = sources.map((c) => ({ slug: c.slug, title: c.title, readCount: c.readLinks.length }))
+    show.comicInIndex = sources.map((c) => ({ slug: c.slug, title: c.title, kind: c.kind, country: c.country, readCount: c.readLinks.length }))
   }
 
   // The slug ends in the AniList id, so it is the one key that matches in both
@@ -526,7 +542,8 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
   const stats = {
     generatedAt: new Date().toISOString(),
     durationSeconds: Math.round((Date.now() - startedAt) / 1000),
-    comics: comics.length,
+    comics: comics.filter((c) => c.kind !== 'novel').length,
+    novels: comics.filter((c) => c.kind === 'novel').length,
     comicsWithReadLinks: comics.filter((c) => c.readLinks.length > 0).length,
     comicsWithAnime: comics.filter((c) => c.hasAnime).length,
     comicsLinkedToAnimeInIndex: comics.filter((c) => c.animeInIndex.length > 0).length,
@@ -534,7 +551,7 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
     animeWithWatchLinks: anime.filter((a) => a.watchLinks.length > 0).length,
     animeLinkedToComicInIndex: anime.filter((a) => a.comicInIndex.length > 0).length,
     characters: characterList.length,
-    byCountry: comics.reduce((acc, c) => ((acc[c.country] = (acc[c.country] || 0) + 1), acc), {}),
+    byCountry: comics.filter((c) => c.kind !== 'novel').reduce((acc, c) => ((acc[c.country] = (acc[c.country] || 0) + 1), acc), {}),
   }
   writeFileSync(join(DATA_DIR, 'stats.json'), JSON.stringify(stats, null, 2))
   return stats

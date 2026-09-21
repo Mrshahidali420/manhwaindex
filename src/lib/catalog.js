@@ -25,7 +25,9 @@ import { characterHasPage, genreSlug } from './format.js'
 // Public URLs carry clean slugs, never database ids (see reslug.mjs).
 reslugAll(comicsRaw, animeRaw, characterData)
 
-export const comics = comicsRaw
+// Novels ride in comics.json with kind 'novel'. The site keeps them apart.
+export const comics = comicsRaw.filter((c) => c.kind !== 'novel')
+export const novels = comicsRaw.filter((c) => c.kind === 'novel')
 export const anime = animeRaw
 
 // Everything a Worker-rendered page also needs is re-exported, so the pages
@@ -37,6 +39,7 @@ const byPopularity = (a, b) => b.popularity - a.popularity
 
 export const comicsByPopularity = [...comics].sort(byPopularity)
 export const animeByPopularity = [...anime].sort(byPopularity)
+export const novelsByPopularity = [...novels].sort(byPopularity)
 
 // Memoised on purpose. Every browse page calls this, and there are ~1,500 of
 // them. Without the cache each call walks all 86,000 comics again.
@@ -57,6 +60,7 @@ export const findAnime = (slug) => anime.find((a) => a.slug === slug)
 const itemById = new Map()
 for (const c of comics) itemById.set(c.id, { item: c, kind: 'comic' })
 for (const a of anime) itemById.set(a.id, { item: a, kind: 'anime' })
+for (const n of novels) itemById.set(n.id, { item: n, kind: 'novel' })
 export const inIndex = (id) => itemById.get(id)
 
 /** Anime with an episode airing in the next 7 days, soonest first.
@@ -99,10 +103,11 @@ export const charactersWithPages = characters.filter(characterHasPage)
 // Every genre that appears in the catalog, with counts, biggest first.
 export const genres = (() => {
   const tally = new Map()
-  for (const item of [...comics, ...anime]) {
+  for (const item of [...comics, ...novels, ...anime]) {
     for (const g of item.genres || []) {
-      const row = tally.get(g) || { name: g, slug: genreSlug(g), comics: 0, anime: 0 }
+      const row = tally.get(g) || { name: g, slug: genreSlug(g), comics: 0, novels: 0, anime: 0 }
       if (item.kind === 'anime') row.anime += 1
+      else if (item.kind === 'novel') row.novels += 1
       else row.comics += 1
       tally.set(g, row)
     }
@@ -114,6 +119,7 @@ export function ofGenre(name) {
   return {
     comics: comics.filter((c) => (c.genres || []).includes(name)),
     anime: anime.filter((a) => (a.genres || []).includes(name)),
+    novels: novels.filter((n) => (n.genres || []).includes(name)),
   }
 }
 
@@ -146,7 +152,7 @@ export const platformHubs = (() => {
         seen.add(slug)
         let row = map.get(slug)
         if (!row) {
-          row = { slug, name: link.site, comics: [], anime: [] }
+          row = { slug, name: link.site, comics: [], novels: [], anime: [] }
           map.set(slug, row)
         }
         row[bucket].push(item)
@@ -155,15 +161,17 @@ export const platformHubs = (() => {
   }
 
   collect(comics, 'readLinks', 'comics')
+  collect(novels, 'readLinks', 'novels')
   collect(anime, 'watchLinks', 'anime')
 
   return [...map.values()]
-    .filter((row) => row.comics.length + row.anime.length >= HUB_MINIMUM)
+    .filter((row) => row.comics.length + row.novels.length + row.anime.length >= HUB_MINIMUM)
     .map((row) => ({
       ...row,
       comics: row.comics.sort(byPopularity),
+      novels: row.novels.sort(byPopularity),
       anime: row.anime.sort(byPopularity),
-      total: row.comics.length + row.anime.length,
+      total: row.comics.length + row.novels.length + row.anime.length,
     }))
     .sort((a, b) => b.total - a.total)
 })()

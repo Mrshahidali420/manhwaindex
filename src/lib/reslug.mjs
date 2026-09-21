@@ -13,9 +13,9 @@
  * consumed by the redirect worker.
  */
 
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
+import { sectionOf, READ_SECTIONS } from './section.mjs'
 
-export const comicKind = (item) => KIND_OF_COUNTRY[item.country] || 'manga'
+export const comicKind = sectionOf
 
 const stripId = (slug) => slug.replace(/-\d+$/, '')
 
@@ -45,9 +45,9 @@ export function reslugAll(comics, anime, characters) {
   const byPop = (a, b) => (b.popularity || 0) - (a.popularity || 0)
   const yearOf = (item) => item.startYear
 
-  // Comics collide only inside their own kind (manhwa/manga/manhua).
+  // Comics collide only inside their own section (manhwa/manga/manhua/novel).
   const comicMap = new Map()
-  for (const kind of ['manhwa', 'manga', 'manhua']) {
+  for (const kind of READ_SECTIONS) {
     const group = comics.filter((c) => comicKind(c) === kind).sort(byPop)
     for (const [oldSlug, newSlug] of assign(group, { yearOf })) comicMap.set(oldSlug, newSlug)
   }

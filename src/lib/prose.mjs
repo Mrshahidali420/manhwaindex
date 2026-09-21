@@ -69,7 +69,7 @@ const safeGenres = (item, limit = 3) =>
 /* --------------------------------------------------------------- identity */
 
 function identity(item, kind) {
-  const word = kind === 'anime' ? 'anime series' : KIND_WORDS[item.country] || 'comic'
+  const word = kind === 'anime' ? 'anime series' : kind === 'novel' ? 'novel' : KIND_WORDS[item.country] || 'comic'
   const origin = COUNTRY_WORDS[item.country] || ''
   const made = unique(
     (kind === 'anime' ? item.studios : item.authors || []).map((who) =>

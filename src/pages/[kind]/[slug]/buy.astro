@@ -12,13 +12,13 @@
 import Base from '../../../layouts/Base.astro'
 import BuyBox from '../../../components/BuyBox.astro'
 import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
+import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { faqJsonld } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
 import { buyAnswer, BUY_POPULARITY } from '../../../lib/buy.mjs'
 import { statusWord, charactersOf, genreSlug } from '../../../lib/format.js'
 
-const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' }
-const KINDS = new Set(['manhwa', 'manga', 'manhua', 'anime'])
+const KINDS = new Set(SECTIONS)
 
 const { kind, slug } = Astro.params
 if (!KINDS.has(kind)) return notFound(Astro)
@@ -33,7 +33,7 @@ try {
 if (!item) return notFound(Astro)
 
 const isComic = item.kind !== 'anime'
-if (isComic && (KIND_OF_COUNTRY[item.country] || 'manga') !== kind) return notFound(Astro)
+if (sectionOf(item) !== kind) return notFound(Astro)
 
 // The gate. A story nobody looks for was almost certainly never printed in
 // English, so every shop link here would open an empty shelf.

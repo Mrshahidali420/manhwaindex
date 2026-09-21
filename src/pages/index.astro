@@ -3,7 +3,7 @@ export const prerender = true
 import Base from '../layouts/Base.astro'
 import Countdown from '../components/Countdown.astro'
 import CoverGrid from '../components/CoverGrid.astro'
-import { animeByPopularity, comics, comicsOfCountry, anime, genres, platform, airingThisWeek } from '../lib/catalog.js'
+import { animeByPopularity, novelsByPopularity, comics, comicsOfCountry, anime, genres, platform, airingThisWeek } from '../lib/catalog.js'
 
 const manhwa = comicsOfCountry('KR')
 const manga = comicsOfCountry('JP')
@@ -35,6 +35,7 @@ const rows = [
   { id: 'anime', label: 'Trending anime', items: animeByPopularity.slice(0, 18), base: '/anime', all: anime.length, note: 'Each one links back to the manga or manhwa it came from.' },
   { id: 'manga', label: 'Trending manga', items: manga.slice(0, 18), base: '/manga', all: manga.length, note: '' },
   { id: 'manhua', label: 'Trending manhua', items: manhua.slice(0, 18), base: '/manhua', all: manhua.length, note: '' },
+  { id: 'novel', label: 'Trending novels', items: novelsByPopularity.slice(0, 18), base: '/novel', all: novelsByPopularity.length, note: 'Light novels and web novels, with the stores that sell them in English.' },
 ]
 
 // The hero stands in front of a real banner: the most popular manhwa
@@ -104,6 +105,7 @@ const tinyCover = (url) =>
     <a href="/manhwa"><b>Manhwa</b><span>Korean comics · {comicsOfCountry('KR').length.toLocaleString()} titles</span></a>
     <a href="/manga"><b>Manga</b><span>Japanese comics · {comicsOfCountry('JP').length.toLocaleString()} titles</span></a>
     <a href="/manhua"><b>Manhua</b><span>Chinese comics · {(comicsOfCountry('CN').length + comicsOfCountry('TW').length).toLocaleString()} titles</span></a>
+    <a href="/novel"><b>Novels</b><span>Light and web novels · {novelsByPopularity.length.toLocaleString()} titles</span></a>
     <a href="/anime"><b>Anime</b><span>Series and films · {anime.length.toLocaleString()} titles</span></a>
   </nav>
 
