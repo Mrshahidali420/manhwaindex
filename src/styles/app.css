@@ -3633,3 +3633,21 @@ main:has(.title-page) {
   }
   body { padding-bottom: 3.6rem; }
 }
+
+/* The not-found page offers the dead slug to the site search. The button is a
+   real thumb target, and it only appears when there is a word worth searching. */
+.miss-search {
+  appearance: none;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 999px;
+  background: var(--night-raised);
+  color: var(--dawn);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease-dawn), color 0.2s var(--ease-dawn);
+}
+.miss-search b { color: var(--rose); font-weight: 600; }
+.miss-search:hover,
+.miss-search:focus-visible { border-color: var(--rose); color: var(--dawn); }
