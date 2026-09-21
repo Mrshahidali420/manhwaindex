@@ -45,7 +45,6 @@ jobs:
             data/comics.json
             data/anime.json
             data/characters.json
-            data/characters-walk.json
           key: anilist-data-${{ github.run_id }}
           restore-keys: anilist-data-
 
@@ -74,12 +73,31 @@ jobs:
       # A title fetch carries ten cast members; this brings the rest. The walk
       # keeps its place in data/characters-walk.json, which rides in the same
       # cache as the catalog, and it never removes a record.
+      # The walk's place lives in its own cache entry. It must not join the
+      # catalog cache: actions/cache folds the path list into the cache
+      # version, so adding a path there makes every older catalog entry
+      # invisible and the build falls back to the seed.
+      - name: Restore the character walk position
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/characters-walk.json
+          key: characters-walk-${{ github.run_id }}
+          restore-keys: characters-walk-
+
       - name: Walk the AniList character list
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
         env:
           CHAR_MAX_CALLS: 1600
         run: node --max-old-space-size=6000 scripts/ingest-characters.mjs
+
+      - name: Save the character walk position
+        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && hashFiles('data/characters-walk.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/characters-walk.json
+          key: characters-walk-${{ github.run_id }}
 
       - name: Fill in thin character pages
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -97,7 +115,6 @@ jobs:
             data/comics.json
             data/anime.json
             data/characters.json
-            data/characters-walk.json
           key: anilist-data-${{ github.run_id }}
 
       # The catalog grew to ~107,000 titles and each record now carries the
