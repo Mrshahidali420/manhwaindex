@@ -13,6 +13,7 @@ import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } fro
 import { characterFaq, faqJsonld, wordOf, verbOf, uniqueBySite, linksOf } from '../../lib/answers.mjs'
 import { characterShopLinks } from '../../lib/shop-links.js'
 import BuyBox from '../../components/BuyBox.astro'
+import { checkedISO, checkedLong } from '../../lib/checked.js'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
 let person
@@ -177,7 +178,8 @@ const titleTail = promised.length
 
 const pageTitle = `${pageHeading}${titleTail}`
 
-const updated = new Date().toISOString().slice(0, 10)
+// The date of the last nightly check against AniList, shared by every page.
+const updated = checkedISO
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -223,7 +225,8 @@ const jsonld = {
           {person.name} is a {lead.role === 'MAIN' ? 'main character' : 'character'} in the {word}{' '}
           <a href={`/${leadKind}/${lead.slug}`}>{lead.title}</a>
           {authors.length > 0 && <> by {authors.join(' and ')}</>}. Every official place to {verb}{' '}
-          that story is listed further down this page.
+          that story is listed further down this page.{' '}
+          <span class="title-answer__stamp">Checked {checkedLong}.</span>
         </p>
         <dl class="facts">
           {facts.map(([term, value]) => (

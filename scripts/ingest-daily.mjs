@@ -23,6 +23,9 @@
  * Options (environment variables):
  *   MAX_CALLS=240      hard ceiling on API calls (default 240)
  *   MAX_PROBE_PAGES=40 how deep a probe sweep may go before it gives up
+ *
+ * data/keep.json lists ids that are fetched every night no matter what the
+ * probe says. See scripts/keep-list.mjs.
  */
 
 import { appendFileSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
@@ -30,8 +33,11 @@ import { join } from 'node:path'
 import {
   DATA_DIR, RAW_DIR, IDS_PER_CALL, REQUEST_DELAY_MS,
   PROBE_RECENT_QUERY, PROBE_NEW_QUERY, BY_IDS_QUERY,
-  gql, sleep, shape, harvestCharacters, loadAssembled, loadSeen, assembleAndWrite,
+  gql, sleep, shape, harvestCharacters, loadAssembled, loadSeen, assembleAndWrite, CHARACTERS,
 } from './anilist-core.mjs'
+import {
+  loadKeep, withKeptMedia, KEEP_CHARACTERS_QUERY, keepCharacterRecord, linkKeptCharacter,
+} from './keep-list.mjs'
 
 const STATE_FILE = join(DATA_DIR, 'ingest-state.json')
 const DAILY_RAW = join(RAW_DIR, 'daily.jsonl')
@@ -108,6 +114,41 @@ async function fetchDetails(ids) {
   return out
 }
 
+/**
+ * Fetch every character on the keep list and link it to each catalog title
+ * it appears in. 50 ids per call, same budget and pace as the rest.
+ */
+async function fetchKeptCharacters(ids, comics, anime) {
+  const result = { characters: 0, links: 0 }
+  if (!ids.length) return result
+  const titleById = new Map([...comics, ...anime].map((x) => [x.id, x]))
+  for (let i = 0; i < ids.length; i += IDS_PER_CALL) {
+    if (calls >= MAX_CALLS) {
+      console.log('  keep list: call budget used up, the rest waits for tomorrow.')
+      break
+    }
+    const batch = ids.slice(i, i + IDS_PER_CALL)
+    let data
+    try {
+      data = await gql(KEEP_CHARACTERS_QUERY, { ids: batch })
+    } catch (error) {
+      console.warn(`  keep list batch failed: ${error.message}. skipping it.`)
+      await sleep(REQUEST_DELAY_MS)
+      continue
+    }
+    calls++
+    for (const node of data?.Page?.characters || []) {
+      const record = keepCharacterRecord(node)
+      CHARACTERS.set(record.id, { ...record, appearsIn: [] })
+      result.characters++
+      result.links += linkKeptCharacter(node, record, titleById)
+    }
+    await sleep(REQUEST_DELAY_MS)
+  }
+  console.log(`Keep list: ${result.characters} of ${ids.length} characters fetched, ${result.links} cast links added.`)
+  return result
+}
+
 async function main() {
   const startedAt = Date.now()
   const { comics, anime } = loadAssembled()
@@ -145,8 +186,9 @@ async function main() {
     await sleep(REQUEST_DELAY_MS)
   }
 
-  const ids = [...wanted]
-  console.log(`Probe done in ${calls} calls. ${ids.length} titles need a full fetch.`)
+  const keep = loadKeep()
+  const ids = withKeptMedia([...wanted], keep)
+  console.log(`Probe done in ${calls} calls. ${wanted.size} titles need a full fetch, ${keep.media.length} more are on the keep list.`)
 
   const fetched = ids.length ? await fetchDetails(ids) : new Map()
   console.log(`Fetched ${fetched.size} records. ${calls} API calls in total.`)
@@ -173,6 +215,7 @@ async function main() {
 
   const nextComics = merge(comics, 'comic')
   const nextAnime = merge(anime, 'anime')
+  const kept = await fetchKeptCharacters(keep.characters, nextComics, nextAnime)
   const stats = assembleAndWrite(nextComics, nextAnime, startedAt)
 
   writeFileSync(STATE_FILE, JSON.stringify({
@@ -180,6 +223,7 @@ async function main() {
     probed: calls,
     needed: ids.length,
     refreshed: fetched.size,
+    kept,
     comics: stats.comics,
     anime: stats.anime,
   }, null, 2))

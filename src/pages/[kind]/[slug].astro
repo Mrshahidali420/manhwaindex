@@ -19,6 +19,7 @@ import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/co
 import { shopLinks } from '../../lib/shop-links.js'
 import { BUY_POPULARITY } from '../../lib/buy.mjs'
 import BuyBox from '../../components/BuyBox.astro'
+import { checkedISO, checkedLong } from '../../lib/checked.js'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -163,8 +164,9 @@ const trailer = item.trailer
     }
   : null
 
-// The index rebuilds every day, so every page is as fresh as the build.
-const updated = new Date().toISOString().slice(0, 10)
+// The index rebuilds every day, so every page carries the date of the last
+// check against AniList, even when its own record did not change.
+const updated = checkedISO
 
 // The names a reader may already know this by. AniList keeps them, and a
 // reader who only knows the fan name should still land on the right page.
@@ -374,11 +376,7 @@ const reach = coverage(links, kind)
 const bridge = adaptationAnswer(item, kind)
 const order = readingOrder(item, kind)
 
-const updatedLong = new Date().toLocaleDateString('en-US', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
+const updatedLong = checkedLong
 ---
 
 <Base

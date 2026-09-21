@@ -15,7 +15,7 @@
 import { platform } from '../lib/format.js'
 import Mark from './Mark.astro'
 import { rankedRows, bestValue } from '../lib/answers.mjs'
-import shards from '../../data/shards.json'
+import { checkedText, checkedISO } from '../lib/checked.js'
 
 // withVerdict: print the one-line "cheapest way in" above the table. Only the
 // title page asks for it. The free page already says the same thing in its
@@ -28,14 +28,8 @@ const freeLabel = `Free to ${verb}`
 const rows = rankedRows(links)
 const verdict = withVerdict ? bestValue(rows, verb === 'watch' ? 'anime' : 'comic') : null
 
-// Every build rewrites builtAt, so this date is never stale by more than a day.
-const checkedAt = new Date(shards.builtAt || Date.now())
-const checkedText = checkedAt.toLocaleDateString('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
-const checkedISO = checkedAt.toISOString().slice(0, 10)
+// checkedText and checkedISO come from src/lib/checked.js: the build stamp,
+// rewritten by every nightly build.
 ---
 
 <section class="answer">
