@@ -91,6 +91,17 @@ jobs:
       # backfilled fields too. Both make-shards and astro build hold the whole
       # thing in memory, and the default 2 GB heap is no longer enough: the
       # first run after the backfill died with "heap out of memory".
+      # The manifest of the last site that actually shipped, in its own cache
+      # entry. The build compares itself against it and refuses to deploy a
+      # site more than 2% smaller: that is what a lost catalog cache looks
+      # like, and shipping it turns thousands of indexed pages into 404s.
+      - name: Restore the live manifest
+        uses: actions/cache/restore@v4
+        with:
+          path: data/live-manifest.json
+          key: live-manifest-${{ github.run_id }}
+          restore-keys: live-manifest-
+
       - run: npm run build
         env:
           NODE_OPTIONS: --max-old-space-size=6000
@@ -100,6 +111,16 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 735d0fbab0757142b2c29917563e0626
+
+      # Only after a successful deploy: the file must describe what is live.
+      - name: Record the live manifest
+        run: cp public/d/manifest.json data/live-manifest.json
+
+      - name: Save the live manifest
+        uses: actions/cache/save@v4
+        with:
+          path: data/live-manifest.json
+          key: live-manifest-${{ github.run_id }}
 
       # IndexNow tells Bing, Yandex, Seznam and Naver about new pages the same
       # day. Google ignores it and reads the sitemaps instead. This runs after

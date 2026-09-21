@@ -14,7 +14,7 @@
  *   node scripts/make-shards.mjs      (npm run build does this for you)
  */
 
-import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
@@ -327,22 +327,42 @@ const since = (label) => {
  */
 const SHRINK_LIMIT = 0.02
 const LIVE_MANIFEST = 'https://manhwaindex.com/d/manifest.json'
+// The deploy job saves the manifest of the last site it shipped here, in its
+// own Actions cache entry. It is the source of truth on GitHub: Bot Fight
+// Mode challenges a fetch of the live URL from a runner, so that only works
+// from a normal machine.
+const LIVE_MANIFEST_FILE = join(ROOT, 'data', 'live-manifest.json')
 
-async function guardAgainstShrink(manifest) {
-  if (process.env.ALLOW_SHRINK) {
-    console.log('  ALLOW_SHRINK is set: the shrink guard is off for this build.')
-    return
+/** The manifest of the site that is live now: the saved file first, then the URL. */
+async function readLiveManifest() {
+  if (existsSync(LIVE_MANIFEST_FILE)) {
+    try {
+      return JSON.parse(readFileSync(LIVE_MANIFEST_FILE, 'utf8'))
+    } catch (e) {
+      console.log(`  saved live manifest unreadable (${e.message})`)
+    }
   }
-  let live
   try {
     const res = await fetch(`${LIVE_MANIFEST}?t=${Date.now()}`, {
       headers: { 'user-agent': 'manhwaindex-build' },
       signal: AbortSignal.timeout(15000),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    live = await res.json()
+    return await res.json()
   } catch (e) {
-    console.log(`  no live manifest to compare against (${e.message}); shrink guard skipped`)
+    console.log(`  live manifest not fetched (${e.message})`)
+    return null
+  }
+}
+
+async function guardAgainstShrink(manifest) {
+  if (process.env.ALLOW_SHRINK) {
+    console.log('  ALLOW_SHRINK is set: the shrink guard is off for this build.')
+    return
+  }
+  const live = await readLiveManifest()
+  if (!live) {
+    console.log('  no live manifest to compare against; shrink guard skipped')
     return
   }
   const checks = [

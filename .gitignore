@@ -26,3 +26,6 @@ data/seen.json
 
 # Written by scripts/indexnow.mjs. Lives in the Actions cache, not in git.
 data/indexnow-sent.json
+
+# The manifest of the last deployed site. Lives in the Actions cache, not in git.
+data/live-manifest.json
