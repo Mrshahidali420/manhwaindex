@@ -10,6 +10,10 @@
  * appears here the next morning, and one that fades drops off.
  *
  * We stock nothing and we hold no product data. Every link opens Amazon.
+ *
+ * The page is read mostly on a phone, reached from the dock, so it is built
+ * top-down for a thumb: a jump row first, then shelves, and every outbound
+ * button is a real 44 px target instead of a thin pill.
  */
 export const prerender = true
 import Base from '../layouts/Base.astro'
@@ -28,6 +32,7 @@ const manhua = [...comicsOfCountry('CN'), ...comicsOfCountry('TW')].sort(
 const shelves = [
   {
     id: 'manhwa',
+    short: 'Manhwa',
     heading: 'Manhwa merchandise',
     blurb:
       'Korean webtoons. Most run as digital-first, so the printed volumes are the thing collectors hunt for.',
@@ -37,6 +42,7 @@ const shelves = [
   },
   {
     id: 'manga',
+    short: 'Manga',
     heading: 'Manga merchandise',
     blurb:
       'Japanese comics. These have the deepest print runs, the box sets and the widest figure lines.',
@@ -46,6 +52,7 @@ const shelves = [
   },
   {
     id: 'manhua',
+    short: 'Manhua',
     heading: 'Manhua merchandise',
     blurb:
       'Chinese comics. English print is thinner here, so the merch shelf is often better stocked than the book shelf.',
@@ -55,6 +62,7 @@ const shelves = [
   },
   {
     id: 'anime',
+    short: 'Anime',
     heading: 'Anime discs and figures',
     blurb:
       'Series with a disc release, a soundtrack, or a figure line. Start here if you want something on a shelf.',
@@ -65,9 +73,11 @@ const shelves = [
 ].filter((shelf) => shelf.items.length > 0)
 
 // Genre doors. The catalog decides which genres are big enough to show, so
-// this row keeps itself honest without anybody editing a list.
+// this row keeps itself honest without anybody editing a list. The genre name
+// links inward to its own page; only the two shop words link out.
 const genreRows = genres.slice(0, 14).map((g) => ({
   name: g.name,
+  page: `/genre/${g.slug}`,
   books: shopUrl(`${g.name} manga`, BOOKS),
   merch: shopUrl(`${g.name} anime`, TOYS),
 }))
@@ -84,14 +94,75 @@ const starters = [
   { kind: 'apparel', label: 'Apparel', url: shopUrl('anime shirt', TOYS) },
 ]
 
+/* The questions a first-time visitor actually asks before they tap a buy
+   link. They are also the questions search engines quote back. */
+const faqs = [
+  {
+    q: 'Do you sell manhwa and anime merchandise yourself?',
+    a: 'No. manhwaindex is an index, not a shop. We hold no stock, take no payment and ship nothing. Every buy link opens Amazon, where the price, the stock and the edition are Amazon’s own.',
+  },
+  {
+    q: 'Where can I buy manhwa in print in English?',
+    a: 'Most Korean webtoons start digital-first, so only the bigger series reach print. The manhwa shelf on this page links straight to an Amazon search for each series, which is the fastest way to see whether an English volume exists today.',
+  },
+  {
+    q: 'Why is a shelf empty for some series?',
+    a: 'A series that was never printed or released in English will show an empty Amazon shelf. That is the honest answer, not a fault. Import editions sometimes exist under the original title instead.',
+  },
+  {
+    q: 'Does it cost me more to use these links?',
+    a: 'No. The price is the same for you. manhwaindex earns a small commission from qualifying purchases, which pays for the servers that keep this index free.',
+  },
+  {
+    q: 'How do you pick which series appear here?',
+    a: 'By how many people are reading or watching them, most popular first. The list rebuilds every day at 02:00 UTC from the same catalog as the rest of the site, so nothing here is hand-picked.',
+  },
+]
+
+const site = 'https://manhwaindex.com'
 const description =
   'Where to buy manhwa, manga and anime merchandise: printed volumes, box sets, Blu-ray, figures, art books and posters, sorted by what readers here actually read.'
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'CollectionPage',
+      '@id': `${site}/shop#collection`,
+      url: `${site}/shop`,
+      name: 'Shop manhwa, manga and anime merchandise',
+      description,
+      dateModified: new Date().toISOString().slice(0, 10),
+      mainEntity: {
+        '@type': 'ItemList',
+        name: 'Merchandise shelves',
+        numberOfItems: shelves.length,
+        itemListElement: shelves.map((shelf, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: shelf.heading,
+          url: `${site}/shop#${shelf.id}`,
+        })),
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${site}/shop#faq`,
+      mainEntity: faqs.map((row) => ({
+        '@type': 'Question',
+        name: row.q,
+        acceptedAnswer: { '@type': 'Answer', text: row.a },
+      })),
+    },
+  ],
+}
 ---
 
 <Base
   title="Shop manhwa, manga and anime merchandise"
   description={description}
   canonical="/shop"
+  jsonld={jsonld}
   crumbs={[{ name: 'Shop' }]}
 >
   <div class="shell">
@@ -103,6 +174,11 @@ const description =
         in print today. {AMAZON_DISCLOSURE}
       </p>
     </header>
+
+    <nav class="shop-jump" aria-label="Jump to a shelf">
+      {shelves.map((shelf) => <a href={`#${shelf.id}`}>{shelf.short}</a>)}
+      <a href="#genres">By genre</a>
+    </nav>
 
     <section class="section">
       <div class="section__head">
@@ -145,7 +221,13 @@ const description =
                 </a>
                 <p class="shop-card__buy">
                   {shelfLinks(item).map((row) => (
-                    <a href={row.url} rel="noopener nofollow sponsored" target="_blank" data-aff={row.kind}>
+                    <a
+                      href={row.url}
+                      rel="noopener nofollow sponsored"
+                      target="_blank"
+                      data-aff={row.kind}
+                      aria-label={`${row.label} for ${item.title} on Amazon`}
+                    >
                       {row.label}
                     </a>
                   ))}
@@ -160,26 +242,59 @@ const description =
       ))
     }
 
-    <section class="section">
+    <section class="section" id="genres">
       <div class="section__head">
         <h2>Shop by genre</h2>
-        <p>The genres this index carries most of. Books on the left, merch on the right.</p>
+        <p>
+          Tap a genre to read the full list on this site, or go straight to books
+          and merch on Amazon.
+        </p>
       </div>
       <ul class="shop-genres">
         {
           genreRows.map((row) => (
             <li>
-              <b>{row.name}</b>
-              <a href={row.books} rel="noopener nofollow sponsored" target="_blank" data-aff="books">
+              <a class="shop-genres__name" href={row.page}>
+                {row.name}
+              </a>
+              <a
+                href={row.books}
+                rel="noopener nofollow sponsored"
+                target="_blank"
+                data-aff="books"
+                aria-label={`${row.name} books on Amazon`}
+              >
                 Books
               </a>
-              <a href={row.merch} rel="noopener nofollow sponsored" target="_blank" data-aff="merch">
+              <a
+                href={row.merch}
+                rel="noopener nofollow sponsored"
+                target="_blank"
+                data-aff="merch"
+                aria-label={`${row.name} merch on Amazon`}
+              >
                 Merch
               </a>
             </li>
           ))
         }
       </ul>
+    </section>
+
+    <section class="section">
+      <div class="section__head">
+        <h2>Common questions</h2>
+      </div>
+      <div class="qa2">
+        {
+          faqs.map((row) => (
+            <details>
+              <summary>{row.q}</summary>
+              <p class="qa2__a">{row.a}</p>
+            </details>
+          ))
+        }
+      </div>
     </section>
 
     <section class="section">
@@ -195,5 +310,12 @@ const description =
         {' '}{AMAZON_DISCLOSURE}
       </p>
     </section>
+
+    <nav class="genre-next" aria-label="Keep browsing">
+      <a href="/genre">Browse by genre →</a>
+      <a href="/where-to-read">Where to read →</a>
+      <a href="/where-to-watch">Where to watch →</a>
+      <a href="/mood">Browse by mood →</a>
+    </nav>
   </div>
 </Base>

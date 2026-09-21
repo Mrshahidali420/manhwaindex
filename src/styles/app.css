@@ -1196,12 +1196,16 @@ main:has(.title-page) {
 }
 .shop-card__buy a {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   text-align: center;
-  padding: 0.3rem 0.2rem;
+  padding: 0.35rem 0.3rem;
   border: 1px solid var(--rose-soft);
   border-radius: 999px;
   color: var(--rose);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
   transition: background 160ms ease;
@@ -1213,6 +1217,53 @@ main:has(.title-page) {
 .shop-shelf__more {
   margin: 1rem 0 0;
   font-size: 0.85rem;
+}
+
+/* The jump row. On a phone this page is four long shelves, so the reader gets
+   a way to reach the right one without scrolling past the other three. */
+.shop-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 1.6rem;
+}
+.shop-jump a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.3rem 0.95rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 999px;
+  background: var(--night-raised);
+  color: var(--dawn-dim);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 140ms var(--ease-dawn),
+    border-color 140ms var(--ease-dawn);
+}
+.shop-jump a:hover,
+.shop-jump a:focus-visible {
+  color: var(--rose);
+  border-color: var(--rose-soft);
+}
+
+@media (max-width: 640px) {
+  .shop-jump {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-bottom: 1.2rem;
+  }
+  .shop-jump::-webkit-scrollbar {
+    display: none;
+  }
+  .shop-shelf {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.1rem 0.7rem;
+  }
 }
 
 /* Genre doors: one row per genre, the two shops sitting at the end of it. */
@@ -1233,13 +1284,24 @@ main:has(.title-page) {
   border-radius: 12px;
   background: var(--night-sunk);
 }
-.shop-genres b {
+.shop-genres a.shop-genres__name {
   flex: 1;
+  min-width: 0;
+  color: var(--dawn);
   font-size: 0.9rem;
+  font-weight: 700;
+}
+.shop-genres a.shop-genres__name:hover,
+.shop-genres a.shop-genres__name:focus-visible {
+  color: var(--rose);
 }
 .shop-genres a {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 0.15rem;
   color: var(--rose);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
 }
@@ -2064,34 +2126,161 @@ main:has(.title-page) {
   font-size: 0.85rem;
 }
 
+/* A tap row of the biggest genres, above the wall. On a phone it scrolls
+   sideways so the ten most wanted doors fit in one thumb sweep. */
+.genre-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 1.4rem;
+}
+.genre-quick a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 999px;
+  background: var(--night-raised);
+  color: var(--dawn-dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 140ms var(--ease-dawn),
+    border-color 140ms var(--ease-dawn);
+}
+.genre-quick a:hover,
+.genre-quick a:focus-visible {
+  color: var(--rose);
+  border-color: var(--rose-soft);
+}
+
+/* The wall itself. Each card carries three real covers, because a cover says
+   what a genre holds faster than any label we could write. */
 .genre-wall {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
   gap: 1px;
   background: rgb(36 65 143 / 0.45);
   border: 1px solid rgb(36 65 143 / 0.45);
 }
 .genre-wall a {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
   background: var(--night);
-  padding: 1rem 1.1rem;
+  padding: 0.7rem 0.75rem 0.85rem;
   text-decoration: none;
   transition: background-color 140ms var(--ease-dawn);
 }
-.genre-wall a:hover {
+.genre-wall a:hover,
+.genre-wall a:focus-visible {
   background: var(--night-raised);
 }
-.genre-wall b {
-  display: block;
-  font-weight: 700;
+
+.genre-wall__faces {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
 }
-.genre-wall span {
+.genre-wall__faces img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--night-sunk);
+}
+/* One cover must not stretch across all three columns. */
+.genre-wall__faces img:only-child {
+  max-width: 34%;
+}
+
+.genre-wall__text {
+  display: block;
+  margin-top: auto;
+}
+.genre-wall__text b {
+  display: block;
+  color: var(--dawn);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.genre-wall__text span {
+  display: block;
+  margin-top: 0.15rem;
   color: var(--dawn-faint);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+}
+.genre-wall a:hover .genre-wall__text b {
+  color: var(--rose);
+}
+
+/* Where to go after the wall. Four plain doors, each a full thumb target. */
+.genre-next {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px;
+  margin: 0 0 2.5rem;
+  background: rgb(36 65 143 / 0.45);
+  border: 1px solid rgb(36 65 143 / 0.45);
+}
+.genre-next a {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0.75rem 1rem;
+  background: var(--night);
+  color: var(--dawn-dim);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 140ms var(--ease-dawn),
+    color 140ms var(--ease-dawn);
+}
+.genre-next a:hover,
+.genre-next a:focus-visible {
+  background: var(--night-raised);
+  color: var(--rose);
+}
+
+/* Phones: two genre cards per row, and the quick row scrolls sideways
+   instead of wrapping into a tall block. */
+@media (max-width: 640px) {
+  .genre-quick {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.2rem;
+    margin-bottom: 1.1rem;
+  }
+  .genre-quick::-webkit-scrollbar {
+    display: none;
+  }
+  .genre-wall {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .genre-wall a {
+    padding: 0.55rem 0.55rem 0.7rem;
+  }
+  .genre-wall__text b {
+    font-size: 0.92rem;
+  }
+  .genre-wall__text span {
+    font-size: 0.72rem;
+  }
+  .genre-next {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- character pages -------------------------------------------------- */
@@ -3411,7 +3600,7 @@ main:has(.title-page) {
     bottom: 0;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     background: var(--night-raised);
     border-top: 1px solid var(--cobalt-line);
     padding-bottom: env(safe-area-inset-bottom);
@@ -3420,9 +3609,12 @@ main:has(.title-page) {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.2rem;
-    padding: 0.55rem 0;
-    font-size: 0.66rem;
+    min-height: 46px;
+    padding: 0.5rem 0.1rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.01em;
     color: var(--dawn-faint);
     text-decoration: none;
   }

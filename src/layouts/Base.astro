@@ -27,13 +27,13 @@ const nav = [
   { href: '/manga', label: 'Manga' },
   { href: '/manhua', label: 'Manhua' },
   { href: '/anime', label: 'Anime' },
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/mood', label: 'Moods' },
+  { href: '/shop', label: 'Shop' },
+  { href: '/genre', label: 'Genres' },
   { href: '/where-to-read', label: 'Where to Read' },
   { href: '/where-to-watch', label: 'Where to Watch' },
-  { href: '/genre', label: 'Genres' },
+  { href: '/schedule', label: 'Schedule' },
+  { href: '/mood', label: 'Moods' },
   { href: '/character', label: 'Characters' },
-  { href: '/shop', label: 'Shop' },
 ]
 const here = Astro.url.pathname
 const footGenres = stats.genres
@@ -801,6 +801,10 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         <a href="/genre" class={here === '/genre' ? 'dock__on' : undefined}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></svg>
           Genres
+        </a>
+        <a href="/shop" class={here === '/shop' ? 'dock__on' : undefined}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l1 13H5z" /><path d="M9 10V6a3 3 0 0 1 6 0v4" /></svg>
+          Shop
         </a>
       </nav>
     )}
