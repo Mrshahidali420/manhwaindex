@@ -45,6 +45,10 @@ const DAILY_RAW = join(RAW_DIR, 'daily.jsonl')
 const num = (name, fallback) => (process.env[name] ? Number(process.env[name]) : fallback)
 const MAX_CALLS = num('MAX_CALLS', 240)
 const MAX_PROBE_PAGES = num('MAX_PROBE_PAGES', 40)
+// The keep list has its own small budget. It runs after the big fetch, which
+// on a busy night spends every call MAX_CALLS allows, and a kept page must
+// come back that night, not the night the backlog clears. 50 ids per call.
+const KEEP_MAX_CALLS = num('KEEP_MAX_CALLS', 10)
 
 let calls = 0
 
@@ -116,15 +120,16 @@ async function fetchDetails(ids) {
 
 /**
  * Fetch every character on the keep list and link it to each catalog title
- * it appears in. 50 ids per call, same budget and pace as the rest.
+ * it appears in. 50 ids per call, at the same pace as the rest, on its own budget.
  */
 async function fetchKeptCharacters(ids, comics, anime) {
   const result = { characters: 0, links: 0 }
   if (!ids.length) return result
   const titleById = new Map([...comics, ...anime].map((x) => [x.id, x]))
+  let keepCalls = 0
   for (let i = 0; i < ids.length; i += IDS_PER_CALL) {
-    if (calls >= MAX_CALLS) {
-      console.log('  keep list: call budget used up, the rest waits for tomorrow.')
+    if (keepCalls >= KEEP_MAX_CALLS) {
+      console.log(`  keep list: its ${KEEP_MAX_CALLS}-call budget is used up, the rest waits for tomorrow.`)
       break
     }
     const batch = ids.slice(i, i + IDS_PER_CALL)
@@ -137,6 +142,7 @@ async function fetchKeptCharacters(ids, comics, anime) {
       continue
     }
     calls++
+    keepCalls++
     for (const node of data?.Page?.characters || []) {
       const record = keepCharacterRecord(node)
       CHARACTERS.set(record.id, { ...record, appearsIn: [] })
