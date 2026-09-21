@@ -17,7 +17,7 @@
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bucket, titleKey, TITLES_PER_SHARD, CHARACTERS_PER_SHARD } from '../src/lib/shard-key.js'
+import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
 import { reslugAll } from '../src/lib/reslug.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
@@ -61,9 +61,8 @@ const KIND_OF_COUNTRY = { KR: 'manhwa', JP: 'manga', CN: 'manhua', TW: 'manhua' 
 export const kindOf = (item) =>
   item.kind === 'anime' ? 'anime' : KIND_OF_COUNTRY[item.country] || 'manga'
 
-/** Write one folder of shards. Returns the shard count. */
-function writeShards(dir, records, perShard, keyOf) {
-  const count = Math.max(1, Math.ceil(records.length / perShard))
+/** Write one folder of shards. The count is fixed: see shard-key.js. */
+function writeShards(dir, records, count, keyOf) {
   const shards = Array.from({ length: count }, () => [])
   for (const record of records) {
     const key = keyOf(record)
@@ -317,7 +316,50 @@ const since = (label) => {
   mark = Date.now()
 }
 
-function main() {
+/**
+ * Refuse to build a site smaller than the one that is live.
+ *
+ * The catalog only ever grows: the daily job adds and refreshes, it never
+ * deletes. So a smaller count means data was lost on the way in, and shipping
+ * it would turn thousands of indexed pages into 404s at once. This happened
+ * once from the seed copy standing in for a lost cache. Now the build stops
+ * and the last good deploy stays up. ALLOW_SHRINK=1 overrides it on purpose.
+ */
+const SHRINK_LIMIT = 0.02
+const LIVE_MANIFEST = 'https://manhwaindex.com/d/manifest.json'
+
+async function guardAgainstShrink(manifest) {
+  if (process.env.ALLOW_SHRINK) {
+    console.log('  ALLOW_SHRINK is set: the shrink guard is off for this build.')
+    return
+  }
+  let live
+  try {
+    const res = await fetch(`${LIVE_MANIFEST}?t=${Date.now()}`, {
+      headers: { 'user-agent': 'manhwaindex-build' },
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    live = await res.json()
+  } catch (e) {
+    console.log(`  no live manifest to compare against (${e.message}); shrink guard skipped`)
+    return
+  }
+  const checks = [
+    ['titles', manifest.titles, live.titles],
+    ['character pages', manifest.characterPages, live.characterPages],
+  ]
+  for (const [label, now, before] of checks) {
+    if (!before || now >= before * (1 - SHRINK_LIMIT)) continue
+    console.error(`SHRINK GUARD: ${label} fell from ${before} live to ${now} in this build.`)
+    console.error('Pages that exist today would 404 tomorrow. Refusing to build.')
+    console.error('If the drop is intended, run again with ALLOW_SHRINK=1.')
+    process.exit(1)
+  }
+  console.log(`  shrink guard ok: titles ${live.titles} -> ${manifest.titles}, character pages ${live.characterPages} -> ${manifest.characterPages}`)
+}
+
+async function main() {
   const comics = read('comics.json')
   const anime = read('anime.json')
   const characters = read('characters.json')
@@ -333,13 +375,13 @@ function main() {
   const titles = [...comics, ...anime]
   precompute(titles)
   since('precompute')
-  const t = writeShards(join(OUT, 't'), titles, TITLES_PER_SHARD, (item) =>
+  const t = writeShards(join(OUT, 't'), titles, TITLE_SHARDS, (item) =>
     titleKey(kindOf(item), item.slug))
   since('title shards')
 
   // Only characters that earn a page are sharded. The rest are never served.
   const pages = characters.filter((c) => c.image && (c.appearsIn || []).length > 0)
-  const c = writeShards(join(OUT, 'c'), pages, CHARACTERS_PER_SHARD, (person) => person.slug)
+  const c = writeShards(join(OUT, 'c'), pages, CHARACTER_SHARDS, (person) => person.slug)
 
   // The site shell (header and footer) shows two counts and the top genres.
   // The Worker renders the shell on every page, so those few numbers are
@@ -394,8 +436,18 @@ function main() {
 
   writeFileSync(join(ROOT, 'data', 'answer-urls.json'), JSON.stringify(answerUrls))
 
-  const manifest = { titleShards: t.count, characterShards: c.count, builtAt: Date.now() }
+  const manifest = {
+    titleShards: t.count,
+    characterShards: c.count,
+    titles: titles.length,
+    characterPages: pages.length,
+    builtAt: Date.now(),
+  }
+  await guardAgainstShrink(manifest)
   writeFileSync(join(ROOT, 'data', 'shards.json'), JSON.stringify(manifest, null, 2))
+  // The same manifest is published with the site, so the next build can read
+  // what is live and refuse to ship a smaller site.
+  writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(manifest))
 
   const mb = (n) => `${(n / 1048576).toFixed(1)} MB`
   console.log(`titles     ${titles.length} in ${t.count} shards, ${mb(t.bytes)}, biggest ${t.biggest} records`)
@@ -405,4 +457,7 @@ function main() {
   console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like, ${answerUrls.buy.length} buy, ${answerUrls.charBuy.length} character buy, ${answerUrls.cast.length} cast`)
 }
 
-main()
+main().catch((e) => {
+  console.error('MAKE SHARDS FAILED:', e)
+  process.exit(1)
+})

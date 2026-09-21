@@ -8,13 +8,19 @@
  */
 import Base from '../../../layouts/Base.astro'
 import BuyBox from '../../../components/BuyBox.astro'
-import { loadCharacter, loadTitle, envOf, countryOf, notFound } from '../../../lib/runtime.js'
+import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { faqJsonld } from '../../../lib/answers.mjs'
 import { kindOfAppearance } from '../../../lib/format.js'
 import { characterShopLinks, FIGURE_POPULARITY } from '../../../lib/shop-links.js'
 import { characterBuyAnswer } from '../../../lib/buy.mjs'
 
-const person = await loadCharacter(envOf(Astro), Astro.params.slug)
+let person
+try {
+  person = await loadCharacter(envOf(Astro), Astro.params.slug)
+} catch (e) {
+  // The shard did not read: 503, not 404. The page still exists.
+  return unavailable(Astro, e)
+}
 if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
 
 // The same lead the profile page picks: a comic wins over its own anime.
@@ -27,7 +33,13 @@ const leadKind = kindOfAppearance(lead)
 // page would be a shelf with nothing on it.
 if ((lead.popularity || 0) < FIGURE_POPULARITY) return notFound(Astro)
 
-const series = await loadTitle(envOf(Astro), leadKind, lead.slug)
+let series
+try {
+  series = await loadTitle(envOf(Astro), leadKind, lead.slug)
+} catch (e) {
+  // The shard did not read: 503, not 404. The page still exists.
+  return unavailable(Astro, e)
+}
 const buys = characterShopLinks(person, series || lead, countryOf(Astro))
 if (buys.length === 0) return notFound(Astro)
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')

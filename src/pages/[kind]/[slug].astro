@@ -13,7 +13,7 @@ import {
   enrichOf,
   genreSlug,
 } from '../../lib/format.js'
-import { loadTitle, envOf, countryOf, notFound } from '../../lib/runtime.js'
+import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../lib/runtime.js'
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
 import { shopLinks } from '../../lib/shop-links.js'
@@ -28,7 +28,13 @@ const KINDS = new Set(['manhwa', 'manga', 'manhua', 'anime'])
 const { kind, slug } = Astro.params
 if (!KINDS.has(kind)) return notFound(Astro)
 
-const item = await loadTitle(envOf(Astro), kind, slug)
+let item
+try {
+  item = await loadTitle(envOf(Astro), kind, slug)
+} catch (e) {
+  // The shard did not read: 503, not 404. The page still exists.
+  return unavailable(Astro, e)
+}
 if (!item) return notFound(Astro)
 
 const isComic = item.kind !== 'anime'

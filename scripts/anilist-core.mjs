@@ -112,6 +112,13 @@ export const MAX_ID_QUERY = `query ($type: MediaType) {
 }`
 
 export const CHARACTERS = new Map()
+// slug -> the "appears in" rows a character held in the last catalog on disk.
+// AniList only sends a title's top ten cast, and that order moves from day to
+// day. Rebuilt from scratch, a character who fell out of every top ten lost
+// every row, failed the page gate, and a Google-indexed URL turned into a
+// real 404. These rows are merged back in by assembleAndWrite, so a page that
+// exists today still exists tomorrow for as long as its title does.
+export const PRIOR_ROWS = new Map()
 
 export async function gql(query, variables, attempt = 1) {
   let res
@@ -364,7 +371,13 @@ export function loadAssembled() {
   const anime = readJson(join(DATA_DIR, 'anime.json'), [])
   const characters = readJson(join(DATA_DIR, 'characters.json'), [])
   CHARACTERS.clear()
-  for (const c of characters) CHARACTERS.set(c.id, { ...c, appearsIn: [] })
+  PRIOR_ROWS.clear()
+  for (const c of characters) {
+    // A record built from a cast entry has no id. Keyed on null they all
+    // collided on one Map slot and only the last one survived.
+    CHARACTERS.set(c.id ?? c.slug, { ...c, appearsIn: [] })
+    if (c.slug && (c.appearsIn || []).length) PRIOR_ROWS.set(c.slug, c.appearsIn)
+  }
   return { comics, anime }
 }
 
@@ -454,6 +467,40 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
       item.characters = (item.characters || []).map((r) => ({ id: r.id, slug: r.slug, name: r.name, image: r.image, role: r.role, voice: r.voice || null }))
     }
   }
+
+  // A page must never vanish. Every row a character held before is kept, as
+  // long as its title is still in the catalog, and that title's own cast list
+  // keeps the character too, so a /characters page never shrinks away either.
+  // Fresh rows from today's cast lists win; only the missing ones come back.
+  const titleByKey = new Map()
+  for (const [items, kind] of [[comics, 'comic'], [anime, 'anime']]) {
+    for (const item of items) titleByKey.set(`${kind}/${item.slug}`, item)
+  }
+  let restored = 0
+  for (const [slug, rows] of PRIOR_ROWS) {
+    const person = bySlug.get(slug)
+    if (!person) continue
+    const have = new Set(person.appearsIn.map((a) => `${a.kind}/${a.slug}`))
+    for (const row of rows) {
+      const key = `${row.kind}/${row.slug}`
+      if (have.has(key)) continue
+      const item = titleByKey.get(key)
+      if (!item) continue
+      have.add(key)
+      person.appearsIn.push({
+        ...row,
+        title: item.title,
+        cover: item.cover,
+        country: item.country,
+        popularity: item.popularity || 0,
+      })
+      if (!item.characters.some((r) => r.slug === person.slug)) {
+        item.characters.push({ id: person.id ?? null, slug: person.slug, name: person.name, image: person.image, role: row.role, voice: row.voice || null })
+      }
+      restored++
+    }
+  }
+  if (restored) console.log(`Kept ${restored} cast links that today's top-ten cast lists had dropped.`)
 
   const characterList = [...CHARACTERS.values()]
     // A name and a face are the whole gate. The old gate also demanded a main

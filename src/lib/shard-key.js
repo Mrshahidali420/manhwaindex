@@ -10,10 +10,14 @@ export function bucket(key, count) {
   return h % count
 }
 
-// How many records go in one shard file. Bigger shards mean fewer files but
-// more work per request. Measured: 100 title records parse in 2.5 ms, well
-// inside the 10 ms the free plan allows.
-export const TITLES_PER_SHARD = 200
-export const CHARACTERS_PER_SHARD = 400
+// How many shard files there are. FIXED, never derived from the catalog size.
+// The count used to grow with the catalog, so every build moved almost every
+// record to a different file, and a Worker isolate holding the previous
+// manifest read the wrong shard. At ~107,000 titles and ~100,000 character
+// pages this is about 105 and 195 records per file: 1,536 files in total,
+// far under the 20,000 the free plan allows, and one file parses in a few ms.
+// Changing either number rehashes everything: only do it with a full rebuild.
+export const TITLE_SHARDS = 1024
+export const CHARACTER_SHARDS = 512
 
 export const titleKey = (kind, slug) => `${kind}/${slug}`

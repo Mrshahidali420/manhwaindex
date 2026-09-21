@@ -9,13 +9,19 @@ import {
   genreSlug,
   parseHeight,
 } from '../../lib/format.js'
-import { loadCharacter, loadTitle, envOf, countryOf, notFound } from '../../lib/runtime.js'
+import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } from '../../lib/runtime.js'
 import { characterFaq, faqJsonld, wordOf, verbOf, uniqueBySite, linksOf } from '../../lib/answers.mjs'
 import { characterShopLinks } from '../../lib/shop-links.js'
 import BuyBox from '../../components/BuyBox.astro'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
-const person = await loadCharacter(envOf(Astro), Astro.params.slug)
+let person
+try {
+  person = await loadCharacter(envOf(Astro), Astro.params.slug)
+} catch (e) {
+  // The shard did not read: 503, not 404. The page still exists.
+  return unavailable(Astro, e)
+}
 if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
 
 // The lead title is the one this page is about. A comic wins over its own
@@ -61,7 +67,13 @@ const pageHeading = `${unquote(person.name)} — ${unquote(lead.title)} ${media}
 // record holds the official places to read it, who made it and what it is
 // about, and all of that belongs on this page too: a reader who lands here
 // wants the same answer as a reader who lands on the title page.
-const series = await loadTitle(envOf(Astro), leadKind, lead.slug)
+let series
+try {
+  series = await loadTitle(envOf(Astro), leadKind, lead.slug)
+} catch (e) {
+  // The shard did not read: 503, not 404. The page still exists.
+  return unavailable(Astro, e)
+}
 const links = series ? uniqueBySite(linksOf(series)) : []
 const siteCount = links.length
 const authors = (series?.authors || []).map((a) => a.name).filter(Boolean).slice(0, 3)
