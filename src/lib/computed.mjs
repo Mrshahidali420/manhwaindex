@@ -201,15 +201,73 @@ export function readingOrder(item, kind) {
  * An episode whose time has passed is never shown. The record is only as
  * fresh as the last daily build, so a past timestamp proves nothing.
  */
+const SEASON_WORDS = { WINTER: 'Winter', SPRING: 'Spring', SUMMER: 'Summer', FALL: 'Fall' }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/**
+ * What an announced title can say about its own date, best first:
+ *   a full day  -> "premieres on 10 Jan 2027" and a clock that counts down
+ *   a season    -> "is announced for Winter 2027"
+ *   a year      -> "is announced for 2027"
+ *   nothing     -> "is announced. No air date yet."
+ * AniList fills a missing month or day with 1, so a 1 January date is never
+ * trusted as a real day: it falls through to the season or the year.
+ */
+export function announced(entry, nowSec = Date.now() / 1000) {
+  const [year, month, day] = entry.startDate || []
+  const season = SEASON_WORDS[entry.season] && entry.seasonYear
+    ? `${SEASON_WORDS[entry.season]} ${entry.seasonYear}`
+    : null
+  const firstOfJan = month === 1 && day === 1
+  if (year && !firstOfJan) {
+    const at = Date.UTC(year, month - 1, day) / 1000
+    if (at > nowSec) return { at, text: `premieres on ${day} ${MONTHS[month - 1]} ${year}.` }
+  }
+  if (season) return { at: null, text: `is announced for ${season}.` }
+  const soonYear = year || entry.startYear
+  if (soonYear && soonYear >= new Date(nowSec * 1000).getUTCFullYear()) {
+    return { at: null, text: `is announced for ${soonYear}.` }
+  }
+  return { at: null, text: 'is announced. No air date yet.' }
+}
+
+const WEEK_SEC = 7 * 24 * 3600
+// A weekly show keeps its slot. The catalog refreshes once a day, so the
+// stored slot can already be behind us; roll it forward a week at a time,
+// but only for a still-airing show and only for a few weeks, so a show on a
+// break does not get a made-up timer.
+const MAX_ROLL_WEEKS = 3
+export function nextSlot(ep, status, nowSec = Date.now() / 1000) {
+  if (!ep || !ep.at) return null
+  if (ep.at > nowSec) return ep
+  if (status !== 'RELEASING') return null
+  const weeks = Math.ceil((nowSec - ep.at) / WEEK_SEC)
+  if (weeks > MAX_ROLL_WEEKS) return null
+  return { at: ep.at + weeks * WEEK_SEC, number: ep.number + weeks }
+}
+
 export function upcoming(item, kind, nowSec = Date.now() / 1000) {
   const ahead = (ep) => ep && ep.at > nowSec
 
   if (kind === 'anime') {
-    if (ahead(item.nextEpisode)) {
+    const slot = nextSlot(item.nextEpisode, item.status, nowSec)
+    if (slot) {
       return {
         tag: 'Next episode',
-        label: `Episode ${item.nextEpisode.number}`,
-        at: item.nextEpisode.at,
+        label: `Episode ${slot.number}`,
+        at: slot.at,
+        href: '/schedule',
+        linkText: 'See the full week',
+      }
+    }
+    if (item.status === 'NOT_YET_RELEASED') {
+      const due = announced(item, nowSec)
+      return {
+        tag: 'Not out yet',
+        label: `${item.title} ${due.text}`,
+        at: due.at,
+        dateOnly: true,
         href: '/schedule',
         linkText: 'See the full week',
       }
@@ -217,22 +275,26 @@ export function upcoming(item, kind, nowSec = Date.now() / 1000) {
   } else {
     const shows = (item.adapt && item.adapt.shows) || []
     const airing = shows
-      .filter((show) => ahead(show.nextEpisode))
-      .sort((a, b) => a.nextEpisode.at - b.nextEpisode.at)[0]
+      .map((show) => ({ show, slot: nextSlot(show.nextEpisode, show.status, nowSec) }))
+      .filter((x) => x.slot)
+      .sort((a, b) => a.slot.at - b.slot.at)[0]
     if (airing) {
       return {
         tag: 'The anime is airing',
-        label: `${airing.title} episode ${airing.nextEpisode.number}`,
-        at: airing.nextEpisode.at,
-        href: `/anime/${airing.slug}`,
+        label: `${airing.show.title} episode ${airing.slot.number}`,
+        at: airing.slot.at,
+        href: `/anime/${airing.show.slug}`,
         linkText: 'Where to watch it',
       }
     }
     const soon = shows.find((show) => show.status === 'NOT_YET_RELEASED')
     if (soon) {
+      const due = announced(soon, nowSec)
       return {
         tag: 'An anime is coming',
-        label: `${soon.title} is announced. No air date yet.`,
+        label: `${soon.title} ${due.text}`,
+        at: due.at,
+        dateOnly: true,
         href: `/anime/${soon.slug}`,
         linkText: 'See the show',
       }
@@ -244,9 +306,12 @@ export function upcoming(item, kind, nowSec = Date.now() / 1000) {
   const at = chain.findIndex((part) => part.self)
   const next = at >= 0 ? chain[at + 1] : null
   if (next && next.status === 'NOT_YET_RELEASED') {
+    const due = announced(next, nowSec)
     return {
       tag: kind === 'anime' ? 'A new season is coming' : 'A new part is coming',
-      label: `${next.title} is announced but not out yet.`,
+      label: `${next.title} ${due.text}`,
+      at: due.at,
+      dateOnly: true,
       href: `/${next.kind}/${next.slug}`,
       linkText: 'See it',
     }

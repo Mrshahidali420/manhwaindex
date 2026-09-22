@@ -210,6 +210,18 @@ function step(item, byId, relation) {
   return null
 }
 
+/**
+ * When an announced title is due. Only what the page needs to say "premieres
+ * on 10 Jan" or "announced for Winter 2027": nothing for a title already out.
+ */
+const premiere = (p) =>
+  p.status === 'NOT_YET_RELEASED'
+    ? {
+        ...(p.startDate ? { startDate: p.startDate } : {}),
+        ...(p.season && p.seasonYear ? { season: p.season, seasonYear: p.seasonYear } : {}),
+      }
+    : {}
+
 const part = (p, self) => ({
   slug: p.slug,
   title: p.title,
@@ -218,6 +230,7 @@ const part = (p, self) => ({
   chapters: p.chapters || null,
   episodes: p.episodes || null,
   startYear: p.startYear || null,
+  ...premiere(p),
   ...(self ? { self: true } : {}),
 })
 
@@ -266,6 +279,7 @@ function adaptationOf(item, byId) {
       episodes: show.episodes || null,
       status: show.status,
       startYear: show.startYear || null,
+      ...premiere(show),
       // The airing clock travels with the show, so a comic page can say when
       // its own anime airs next without loading the anime record.
       nextEpisode: show.nextEpisode || null,

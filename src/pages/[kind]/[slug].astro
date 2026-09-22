@@ -81,7 +81,7 @@ const freeNow = freeSplit(links).free.length
 const quickStats = isProtected
   ? []
   : [
-      item.score ? ['Score', String(item.score), true] : null,
+      item.score ? ['Score', (item.score / 10).toFixed(1), true] : null,
       isComic && item.chapters ? ['Chapters', String(item.chapters), false] : null,
       !isComic && item.episodes ? ['Episodes', String(item.episodes), false] : null,
       siteCount ? ['Legal sites', String(siteCount), false] : null,
@@ -480,7 +480,7 @@ const updatedLong = checkedLong
           <p class="next-ep">
             <span class="next-ep__tag">{ahead.tag}</span>
             <span class="next-ep__num">{ahead.label}</span>
-            {ahead.at && <Countdown at={ahead.at} local />}
+            {ahead.at && <Countdown at={ahead.at} local={!ahead.dateOnly} />}
             <a class="next-ep__all" href={ahead.href}>{ahead.linkText}</a>
           </p>
         )
