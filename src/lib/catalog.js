@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { reslugAll } from './reslug.mjs'
+import { dropBlocked, dropBlockedRows } from './blocked.js'
 
 // Resolved from the working directory, not from import.meta.url: this module is
 // bundled into dist/_worker.js before the prerender step runs it, so a path
@@ -17,8 +18,10 @@ import { reslugAll } from './reslug.mjs'
 const readJson = (name) =>
   JSON.parse(readFileSync(join(process.cwd(), 'data', `${name}.json`), 'utf8'))
 
-const comicsRaw = readJson('comics')
-const animeRaw = readJson('anime')
+// A blocked title leaves before anything reads the catalog, so no built page,
+// list, hub or sitemap row can name it. See src/lib/blocked.js.
+const comicsRaw = dropBlockedRows(dropBlocked(readJson('comics')))
+const animeRaw = dropBlockedRows(dropBlocked(readJson('anime')))
 const characterData = readJson('characters')
 import { characterHasPage, genreSlug } from './format.js'
 

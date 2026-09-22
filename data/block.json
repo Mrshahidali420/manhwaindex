@@ -1,0 +1,7 @@
+{
+  "note": "Titles the site owner removed for good. The nightly ingest drops these AniList ids every run, so a blocked title can never come back. Add an id here, never delete a page by hand.",
+  "media": [217083],
+  "why": {
+    "217083": "To Your Wingman (Neoui Wingman-ege). Removed 22 Sep 2026. Chapter 13 drew a veiled Muslim girl eating pork as obedience to an elder; the site will not list it."
+  }
+}

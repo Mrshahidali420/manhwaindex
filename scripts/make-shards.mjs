@@ -19,6 +19,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
 import { reslugAll } from '../src/lib/reslug.mjs'
+import { dropBlocked, dropBlockedRows } from '../src/lib/blocked.js'
 import { sectionOf } from '../src/lib/section.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
@@ -379,8 +380,9 @@ async function guardAgainstShrink(manifest) {
 }
 
 async function main() {
-  const comics = read('comics.json')
-  const anime = read('anime.json')
+  // A blocked title never reaches a shard, so the Worker answers 404 for it.
+  const comics = dropBlockedRows(dropBlocked(read('comics.json')))
+  const anime = dropBlockedRows(dropBlocked(read('anime.json')))
   const characters = read('characters.json')
   since('read json')
   reslugAll(comics, anime, characters)

@@ -17,6 +17,7 @@
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { BLOCKED_MEDIA, dropBlocked, dropBlockedRows } from '../src/lib/blocked.js'
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const DATA_DIR = join(ROOT, 'data')
@@ -128,6 +129,7 @@ export const CHARACTERS = new Map()
 // real 404. These rows are merged back in by assembleAndWrite, so a page that
 // exists today still exists tomorrow for as long as its title does.
 export const PRIOR_ROWS = new Map()
+
 
 export async function gql(query, variables, attempt = 1) {
   let res
@@ -424,6 +426,25 @@ export function loadRawFiles(files) {
  */
 export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
   mkdirSync(DATA_DIR, { recursive: true })
+
+  // Blocked titles leave here first, before any link, cast list or stat is
+  // built, so nothing downstream can mention them. A character whose only
+  // title was blocked is remembered now, because after the filter there is
+  // no record left that says where that character came from.
+  const blockedCast = new Set()
+  if (BLOCKED_MEDIA.size) {
+    let dropped = 0
+    for (const items of [comics, anime]) {
+      for (const item of items) {
+        if (!BLOCKED_MEDIA.has(item.id)) continue
+        dropped++
+        for (const ref of item.characters || []) if (ref.slug) blockedCast.add(ref.slug)
+      }
+    }
+    comics = dropBlockedRows(dropBlocked(comics))
+    anime = dropBlockedRows(dropBlocked(anime))
+    if (dropped) console.log(`Blocked ${dropped} title(s) named in data/block.json.`)
+  }
   const animeById = new Map(anime.map((a) => [a.id, a]))
   const comicById = new Map(comics.map((c) => [c.id, c]))
 
@@ -524,6 +545,11 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
     // from every title page, and search sends us real traffic for exactly those
     // names. Nothing is fetched twice for this: the record was already in hand.
     .filter((c) => c.name && c.image)
+    // A character whose only title was blocked has nothing left to show, and
+    // its page would name a work the site refuses to list. Only characters the
+    // block itself emptied are dropped; every other empty record is left alone,
+    // because a page that already ranks must never vanish.
+    .filter((c) => !(blockedCast.has(c.slug) && c.appearsIn.length === 0))
     // Every record leaves here with the same shape. A record built from a cast
     // entry knows only a name and a face, and a page that read the missing
     // alias list straight off the record answered a reader with a 500.
