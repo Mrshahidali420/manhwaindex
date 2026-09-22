@@ -13,14 +13,17 @@
 export const prerender = true
 import Base from '../../layouts/Base.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
+import Pager from '../../components/Pager.astro'
 import FilterChips from '../../components/FilterChips.astro'
 import { animeByPopularity, novelsByPopularity, comicsOfCountry, genres } from '../../lib/catalog.js'
 import { listingJsonld } from '../../lib/listing-jsonld.js'
 
 export const PER_PAGE = 60
-// A listing is only built as far as page 100. Deeper pages help nobody: the
-// sitemaps link every title directly, and the free plan counts files.
-export const MAX_PAGES = 100
+// Every page of every listing is built. There used to be a cap of 100 pages
+// here, on the theory that the sitemaps link each title anyway. Search Console
+// settled that on 22 Sep 2026: a sitemap is a hint, and roughly 322,000 pages
+// that nothing linked to had never been fetched once. Pages are cheap; being
+// invisible is not.
 
 
 export const KINDS = {
@@ -197,7 +200,7 @@ const { kind } = Astro.params
 const config = KINDS[kind]
 const all = config.items()
 const items = all.slice(0, PER_PAGE)
-const pageCount = Math.min(MAX_PAGES, Math.ceil(all.length / PER_PAGE))
+const pageCount = Math.ceil(all.length / PER_PAGE)
 
 // Genre doors. A reader who lands on /manhwa from a search rarely wants the
 // whole 40,000, they want one shelf of it.
@@ -251,16 +254,7 @@ const jsonld = {
       <CoverGrid items={items} base={`/${kind}`} eager={6} />
     </section>
 
-    {
-      pageCount > 1 && (
-        <nav class="pager" aria-label="Pagination">
-          <span>Page 1 of {pageCount}</span>
-          <a href={`/${kind}/page/2`} rel="next">
-            Next 60 titles
-          </a>
-        </nav>
-      )
-    }
+    <Pager current={1} count={pageCount} base={`/${kind}`} label={config.label} />
 
     <section class="section">
       <div class="section__head">

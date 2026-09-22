@@ -12,13 +12,15 @@
 export const prerender = true
 import Base from '../../layouts/Base.astro'
 import CharacterTile from '../../components/CharacterTile.astro'
+import Pager from '../../components/Pager.astro'
 import { charactersWithPages } from '../../lib/catalog.js'
 import { AMAZON_DISCLOSURE } from '../../lib/shop-links.js'
 
 export const PER_PAGE = 120
 
-// Same cap as the title listings: page 100 is the last one built.
-export const MAX_PAGES = 100
+// No cap. The title listings dropped theirs on 22 Sep 2026 for the same
+// reason: 124,030 character pages had no link pointing at them, and Google
+// had never fetched a single one of them.
 export const PEOPLE = charactersWithPages
 
 // How many portraits load straight away. One phone row is two, one desktop
@@ -27,7 +29,7 @@ export const PEOPLE = charactersWithPages
 const EAGER = 8
 
 const items = PEOPLE.slice(0, PER_PAGE)
-const pageCount = Math.min(MAX_PAGES, Math.ceil(PEOPLE.length / PER_PAGE))
+const pageCount = Math.ceil(PEOPLE.length / PER_PAGE)
 
 const faqs = [
   {
@@ -111,11 +113,7 @@ const jsonld = {
       </ul>
       <p class="wall__note">Merch doors open the official shelves in your own country's store. {AMAZON_DISCLOSURE}</p>
     </section>
-    <nav class="pager" aria-label="Pagination">
-      <span />
-      <span>Page 1 of {pageCount}</span>
-      {pageCount > 1 ? <a href="/character/page/2" rel="next">Next</a> : <span />}
-    </nav>
+    <Pager current={1} count={pageCount} base="/character" label="characters" />
 
     <section class="section">
       <div class="section__head">

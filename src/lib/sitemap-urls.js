@@ -18,9 +18,8 @@ import answerUrls from '../../data/answer-urls.json'
 
 export const SITE = 'https://manhwaindex.com'
 
-// The listing routes stop building at page 100, so the sitemap must stop
-// there too. A URL we do not build is a 404 for every crawler that follows it.
-const MAX_PAGES = 100
+// The listing routes build every page now, so the sitemap lists every page.
+// The old cap of 100 matched a cap in the routes; both went on 22 Sep 2026.
 const PER_PAGE = 60
 const CHARACTERS_PER_PAGE = 120
 
@@ -84,11 +83,11 @@ function coreUrls() {
     anime: anime.length,
   }
   for (const [kind, total] of Object.entries(counts)) {
-    for (let page = 2; page <= Math.min(MAX_PAGES, Math.ceil(total / PER_PAGE)); page++) {
+    for (let page = 2; page <= Math.ceil(total / PER_PAGE); page++) {
       urls.push({ loc: `${SITE}/${kind}/page/${page}`, priority: '0.4' })
     }
   }
-  for (let page = 2; page <= Math.min(MAX_PAGES, Math.ceil(charactersWithPages.length / CHARACTERS_PER_PAGE)); page++) {
+  for (let page = 2; page <= Math.ceil(charactersWithPages.length / CHARACTERS_PER_PAGE); page++) {
     urls.push({ loc: `${SITE}/character/page/${page}`, priority: '0.4' })
   }
 

@@ -1893,17 +1893,54 @@ main:has(.title-page) {
 /* ---------- pagination ------------------------------------------------------ */
 
 .pager {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
   padding-block: 2rem;
   border-top: 1px solid var(--cobalt);
   font-size: 0.95rem;
 }
-.pager a {
-  color: var(--dawn);
+.pager__where {
+  margin: 0 0 0.85rem;
+  color: var(--dawn-faint);
 }
-.pager span {
+.pager__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* 2.75rem is 44px: the smallest target a thumb hits reliably. */
+.pager__list a,
+.pager__now {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding-inline: 0.65rem;
+  border: 1px solid var(--cobalt);
+  color: var(--dawn);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.pager__list a:hover,
+.pager__list a:focus-visible {
+  border-color: var(--dawn);
+}
+.pager__now {
+  border-color: var(--dawn);
+  font-weight: 600;
+}
+.pager__step {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.pager__gap {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 0.2rem;
   color: var(--dawn-faint);
 }
 

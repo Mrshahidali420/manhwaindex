@@ -3,10 +3,11 @@ export const prerender = true
 import Base from '../../../layouts/Base.astro'
 import CharacterTile from '../../../components/CharacterTile.astro'
 import { AMAZON_DISCLOSURE } from '../../../lib/shop-links.js'
-import { PEOPLE, PER_PAGE, MAX_PAGES } from '../index.astro'
+import Pager from '../../../components/Pager.astro'
+import { PEOPLE, PER_PAGE } from '../index.astro'
 
 export function getStaticPaths() {
-  const pageCount = Math.min(MAX_PAGES, Math.ceil(PEOPLE.length / PER_PAGE))
+  const pageCount = Math.ceil(PEOPLE.length / PER_PAGE)
   const paths = []
   for (let page = 2; page <= pageCount; page++) {
     paths.push({
@@ -38,10 +39,6 @@ const current = Number(page)
       </ul>
       <p class="wall__note">Merch doors open the official shelves in your own country's store. {AMAZON_DISCLOSURE}</p>
     </section>
-    <nav class="pager" aria-label="Pagination">
-      <a href={current === 2 ? '/character' : `/character/page/${current - 1}`} rel="prev">Previous</a>
-      <span>Page {current} of {pageCount}</span>
-      {current < pageCount ? <a href={`/character/page/${current + 1}`} rel="next">Next</a> : <span />}
-    </nav>
+    <Pager current={current} count={pageCount} base="/character" label="characters" />
   </div>
 </Base>

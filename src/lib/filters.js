@@ -29,3 +29,10 @@ export const FILTERS = {
     keep: (item) => item.status === 'RELEASING',
   },
 }
+
+// The filter listings keep a cap of 100 pages, and the main listings no longer
+// do. The reason is duplication: /manhwa/only/free is a slice of the same
+// titles /manhwa already lists in full, so a deep filter page adds a file
+// without adding a title. The main listing is the path that has to reach
+// everything, and now it does.
+export const FILTER_MAX_PAGES = 100
