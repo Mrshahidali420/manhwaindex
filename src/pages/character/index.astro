@@ -11,7 +11,9 @@
  */
 export const prerender = true
 import Base from '../../layouts/Base.astro'
-import { charactersWithPages, kindOfAppearance } from '../../lib/catalog.js'
+import CharacterTile from '../../components/CharacterTile.astro'
+import { charactersWithPages } from '../../lib/catalog.js'
+import { AMAZON_DISCLOSURE } from '../../lib/shop-links.js'
 
 export const PER_PAGE = 120
 
@@ -104,24 +106,10 @@ const jsonld = {
         </p>
         <p class="answer__count">{PEOPLE.length.toLocaleString()} characters indexed</p>
       </div>
-      <ul class="people people--wall">
-        {items.map((person, i) => (
-          <li>
-            <a href={`/character/${person.slug}`}>
-              <img
-                src={person.image}
-                alt={`${person.name} portrait`}
-                width="220"
-                height="293"
-                loading={i < EAGER ? 'eager' : 'lazy'}
-                decoding="async"
-              />
-              <b>{person.name}</b>
-              <span>{kindOfAppearance(person.appearsIn[0])}</span>
-            </a>
-          </li>
-        ))}
+      <ul class="people people--wall people--doors">
+        {items.map((person, i) => <CharacterTile person={person} eager={i < EAGER} />)}
       </ul>
+      <p class="wall__note">Merch doors open the official shelves in your own country's store. {AMAZON_DISCLOSURE}</p>
     </section>
     <nav class="pager" aria-label="Pagination">
       <span />

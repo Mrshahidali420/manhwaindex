@@ -242,6 +242,21 @@ export function shelfLinks(item) {
 export const FIGURE_POPULARITY = 40000
 
 /**
+ * True when the character's buy page exists. The buy page picks its lead
+ * title the same way the profile does (a main role first, a comic over its
+ * own anime) and answers 404 under FIGURE_POPULARITY; the wall must agree
+ * with it, or its merch door opens on nothing.
+ */
+export function hasMerchPage(person) {
+  const rows = person?.appearsIn || []
+  if (!rows.length) return false
+  const best = (list) => list.find((a) => a.kind !== 'anime') || list[0]
+  const main = rows.filter((a) => a.role === 'MAIN')
+  const lead = best(main.length ? main : rows)
+  return (lead?.popularity || 0) >= FIGURE_POPULARITY
+}
+
+/**
  * Merch for one character.
  *
  * A character is what a figure is actually made of, so the series name alone

@@ -2437,6 +2437,56 @@ main:has(.title-page) {
   font-size: 0.76rem;
   color: var(--dawn-faint);
 }
+/* Two doors under a face on the character wall: the profile, and the merch
+   page when one exists. Small, flat, and the same height on every tile so the
+   rows stay level whether or not a tile has a merch door. */
+.people--doors > li {
+  display: flex;
+  flex-direction: column;
+}
+.people .tile__doors {
+  display: flex;
+  gap: 4px;
+  margin-top: 0.45rem;
+}
+.people .tile__doors a {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 0.4rem;
+  border: 1px solid var(--cobalt-line);
+  border-radius: 3px;
+  font-family: var(--stencil);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dawn-faint);
+  text-decoration: none;
+  transition: border-color 140ms var(--ease-dawn), color 140ms var(--ease-dawn), background 140ms var(--ease-dawn);
+}
+.people .tile__doors a:hover {
+  border-color: var(--dawn);
+  color: var(--day);
+}
+.people .tile__doors .tile__merch {
+  color: var(--rose-soft);
+  border-color: color-mix(in srgb, var(--rose) 55%, var(--cobalt-line));
+}
+.people .tile__doors .tile__merch:hover {
+  color: var(--day);
+  border-color: var(--rose);
+  background: color-mix(in srgb, var(--rose) 16%, transparent);
+}
+.wall__note {
+  margin: 1rem 0 0;
+  font-size: 0.74rem;
+  color: var(--dawn-faint);
+  text-align: center;
+}
+
 /* The voice actor, on an anime page only. It sits under the role and is dimmer
    than it, so the eye still reads name first, role second, voice third. */
 .people .people__voice {
@@ -2730,6 +2780,14 @@ main:has(.title-page) {
   .people--wall li {
     flex: 0 1 calc((100% - 1.2rem) / 3);
     scroll-snap-align: none;
+  }
+  /* A phone tile is too narrow for two doors in a row, so they stack. */
+  .people--wall .tile__doors {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .people--wall .tile__doors a {
+    min-height: 30px;
   }
   .crosslink {
     padding: 0.85rem 0.9rem;

@@ -1,7 +1,8 @@
 ---
 export const prerender = true
 import Base from '../../../layouts/Base.astro'
-import { kindOfAppearance } from '../../../lib/catalog.js'
+import CharacterTile from '../../../components/CharacterTile.astro'
+import { AMAZON_DISCLOSURE } from '../../../lib/shop-links.js'
 import { PEOPLE, PER_PAGE, MAX_PAGES } from '../index.astro'
 
 export function getStaticPaths() {
@@ -32,17 +33,10 @@ const current = Number(page)
         <h1>Characters</h1>
         <p>You remember the name, not the title. Start here.</p>
       </div>
-      <ul class="people people--wall">
-        {items.map((person) => (
-          <li>
-            <a href={`/character/${person.slug}`}>
-              <img src={person.image} alt={`${person.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
-              <b>{person.name}</b>
-              <span>{kindOfAppearance(person.appearsIn[0])}</span>
-            </a>
-          </li>
-        ))}
+      <ul class="people people--wall people--doors">
+        {items.map((person) => <CharacterTile person={person} />)}
       </ul>
+      <p class="wall__note">Merch doors open the official shelves in your own country's store. {AMAZON_DISCLOSURE}</p>
     </section>
     <nav class="pager" aria-label="Pagination">
       <a href={current === 2 ? '/character' : `/character/page/${current - 1}`} rel="prev">Previous</a>
