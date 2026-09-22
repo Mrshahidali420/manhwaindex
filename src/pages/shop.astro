@@ -18,7 +18,7 @@
 export const prerender = true
 import Base from '../layouts/Base.astro'
 import { comicsOfCountry, animeByPopularity, genres } from '../lib/catalog.js'
-import { shelfLinks, shopUrl, AMAZON_DISCLOSURE, BOOKS, TOYS } from '../lib/shop-links.js'
+import { shelfLinks, shopUrl, AMAZON_DISCLOSURE, BOOKS, TOYS, ALL } from '../lib/shop-links.js'
 
 // How many covers a shelf shows. Enough to browse, few enough that the page
 // still loads fast on a phone.
@@ -89,9 +89,10 @@ const starters = [
   { kind: 'books', label: 'Light novels', url: shopUrl('light novel', BOOKS) },
   { kind: 'books', label: 'Art books', url: shopUrl('anime art book', BOOKS) },
   { kind: 'figures', label: 'Anime figures', url: shopUrl('anime figure', TOYS) },
-  { kind: 'prints', label: 'Wall scrolls and posters', url: shopUrl('anime poster', TOYS) },
+  // Posters and shirts are not toys, so they search the whole store.
+  { kind: 'prints', label: 'Wall scrolls and posters', url: shopUrl('anime poster', ALL) },
   { kind: 'merch', label: 'Plushies', url: shopUrl('anime plush', TOYS) },
-  { kind: 'apparel', label: 'Apparel', url: shopUrl('anime shirt', TOYS) },
+  { kind: 'apparel', label: 'Apparel', url: shopUrl('anime shirt', ALL) },
 ]
 
 /* The questions a first-time visitor actually asks before they tap a buy

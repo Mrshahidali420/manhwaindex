@@ -26,11 +26,12 @@
  *   FRESH=1            ignore the last build, use only what this walk found
  */
 
-import { appendFileSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   RAW_DIR, BY_IDS_QUERY, MAX_ID_QUERY, IDS_PER_CALL, REQUEST_DELAY_MS,
   gql, sleep, shape, loadRawFiles, loadSeen, loadAssembled, harvestCharacters, assembleAndWrite, CHARACTERS,
+  writeJsonAtomic,
 } from './anilist-core.mjs'
 
 const RAW_FILE = 'full.jsonl'
@@ -95,7 +96,7 @@ async function walk() {
     }
     if (!ids.length) {
       skipped += IDS_PER_CALL
-      writeFileSync(PROGRESS_FILE, JSON.stringify({ lastId: Math.min(id + IDS_PER_CALL - 1, top), kept, calls, top }))
+      writeJsonAtomic(PROGRESS_FILE, { lastId: Math.min(id + IDS_PER_CALL - 1, top), kept, calls, top })
       continue // no API call at all
     }
 
@@ -118,7 +119,7 @@ async function walk() {
     calls++
 
     const last = Math.min(id + IDS_PER_CALL - 1, top)
-    writeFileSync(PROGRESS_FILE, JSON.stringify({ lastId: last, kept, calls, top }))
+    writeJsonAtomic(PROGRESS_FILE, { lastId: last, kept, calls, top })
     if (calls % 20 === 0) {
       const pct = (((last - 1) / top) * 100).toFixed(1)
       console.log(`  id ${last}/${top} (${pct}%)  kept ${kept} titles  ${calls} calls`)

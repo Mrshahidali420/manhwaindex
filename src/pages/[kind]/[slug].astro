@@ -17,7 +17,7 @@ import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../lib/ru
 import { titleFaq, faqJsonld, freeSplit } from '../../lib/answers.mjs'
 import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/computed.mjs'
 import { shopLinks } from '../../lib/shop-links.js'
-import { BUY_POPULARITY } from '../../lib/buy.mjs'
+import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage } from '../../lib/gates.mjs'
 import BuyBox from '../../components/BuyBox.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { sectionOf, SECTIONS } from '../../lib/section.mjs'
@@ -201,13 +201,18 @@ const jsonld = {
   // and AniList never gives one, so every trailer we described was marked
   // invalid in Search Console. A made-up date would be worse than no block.
   // The trailer still plays further down the page.
-  ...(item.score
+  // No aggregateRating. The score is AniList's, not our readers', and Google's
+  // rules forbid marking up ratings taken from another site. Counting
+  // favourites as ratings made it worse. One manual action for "spammy
+  // structured data" would hit every title page at once. The score still
+  // shows on the page as plain text; favourites are described as what they
+  // are: people who marked the title a favourite.
+  ...(item.favourites
     ? {
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: (item.score / 10).toFixed(1),
-          bestRating: 10,
-          ratingCount: Math.max(item.favourites, 1),
+        interactionStatistic: {
+          '@type': 'InteractionCounter',
+          interactionType: 'https://schema.org/LikeAction',
+          userInteractionCount: item.favourites,
         },
       }
     : {}),
@@ -326,10 +331,12 @@ const answer = links.length
 
 // The questions people type instead of reading a table. Both the block and
 // the two answer pages below are built from this same record, so they can
-// never drift away from the table above them.
+// never drift away from the table above them. Each link below shows only when
+// its page passes the gate in src/lib/gates.mjs, the same gate the page itself
+// runs before it answers 404, so a reader is never sent to a dead end.
 const faq = titleFaq(item, kind)
 const answerPages = []
-if (freeSplit(links).free.length > 0) {
+if (hasFreePage(item)) {
   answerPages.push({
     href: `/${kind}/${item.slug}/free`,
     lead: isComic ? 'The free question' : 'The free question',
@@ -340,7 +347,7 @@ if (freeSplit(links).free.length > 0) {
 // A reader who has decided they want to OWN it is asking a different
 // question from the table above. Only stories people really search for get
 // that page, so the link only shows when the page exists.
-if ((item.popularity || 0) >= BUY_POPULARITY) {
+if (hasBuyPage(item)) {
   answerPages.push({
     href: `/${kind}/${item.slug}/buy`,
     lead: 'If you want to own it',
@@ -350,7 +357,7 @@ if ((item.popularity || 0) >= BUY_POPULARITY) {
       : 'Discs, figures, art books and posters, in your own store',
   })
 }
-if (similar.length >= 4) {
+if (hasLikePage(item)) {
   answerPages.push({
     href: `/${kind}/${item.slug}/like`,
     lead: 'If you finished it',
@@ -360,7 +367,7 @@ if (similar.length >= 4) {
 }
 // A whole cast list. The block above only shows the first twelve faces, and
 // people search for the rest by the story name.
-if (cast.length >= 6) {
+if (hasCastPage(item)) {
   answerPages.push({
     href: `/${kind}/${item.slug}/characters`,
     lead: 'Everyone in it',

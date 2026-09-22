@@ -6,13 +6,22 @@ on:
   schedule:
     # Every day at 02:00 UTC: pull fresh data, rebuild, redeploy.
     - cron: '0 2 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      accept_registry:
+        description: 'Adopt a rebuilt slug registry after the old one was lost (1 = yes). Read the error on the last run first.'
+        required: false
+        default: '0'
 
 permissions:
   contents: read
 
+# One group for every workflow that writes the catalog (this one, backfill.yml
+# and backfill-fields.yml). Two of them running at once each restored the same
+# cache entry, each wrote its own result back, and the one that saved last
+# silently threw the other's work away.
 concurrency:
-  group: deploy
+  group: catalog
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +47,10 @@ jobs:
       # reads them, tops them up, and writes them back. This daily run is
       # also what keeps the cache warm, because an unused cache is deleted
       # after 7 days.
+      # The path list below must never change: actions/cache folds it into
+      # the cache version, so a new path makes every older catalog entry
+      # invisible and the build falls back to the seed. New state files get
+      # their own cache entry instead, like the ones that follow.
       - name: Restore the catalog
         uses: actions/cache/restore@v4
         with:
@@ -48,12 +61,74 @@ jobs:
           key: anilist-data-${{ github.run_id }}
           restore-keys: anilist-data-
 
+      # A character we only know from a title's cast list has just a name and a
+      # face. The character walk asks AniList for every character it has, once,
+      # then only the new ids each night. A title fetch carries ten cast
+      # members; the walk brings the rest. Its place lives in its own cache
+      # entry, never in the catalog one (see above).
+      - name: Restore the character walk position
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/characters-walk.json
+          key: characters-walk-${{ github.run_id }}
+          restore-keys: characters-walk-
+
+      # Every light and web novel AniList has, once, then only the new ones
+      # each night through the daily probes. Same arrangement as above.
+      - name: Restore the novel walk position
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/novels-walk.json
+          key: novels-walk-${{ github.run_id }}
+          restore-keys: novels-walk-
+
+      # The manifest of the last site that actually shipped, in its own cache
+      # entry. The build compares itself against it and refuses to deploy a
+      # site more than 2% smaller: that is what a lost catalog cache looks
+      # like, and shipping it turns thousands of indexed pages into 404s. The
+      # slug registry step below reads it too, so it is restored early.
+      - name: Restore the live manifest
+        uses: actions/cache/restore@v4
+        with:
+          path: data/live-manifest.json
+          key: live-manifest-${{ github.run_id }}
+          restore-keys: live-manifest-
+
+      # The frozen address of every page (see src/lib/slug-registry.mjs).
+      - name: Restore the slug registry
+        uses: actions/cache/restore@v4
+        with:
+          path: data/slug-registry.json
+          key: slug-registry-${{ github.run_id }}
+          restore-keys: slug-registry-
+
+      # R2 is the second home of everything above. It only fills in what the
+      # cache could not: a missing file, or a catalog with fewer records than
+      # the snapshot. It never makes anything smaller. It runs after every
+      # cache restore so "missing" means missing from both. R2 trouble is a
+      # warning, never a failed deploy.
+      - name: Fill gaps from the R2 snapshot
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+        run: node --max-old-space-size=6000 scripts/catalog-snapshot.mjs pull
+
       # A cache is deleted after 7 days without use, and a brand new fork has
       # no cache at all. data/seed holds a small gzipped copy of the catalog so
       # the site can always be rebuilt. It is a floor, not the live data: the
       # backfill and the daily ingest never write to it.
       - name: Fall back to the seed catalog
         run: bash scripts/unseed.sh
+
+      # Before the ingest, so a first registry is built from the catalog the
+      # live site was built from and freezes exactly today's addresses.
+      - name: Check the slug registry
+        env:
+          ACCEPT_REGISTRY: ${{ github.event.inputs.accept_registry }}
+        run: node --max-old-space-size=6000 scripts/slug-registry.mjs
 
       # The daily run only asks AniList what changed since yesterday and
       # fetches those records. A push deploy skips it and builds from the
@@ -66,25 +141,8 @@ jobs:
         continue-on-error: true
         run: node --max-old-space-size=6000 scripts/ingest-daily.mjs
 
-      # A character we only know from a title's cast list has just a name and a
-      # face. This asks AniList for the bio and the other spellings, a slice at
-      # a time, so the queue drains over a few days without slowing a deploy.
-      # Every character AniList has, once, then only the new ids each night.
-      # A title fetch carries ten cast members; this brings the rest. The walk
-      # keeps its place in data/characters-walk.json, which rides in the same
-      # cache as the catalog, and it never removes a record.
-      # The walk's place lives in its own cache entry. It must not join the
-      # catalog cache: actions/cache folds the path list into the cache
-      # version, so adding a path there makes every older catalog entry
-      # invisible and the build falls back to the seed.
-      - name: Restore the character walk position
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        uses: actions/cache/restore@v4
-        with:
-          path: data/characters-walk.json
-          key: characters-walk-${{ github.run_id }}
-          restore-keys: characters-walk-
-
+      # The walk keeps its place in data/characters-walk.json and never
+      # removes a record.
       - name: Walk the AniList character list
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
@@ -92,25 +150,7 @@ jobs:
           CHAR_MAX_CALLS: 1600
         run: node --max-old-space-size=6000 scripts/ingest-characters.mjs
 
-      - name: Save the character walk position
-        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && hashFiles('data/characters-walk.json') != ''
-        uses: actions/cache/save@v4
-        with:
-          path: data/characters-walk.json
-          key: characters-walk-${{ github.run_id }}
-
-      # Every light and web novel AniList has, once, then only the new ones
-      # each night through the daily probes. Novels live in comics.json with
-      # kind 'novel'; the walk's place has its own cache entry, like the
-      # character walk, so the catalog cache path list never changes.
-      - name: Restore the novel walk position
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        uses: actions/cache/restore@v4
-        with:
-          path: data/novels-walk.json
-          key: novels-walk-${{ github.run_id }}
-          restore-keys: novels-walk-
-
+      # Novels live in comics.json with kind 'novel'.
       - name: Walk the AniList novel list
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
@@ -118,13 +158,8 @@ jobs:
           NOVEL_MAX_CALLS: 1200
         run: node --max-old-space-size=6000 scripts/ingest-novels.mjs
 
-      - name: Save the novel walk position
-        if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && hashFiles('data/novels-walk.json') != ''
-        uses: actions/cache/save@v4
-        with:
-          path: data/novels-walk.json
-          key: novels-walk-${{ github.run_id }}
-
+      # This asks AniList for the bio and the other spellings, a slice at a
+      # time, so the queue drains over a few days without slowing a deploy.
       - name: Fill in thin character pages
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         continue-on-error: true
@@ -134,6 +169,7 @@ jobs:
       # build must not throw them away. `always()` keeps the save running even
       # when the ingest itself reported a problem.
       - name: Save the catalog
+        id: save-catalog
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         uses: actions/cache/save@v4
         with:
@@ -143,21 +179,28 @@ jobs:
             data/characters.json
           key: anilist-data-${{ github.run_id }}
 
+      # The walk positions are saved only AFTER the catalog they describe. A
+      # position saved without its records would skip those records for good:
+      # the next run starts past them, but the catalog it restores never got
+      # them.
+      - name: Save the character walk position
+        if: always() && steps.save-catalog.outcome == 'success' && hashFiles('data/characters-walk.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/characters-walk.json
+          key: characters-walk-${{ github.run_id }}
+
+      - name: Save the novel walk position
+        if: always() && steps.save-catalog.outcome == 'success' && hashFiles('data/novels-walk.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/novels-walk.json
+          key: novels-walk-${{ github.run_id }}
+
       # The catalog grew to ~107,000 titles and each record now carries the
       # backfilled fields too. Both make-shards and astro build hold the whole
       # thing in memory, and the default 2 GB heap is no longer enough: the
       # first run after the backfill died with "heap out of memory".
-      # The manifest of the last site that actually shipped, in its own cache
-      # entry. The build compares itself against it and refuses to deploy a
-      # site more than 2% smaller: that is what a lost catalog cache looks
-      # like, and shipping it turns thousands of indexed pages into 404s.
-      - name: Restore the live manifest
-        uses: actions/cache/restore@v4
-        with:
-          path: data/live-manifest.json
-          key: live-manifest-${{ github.run_id }}
-          restore-keys: live-manifest-
-
       - run: npm run build
         env:
           NODE_OPTIONS: --max-old-space-size=6000
@@ -177,6 +220,27 @@ jobs:
         with:
           path: data/live-manifest.json
           key: live-manifest-${{ github.run_id }}
+
+      # The build registered any new page in the registry; keep it now that
+      # those addresses are live. Never while the recovered marker exists: a
+      # stand-in must not replace the real registry in the cache.
+      - name: Save the slug registry
+        if: hashFiles('data/slug-registry.json') != '' && hashFiles('data/slug-registry.recovered') == ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/slug-registry.json
+          key: slug-registry-${{ github.run_id }}
+
+      # Copy the catalog, the walk positions and the registry up to R2. Runs
+      # even when the build failed, like the catalog save: the records cost
+      # API calls. It refuses to replace the snapshot with a smaller catalog.
+      - name: Save a snapshot to R2
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+        run: node --max-old-space-size=6000 scripts/catalog-snapshot.mjs push
 
       # IndexNow tells Bing, Yandex, Seznam and Naver about new pages the same
       # day. Google ignores it and reads the sitemaps instead. This runs after

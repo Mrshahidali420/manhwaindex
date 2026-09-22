@@ -25,12 +25,18 @@ on:
         description: 'Skip ids already in data/seen.json (1 = yes)'
         required: false
         default: '0'
+      fresh:
+        description: 'Ignore the last build and keep only what this walk finds (1 = yes). Also lifts the shrink guard.'
+        required: false
+        default: '0'
 
 permissions:
   contents: read
 
+# Shared with deploy.yml and backfill-fields.yml: only one job may write the
+# catalog at a time, or the last cache save silently drops the other's work.
 concurrency:
-  group: backfill
+  group: catalog
   cancel-in-progress: false
 
 jobs:
@@ -70,6 +76,24 @@ jobs:
           key: anilist-data-${{ github.run_id }}
           restore-keys: anilist-data-
 
+      # Restored so the R2 snapshot pushed at the end still carries the
+      # registry (this job never changes it).
+      - name: Restore the slug registry
+        uses: actions/cache/restore@v4
+        with:
+          path: data/slug-registry.json
+          key: slug-registry-${{ github.run_id }}
+          restore-keys: slug-registry-
+
+      # Fills in only what the caches could not: a missing file, or a catalog
+      # with fewer records than the R2 snapshot. Never makes anything smaller.
+      - name: Fill gaps from the R2 snapshot
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+        run: node --max-old-space-size=6000 scripts/catalog-snapshot.mjs pull
+
       # No cache yet (first run, or the cache expired)? Start from the small
       # gzipped copy in data/seed rather than from nothing.
       - name: Fall back to the seed catalog
@@ -81,6 +105,10 @@ jobs:
           END_ID: ${{ github.event.inputs.end_id }}
           MAX_MINUTES: ${{ github.event.inputs.max_minutes }}
           SKIP_SEEN: ${{ github.event.inputs.skip_seen }}
+          FRESH: ${{ github.event.inputs.fresh }}
+          # A FRESH walk is meant to replace the catalog, so it may come out
+          # smaller; the shrink guard in anilist-core.mjs would refuse it.
+          ALLOW_SHRINK: ${{ github.event.inputs.fresh == '1' && '1' || '' }}
         run: node --max-old-space-size=6000 scripts/ingest-full.mjs
 
       # `if: always()` is the whole point. The walk costs hours. If any later
@@ -104,6 +132,17 @@ jobs:
             data/anime.json
             data/characters.json
           key: anilist-data-${{ github.run_id }}
+
+      # The walk costs hours; keep a copy that does not expire. Refuses to
+      # replace the snapshot with a smaller catalog unless ALLOW_SHRINK is set.
+      - name: Save a snapshot to R2
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+          ALLOW_SHRINK: ${{ github.event.inputs.fresh == '1' && '1' || '' }}
+        run: node --max-old-space-size=6000 scripts/catalog-snapshot.mjs push
 
       - name: What the walk found
         if: always()

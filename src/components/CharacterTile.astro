@@ -4,34 +4,37 @@
  *
  * "Details" opens the profile. "Merch" opens the character's own buy page,
  * the one with figure, poster and apparel shelves in the reader's store. The
- * merch door only shows when that page really exists: the buy page returns
- * 404 under FIGURE_POPULARITY, so the wall must apply the same gate or it
- * sends readers to a dead end.
+ * merch door only shows when that page really exists: the buy page answers
+ * 404 when its gate in src/lib/gates.mjs says no, so the wall must apply the
+ * same gate or it sends readers to a dead end.
  */
 import { kindOfAppearance } from '../lib/catalog.js'
-import { hasMerchPage } from '../lib/shop-links.js'
+import { hasCharacterBuyPage } from '../lib/gates.mjs'
+import { displayName } from '../lib/names.mjs'
 
 const { person, eager = false } = Astro.props
-const merch = hasMerchPage(person)
+const merch = hasCharacterBuyPage(person)
+// The same name the profile page leads with, so the card and the page agree.
+const { primary: name } = displayName(person)
 ---
 
 <li>
   <a class="tile__face" href={`/character/${person.slug}`}>
     <img
       src={person.image}
-      alt={`${person.name} portrait`}
+      alt={`${name} portrait`}
       width="220"
       height="293"
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"
     />
-    <b>{person.name}</b>
+    <b>{name}</b>
     <span>{kindOfAppearance(person.appearsIn[0])}</span>
   </a>
   <div class="tile__doors">
-    <a href={`/character/${person.slug}`} aria-label={`${person.name} details`}>Details</a>
+    <a href={`/character/${person.slug}`} aria-label={`${name} details`}>Details</a>
     {merch && (
-      <a class="tile__merch" href={`/character/${person.slug}/buy`} aria-label={`Buy ${person.name} figures and merch`}>
+      <a class="tile__merch" href={`/character/${person.slug}/buy`} aria-label={`Buy ${name} figures and merch`}>
         <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
           <path d="M3 6h18" />

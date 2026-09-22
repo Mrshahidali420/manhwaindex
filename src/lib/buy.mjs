@@ -131,24 +131,28 @@ export function buyAnswer(item, kind) {
     ? 'Printed volumes, figures, art books and posters'
     : 'Discs, figures, art books and posters'
 
+  // Honest claims only. The links open Amazon's live search, which can show
+  // other sellers and other editions, so we never promise "official" or "no
+  // fakes". And AniList's volume count is the ORIGINAL release, not an English
+  // print run, so it is always called that.
   const description = fit([
-    `${goods} for ${title}${by}. Official shops only, in your own country's store. ${
-      volumes ? `${volumes} volumes in print.` : 'No fakes, no scan sites.'
-    }`,
-    `${goods} for ${title}. Official shops only, in your own country's store.`,
-    `Where to buy ${title}: official books, discs, figures and merch.`,
+    `${goods} for ${title}${by}. Opens Amazon's live search in your own country's store. ${
+      volumes ? `${volumes} volumes in the original release.` : ''
+    }`.trim(),
+    `${goods} for ${title}. Opens Amazon's live search in your own country's store.`,
+    `Where to buy ${title}: books, discs, figures and merch.`,
   ])
 
   // The opening line. It says what exists before it asks for a tap.
   const lede = isComic
     ? volumes
-      ? `${title}${by} runs to ${volumes} printed ${volumes === 1 ? 'volume' : 'volumes'}${
+      ? `${title}${by} runs to ${volumes} ${volumes === 1 ? 'volume' : 'volumes'} in its original release${
           running ? ' so far' : ''
-        }. Below are the official shops that carry them, and the figures and art books made for the story.`
-      : `${title} is a ${word}${by}. Below are the official shops that carry it in print, and the figures, posters and art books made for the story.`
+        }. The links below open Amazon's live search for them, and for the figures and merch made for the story.`
+      : `${title} is a ${word}${by}. The links below open Amazon's live search for it in print, and for the figures and merch made for the story.`
     : `${title} is an anime${studio ? ` from ${studio}` : ''}${
         episodes ? `, ${episodes} ${episodes === 1 ? 'episode' : 'episodes'} long` : ''
-      }. Below are the official shops for the disc release, and for the figures and art books made for it.`
+      }. The links below open Amazon's live search for the disc release, and for the figures and merch made for it.`
 
   const paragraphs = []
 
@@ -157,16 +161,16 @@ export function buyAnswer(item, kind) {
     text: isComic
       ? `${
           volumes
-            ? `The print run stands at ${volumes} ${volumes === 1 ? 'volume' : 'volumes'}${
+            ? `The original release stands at ${volumes} ${volumes === 1 ? 'volume' : 'volumes'}${
                 running ? ', and it is still going' : ''
-              }.`
+              }. An English edition, where one exists, can have fewer.`
             : `We do not hold a volume count for ${title} yet.`
         } ${
           chapters ? `There are ${chapters} chapters in all. ` : ''
-        }Whether an English edition exists depends on the publisher, not on us, so the book link opens a live search rather than a page we wrote. If the shelf comes back empty, that is the honest answer: nobody has printed it in your language yet. The figure and poster links search the merch shelf instead, which is often stocked even when the books are not.`
+        }Whether an English edition exists depends on the publisher, not on us, so the book link opens a live search rather than a page we wrote. If the shelf comes back empty, that is the honest answer: nobody has printed it in your language yet. The merch link searches the figure shelf instead, which is often stocked even when the books are not.`
       : `${
           episodes ? `There are ${episodes} ${episodes === 1 ? 'episode' : 'episodes'}. ` : ''
-        }A disc set only exists if a distributor licensed ${title} for your region, and that is their decision, not ours. The disc link opens a live search so you see what is really in print today. The figure and poster links search the merch shelf, which usually stays stocked long after the discs go out of print.`,
+        }A disc set only exists if a distributor licensed ${title} for your region, and that is their decision, not ours. The disc link opens a live search so you see what is really in print today. The merch link searches the figure shelf, which usually stays stocked long after the discs go out of print.`,
   })
 
   if (names.length) {
@@ -188,14 +192,14 @@ export function buyAnswer(item, kind) {
   faq.push({
     q: `Where can I buy ${title}?`,
     a: isComic
-      ? `Through the official shop links on this page. They open Amazon in your own country's store with ${title} already searched, so you see the editions really in print today.`
-      : `Through the official shop links on this page. They open Amazon in your own country's store and search for the ${title} disc release and merch.`,
+      ? `Through the Amazon links on this page. They open Amazon in your own country's store with ${title} already searched, so you see the editions on sale today. Check the seller and the publisher on the listing before you buy.`
+      : `Through the Amazon links on this page. They open Amazon in your own country's store and search for the ${title} disc release and merch.`,
   })
 
   if (volumes) {
     faq.push({
       q: `How many volumes of ${title} are there?`,
-      a: `${volumes} ${volumes === 1 ? 'volume' : 'volumes'}${
+      a: `${volumes} ${volumes === 1 ? 'volume' : 'volumes'} in the original release${
         running
           ? ', and more are still coming: the story has not finished yet.'
           : `, and the story is complete at that.`
@@ -252,13 +256,13 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
   const description = fit([
     `${
       merchIsCharacter ? 'Figures, posters and apparel' : 'Books, figures and posters'
-    } of ${who} from the ${word} ${from}. Official shops only, in your own country's store.`,
-    `${who} merch from ${from}: figures, posters and apparel. Official shops only.`,
+    } of ${who} from the ${word} ${from}. Opens Amazon's live search in your own country's store.`,
+    `${who} merch from ${from}: figures, posters and apparel, on Amazon.`,
     `Where to buy ${who} merch from ${from}.`,
   ])
 
   const lede = merchIsCharacter
-    ? `${who} is ${isMain ? 'a main character' : 'a character'} in the ${word} ${from}, and ${from} is big enough that merch of ${who} is really made. Below are the official shelves: figures, wall art and apparel.`
+    ? `${who} is ${isMain ? 'a main character' : 'a character'} in the ${word} ${from}, and ${from} is big enough that merch of ${who} is really made. The links below search Amazon for figures, wall art and apparel.`
     : `${who} is ${isMain ? 'a main character' : 'a character'} in the ${word} ${from}. ${from} is not big enough for figures of one named character yet, so the honest offer is the story itself: the printed volumes and the merch made for the series.`
 
   const paragraphs = []
@@ -290,7 +294,7 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
     q: `Is there a ${who} figure?`,
     a: merchIsCharacter
       ? `${from} is popular enough that figures of its cast are made and sold, so a ${who} figure is likely. We hold no stock list, so the figure link on this page searches the real shelf and shows you what is there right now.`
-      : `We cannot find one. ${from} has not sold at the level that pays for a character figure. The links on this page offer the story itself instead, which does exist in print.`,
+      : `We cannot find one. ${from} has not sold at the level that pays for a character figure. The links on this page search for the story itself instead.`,
   })
 
   if (names.length) {

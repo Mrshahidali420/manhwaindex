@@ -11,6 +11,7 @@ import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { likeAnswer, verbOf, wordOf, listWords } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
+import { hasLikePage } from '../../../lib/gates.mjs'
 import BuyBox from '../../../components/BuyBox.astro'
 
 const KINDS = new Set(SECTIONS)
@@ -29,6 +30,9 @@ if (!item) return notFound(Astro)
 
 const isComic = item.kind !== 'anime'
 if (sectionOf(item) !== kind) return notFound(Astro)
+// Too few picks to make a list. A page of "0 similar titles" is a thin page,
+// so it answers 404, the same gate that keeps it out of the sitemap.
+if (!hasLikePage(item)) return notFound(Astro)
 
 const verb = verbOf(kind)
 const word = wordOf(kind)
@@ -154,7 +158,7 @@ const jsonld = [
         buys.length > 0 && (
           <BuyBox
             heading={`Own ${item.title}`}
-            sub="The official books, discs and figures, straight from Amazon."
+            sub="Books, discs and figures, straight from Amazon."
             rows={buys}
           />
         )

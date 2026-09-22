@@ -31,3 +31,13 @@ data/indexnow-sent.json
 
 # The manifest of the last deployed site. Lives in the Actions cache, not in git.
 data/live-manifest.json
+
+# The slug registry: every page's frozen address. Lives in the Actions cache
+# and in R2 (scripts/catalog-snapshot.mjs), like the catalog it describes.
+# The marker is written only when a lost registry had to be worked out again.
+data/slug-registry.json
+data/slug-registry.recovered
+
+# Half-written files from an atomic write or an R2 pull that was killed.
+data/*.tmp
+data/*.r2

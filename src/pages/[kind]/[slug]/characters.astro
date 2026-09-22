@@ -14,6 +14,7 @@ import { loadTitle, envOf, notFound, unavailable } from '../../../lib/runtime.js
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { verbOf, wordOf } from '../../../lib/answers.mjs'
 import { charactersOf } from '../../../lib/format.js'
+import { hasCastPage } from '../../../lib/gates.mjs'
 
 const KINDS = new Set(SECTIONS)
 
@@ -34,6 +35,9 @@ if (sectionOf(item) !== kind) return notFound(Astro)
 
 const cast = charactersOf(item)
 if (cast.length === 0) return notFound(Astro)
+// Under six faces the title page already shows the whole cast, so this page
+// would say nothing new. The same gate keeps it out of the sitemap.
+if (!hasCastPage(item)) return notFound(Astro)
 
 const verb = verbOf(kind)
 const word = wordOf(kind)

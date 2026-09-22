@@ -1,8 +1,10 @@
 ---
 export const prerender = true
 import Base from '../layouts/Base.astro'
+// The same sentence the buy links carry, so the two can never say different things.
+import { AMAZON_DISCLOSURE } from '../lib/shop-links.js'
 
-const updated = 'September 15, 2026'
+const updated = 'September 22, 2026'
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -10,13 +12,13 @@ const jsonld = {
   name: 'Privacy policy',
   url: 'https://manhwaindex.com/privacy',
   description: 'What manhwaindex collects, what it does not collect, and the third parties involved.',
-  dateModified: '2026-09-15',
+  dateModified: '2026-09-22',
 }
 ---
 
 <Base
   title="Privacy policy — manhwaindex"
-  description="manhwaindex has no accounts and no logins. This page explains the analytics and advertising cookies used, and how to opt out of them."
+  description="manhwaindex has no accounts and no logins. This page explains the analytics, advertising and Amazon affiliate cookies involved, and how to opt out of them."
   canonical="/privacy"
   jsonld={jsonld}
 >
@@ -104,6 +106,36 @@ const jsonld = {
             <a href="https://www.google.com/settings/ads" rel="noopener nofollow">Google Ads Settings</a>,
             or opt out of third-party vendor cookies at
             <a href="https://www.aboutads.info/choices/" rel="noopener nofollow">aboutads.info</a>.
+          </li>
+        </ul>
+
+        <h2>Amazon affiliate links</h2>
+        <p>
+          manhwaindex is a participant in the Amazon Services LLC Associates Program, an
+          affiliate advertising program designed to provide a means for sites to earn
+          advertising fees by advertising and linking to Amazon.com. We also take part in
+          Amazon's Associates programmes for its stores in the United Kingdom, Germany,
+          France, Italy, Spain, Canada and Japan. {AMAZON_DISCLOSURE}
+        </p>
+        <ul>
+          <li>
+            The buy and shop links on this site open Amazon, and each one carries our
+            Associate tag so Amazon knows the visit came from us.
+          </li>
+          <li>
+            When you follow one of those links, Amazon and other third parties may place
+            and read cookies in your browser, use web beacons, and collect information
+            about your visit and any purchase, so the sale can be credited and ads can be
+            shown or measured. That happens on Amazon's side, under the
+            <a href="https://www.amazon.com/gp/help/customer/display.html?nodeId=468496" rel="noopener nofollow">Amazon privacy notice</a>.
+          </li>
+          <li>
+            Amazon tells us which products sold through our links, as totals. It never
+            tells us who bought them, and we never see your name, address or account.
+          </li>
+          <li>
+            You can avoid these cookies by not using the buy links, or by blocking or
+            clearing third-party cookies in your browser.
           </li>
         </ul>
 

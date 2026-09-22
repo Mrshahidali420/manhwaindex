@@ -28,7 +28,7 @@
  * Options (environment variables):
  *   NOVEL_MAX_CALLS=1600  hard ceiling on API calls for this run (default 1600)
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   gql,
@@ -43,6 +43,7 @@ import {
   REQUEST_DELAY_MS,
   NOVELS_BY_IDS_QUERY,
   MAX_ID_QUERY,
+  writeFileAtomic,
 } from './anilist-core.mjs'
 
 export const STATE_FILE = join(DATA_DIR, 'novels-walk.json')
@@ -67,7 +68,7 @@ export function loadState() {
 }
 
 function saveState(state) {
-  writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n')
+  writeFileAtomic(STATE_FILE, JSON.stringify(state, null, 2) + '\n')
 }
 
 /**

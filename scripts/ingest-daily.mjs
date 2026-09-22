@@ -28,12 +28,13 @@
  * probe says. See scripts/keep-list.mjs.
  */
 
-import { appendFileSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   DATA_DIR, RAW_DIR, IDS_PER_CALL, REQUEST_DELAY_MS,
   PROBE_RECENT_QUERY, PROBE_NEW_QUERY, BY_IDS_QUERY,
   gql, sleep, shape, harvestCharacters, loadAssembled, loadSeen, assembleAndWrite, CHARACTERS,
+  writeJsonAtomic,
 } from './anilist-core.mjs'
 import {
   loadKeep, withKeptMedia, KEEP_CHARACTERS_QUERY, keepCharacterRecord, linkKeptCharacter,
@@ -225,7 +226,7 @@ async function main() {
   const kept = await fetchKeptCharacters(keep.characters, nextComics, nextAnime)
   const stats = assembleAndWrite(nextComics, nextAnime, startedAt)
 
-  writeFileSync(STATE_FILE, JSON.stringify({
+  writeJsonAtomic(STATE_FILE, {
     ranAt: Date.now(),
     probed: calls,
     needed: ids.length,
@@ -233,7 +234,7 @@ async function main() {
     kept,
     comics: stats.comics,
     anime: stats.anime,
-  }, null, 2))
+  }, 2)
 
   console.log('Done.')
   console.log(JSON.stringify(stats, null, 2))

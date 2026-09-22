@@ -26,7 +26,7 @@
  * Options (environment variables):
  *   CHAR_MAX_CALLS=1600  hard ceiling on API calls for this run (default 1600)
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   gql,
@@ -37,6 +37,7 @@ import {
   DATA_DIR,
   IDS_PER_CALL,
   REQUEST_DELAY_MS,
+  writeFileAtomic,
 } from './anilist-core.mjs'
 import { KEEP_CHARACTERS_QUERY, keepCharacterRecord, linkKeptCharacter } from './keep-list.mjs'
 
@@ -64,7 +65,7 @@ export function loadState() {
 }
 
 function saveState(state) {
-  writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n')
+  writeFileAtomic(STATE_FILE, JSON.stringify(state, null, 2) + '\n')
 }
 
 /** True when at least one of the character's titles is in the catalog and not adult. */

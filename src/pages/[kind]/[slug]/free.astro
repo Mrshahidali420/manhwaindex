@@ -13,7 +13,7 @@ import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { freeAnswer, verbOf, wordOf, faqJsonld, listWords } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
-import { BUY_POPULARITY } from '../../../lib/buy.mjs'
+import { hasFreePage, hasLikePage, hasBuyPage } from '../../../lib/gates.mjs'
 import BuyBox from '../../../components/BuyBox.astro'
 import { statusWord, charactersOf, genreSlug } from '../../../lib/format.js'
 
@@ -33,6 +33,9 @@ if (!item) return notFound(Astro)
 
 const isComic = item.kind !== 'anime'
 if (sectionOf(item) !== kind) return notFound(Astro)
+// No platform gives any of it away, so there is no free answer to give. The
+// same gate keeps the page out of the sitemap.
+if (!hasFreePage(item)) return notFound(Astro)
 
 const verb = verbOf(kind)
 const word = wordOf(kind)
@@ -202,7 +205,7 @@ const jsonld = [
             sub={
               answer.free.length > 0
                 ? 'Free is for reading it. This is for keeping it.'
-                : 'No platform gives it away, so here is the official way to own it.'
+                : 'No platform gives it away, so here is where to buy a copy.'
             }
             rows={buys}
           />
@@ -276,9 +279,9 @@ const jsonld = [
       </section>
 
       {
-        /* Only when there is something to show. An empty "similar" page is a
-           worse click than no click. */
-        (item.similar || []).length > 0 && (
+        /* Only when the page exists. An empty "similar" page is a worse
+           click than no click, so it answers 404. */
+        hasLikePage(item) && (
           <a class="crosslink" href={`${home}/like`}>
             <div>
               <span class="crosslink__lead">Finished it already?</span>
@@ -293,7 +296,7 @@ const jsonld = [
         /* A reader who just learned a story is worth reading is the readiest
            buyer we ever get. The buy page only exists for stories people
            search for, so the link is gated the same way. */
-        (item.popularity || 0) >= BUY_POPULARITY && (
+        hasBuyPage(item) && (
           <a class="crosslink" href={`${home}/buy`}>
             <div>
               <span class="crosslink__lead">Want to own it?</span>

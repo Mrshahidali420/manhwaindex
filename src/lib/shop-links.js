@@ -107,6 +107,10 @@ const COUNTRY_STORE = {
 export const BOOKS = 'books'
 export const VIDEO = 'video'
 export const TOYS = 'toys'
+// No department at all: the whole store. Posters and shirts do not live in
+// toys, and each store files them under a different id (home, fashion,
+// clothing), so a guessed department would hide exactly what was asked for.
+export const ALL = 'all'
 
 /**
  * The store to use for one reader. Falls back to the US store whenever we have
@@ -163,6 +167,15 @@ export function shortName(name, words = 4) {
 }
 
 /**
+ * The words that find a comic's printed books. A light novel searched as
+ * "manga" finds its comic adaptation instead of the novel itself, so a novel
+ * is searched as what it is.
+ */
+function bookTerms(item, name) {
+  return item.kind === 'novel' ? `${name} light novel` : `${name} manga`
+}
+
+/**
  * The buy rows for one title page. Empty when we have no usable name.
  */
 export function shopLinks(item, country) {
@@ -195,17 +208,20 @@ export function shopLinks(item, country) {
           kind: 'books',
           icon: 'book',
           label: 'Printed volumes',
-          note: 'The official English print run',
+          // A live Amazon search, not a vetted list: it can show other
+          // sellers and other editions, so the note promises no more than that.
+          note: "Opens Amazon's live search for this series",
           cta: 'Shop books',
-          url: shopUrl(`${name} manga`, BOOKS, country),
+          url: shopUrl(bookTerms(item, name), BOOKS, country),
         },
       ]
 
+  // This row searches the toys department, so it names what is found there.
   rows.push({
     kind: 'merch',
     icon: 'figure',
     label: 'Figures and merch',
-    note: 'Figures, art books, posters and apparel',
+    note: 'Figures, plushies and collectibles',
     cta: 'Shop merch',
     url: shopUrl(`${name} anime`, TOYS, country),
   })
@@ -227,7 +243,7 @@ export function shelfLinks(item) {
   return [
     isAnime
       ? { kind: 'discs', label: 'Discs', url: shopUrl(`${name} anime`, VIDEO) }
-      : { kind: 'books', label: 'Books', url: shopUrl(`${name} manga`, BOOKS) },
+      : { kind: 'books', label: 'Books', url: shopUrl(bookTerms(item, name), BOOKS) },
     { kind: 'merch', label: 'Merch', url: shopUrl(`${name} anime`, TOYS) },
   ]
 }
@@ -241,20 +257,8 @@ export function shelfLinks(item) {
  */
 export const FIGURE_POPULARITY = 40000
 
-/**
- * True when the character's buy page exists. The buy page picks its lead
- * title the same way the profile does (a main role first, a comic over its
- * own anime) and answers 404 under FIGURE_POPULARITY; the wall must agree
- * with it, or its merch door opens on nothing.
- */
-export function hasMerchPage(person) {
-  const rows = person?.appearsIn || []
-  if (!rows.length) return false
-  const best = (list) => list.find((a) => a.kind !== 'anime') || list[0]
-  const main = rows.filter((a) => a.role === 'MAIN')
-  const lead = best(main.length ? main : rows)
-  return (lead?.popularity || 0) >= FIGURE_POPULARITY
-}
+// Whether a character's buy page exists is decided in one place for the
+// sitemap, the page and every link to it: hasCharacterBuyPage in gates.mjs.
 
 /**
  * Merch for one character.
@@ -292,7 +296,7 @@ export function characterShopLinks(person, series, country) {
       label: 'Posters and prints',
       note: 'Wall art, art books and canvases',
       cta: 'Shop prints',
-      url: shopUrl(`${both} poster`, TOYS, country),
+      url: shopUrl(`${both} poster`, ALL, country),
     },
     {
       kind: 'apparel',
@@ -300,7 +304,7 @@ export function characterShopLinks(person, series, country) {
       label: 'Apparel',
       note: 'Shirts, hoodies and accessories',
       cta: 'Shop apparel',
-      url: shopUrl(`${both} shirt`, TOYS, country),
+      url: shopUrl(`${both} shirt`, ALL, country),
     },
   ]
 }

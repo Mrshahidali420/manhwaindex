@@ -9,69 +9,269 @@
  * title keep its original id slug. Characters have no year, so losing
  * duplicates keep their id slug.
  *
+ * THE REGISTRY. Popularity moves every night, so working the slugs out from
+ * scratch on every build let two namesakes swap addresses the day the loser
+ * overtook the winner, and an indexed URL started showing a different book.
+ * Now the first slug a page is given is written to data/slug-registry.json
+ * (see slug-registry.mjs) and kept for good. The popularity rule above only
+ * decides the slug of a page the registry has never seen. Handed-out slugs,
+ * old id slugs, earlier addresses and alias addresses are all reserved
+ * forever, so nothing new can ever take an address that once meant something
+ * else.
+ *
+ * With an empty registry this gives exactly the slugs the old code gave. That
+ * is what lets the first registry be built from today's live site without
+ * moving a single page.
+ *
  * Returns the 301 map { "/manhwa/solo-leveling-105398": "/manhwa/solo-leveling", ... }
- * consumed by the redirect worker.
+ * consumed by the redirect worker, plus the (possibly grown) registry.
  */
 
 import { sectionOf, READ_SECTIONS } from './section.mjs'
+import { slugify } from './slugify.mjs'
 
 export const comicKind = sectionOf
 
 const stripId = (slug) => slug.replace(/-\d+$/, '')
 
+// How many of the most-loved characters get their other names as redirects
+// (/character/eren-jaeger -> /character/eren-yeager). The whole redirect map is
+// bundled into the Worker code, so this stays capped. make-redirects prints
+// the size of redirects.json on every build so growth is visible.
+const ALIAS_TOP = 3000
+// Two letters is not a name anyone searches for, and it would reserve a very
+// short address forever.
+const ALIAS_MIN_LENGTH = 3
+
+/** Registry key of a title: AniList media ids are one global space. */
+const titleKeyOf = (item) => (item.id != null ? `t:${item.id}` : null)
+
 /**
- * Assign clean slugs inside one namespace.
- * `items` must already be sorted winner-first.
- * Returns Map(oldSlug -> newSlug).
+ * Registry key of a character. A record built from an old-format cast entry
+ * has no id, but its slug still ends in the AniList id, so that is used.
+ * Neither means no key: the record is left exactly as the old code left it.
  */
-function assign(items, { yearOf } = {}) {
-  const taken = new Set()
+const characterKeyOf = (person) => {
+  if (person.id != null) return `c:${person.id}`
+  const match = /-(\d+)$/.exec(person.slug || '')
+  return match ? `c:${match[1]}` : null
+}
+
+/** ns -> Set of every slug the registry has ever used in that folder. */
+function reservedSets(registry) {
+  const sets = new Map()
+  const add = (ns, slug) => {
+    if (!ns || !slug) return
+    let set = sets.get(ns)
+    if (!set) sets.set(ns, (set = new Set()))
+    set.add(slug)
+  }
+  for (const entry of Object.values(registry.entries)) {
+    add(entry.ns, entry.slug)
+    add(entry.ns, entry.raw)
+    for (const path of entry.past || []) {
+      const match = /^\/([^/]+)\/(.+)$/.exec(path)
+      if (match) add(match[1], match[2])
+    }
+    for (const alias of entry.aliases || []) add('character', alias)
+  }
+  return sets
+}
+
+function takenIn(sets, ns) {
+  let set = sets.get(ns)
+  if (!set) sets.set(ns, (set = new Set()))
+  return set
+}
+
+/**
+ * The old rule, unchanged: clean slug, then clean slug plus year, then the id
+ * slug as the last resort. `own` holds addresses this same page used before,
+ * which it may take back (a title that moves folder and later moves back).
+ */
+function pick(item, taken, yearOf, own = null) {
+  const free = (slug) => !taken.has(slug) || (own !== null && own.has(slug))
+  const base = stripId(item.slug) || item.slug
+  let slug = base
+  if (!free(slug) && yearOf) {
+    const year = yearOf(item)
+    if (year) slug = `${base}-${year}`
+  }
+  if (!free(slug)) slug = item.slug // last resort: keep the id slug
+  return slug
+}
+
+/** The slug of a page that has a registry key. Registers it when it is new. */
+function placeKeyed(key, item, ns, taken, ctx, yearOf) {
+  const entries = ctx.registry.entries
+  let entry = entries[key]
+
+  if (!entry) {
+    if (ctx.frozen) {
+      throw new Error(
+        `slug registry has no entry for ${key} (/${ns}/${item.slug}). ` +
+          'scripts/make-redirects.mjs registers new pages and must run before this.'
+      )
+    }
+    const slug = pick(item, taken, yearOf)
+    entry = { ns, slug, raw: item.slug, past: [] }
+    if (ns === 'character') entry.aliases = []
+    entries[key] = entry
+    ctx.stats.added++
+    ctx.entryOf.set(item, entry)
+    return slug
+  }
+
+  ctx.entryOf.set(item, entry)
+  if (!Array.isArray(entry.past)) entry.past = []
+  const addPast = (path) => {
+    if (!entry.past.includes(path)) entry.past.push(path)
+  }
+  const { ns: oldNs, slug: oldSlug, raw: oldRaw } = entry
+
+  // The title was renamed on AniList, so the ingest wrote a new id slug. The
+  // clean slug stays; the old id slug becomes an earlier address.
+  if (oldRaw !== item.slug) {
+    addPast(`/${oldNs}/${oldRaw}`)
+    entry.raw = item.slug
+    ctx.stats.renamed++
+  }
+
+  // The title changed folder (a country or format fix on AniList moved it from
+  // manga to manhwa). Its old addresses redirect; it gets a slug in the new
+  // folder by the usual rule, checked against everything reserved there.
+  if (oldNs !== ns) {
+    addPast(`/${oldNs}/${oldSlug}`)
+    addPast(`/${oldNs}/${oldRaw}`)
+    const prefix = `/${ns}/`
+    const own = new Set(entry.past.filter((p) => p.startsWith(prefix)).map((p) => p.slice(prefix.length)))
+    const slug = pick(item, taken, yearOf, own)
+    entry.past = entry.past.filter((p) => p !== `${prefix}${slug}`)
+    entry.ns = ns
+    entry.slug = slug
+    ctx.stats.moved++
+  }
+
+  return entry.slug
+}
+
+/**
+ * Assign slugs inside one namespace. `items` must already be sorted
+ * winner-first. Returns Map(oldSlug -> newSlug), as the old assign() did.
+ */
+function assign(ns, items, keyOf, ctx, yearOf = null) {
+  const taken = takenIn(ctx.sets, ns)
   const map = new Map()
   for (const item of items) {
-    const base = stripId(item.slug) || item.slug
-    let slug = base
-    if (taken.has(slug) && yearOf) {
-      const year = yearOf(item)
-      if (year) slug = `${base}-${year}`
+    const key = keyOf(item)
+    let slug
+    if (key && !ctx.seenKeys.has(key)) {
+      ctx.seenKeys.add(key)
+      slug = placeKeyed(key, item, ns, taken, ctx, yearOf)
+    } else {
+      // No key, or a second record with a key already placed this run (a
+      // duplicate character). The old rule decides, and nothing is stored,
+      // because one key can only remember one address.
+      slug = pick(item, taken, yearOf)
     }
-    if (taken.has(slug)) slug = item.slug // last resort: keep the id slug
     taken.add(slug)
     map.set(item.slug, slug)
   }
   return map
 }
 
-export function reslugAll(comics, anime, characters) {
+/**
+ * Other names of the most-loved characters, registered as extra addresses of
+ * their page. Only a name no page, id slug or earlier address has ever used.
+ */
+function addAliases(characters, ctx) {
+  const taken = takenIn(ctx.sets, 'character')
+  const top = characters
+    .filter((c) => c.image && (c.appearsIn || []).length > 0)
+    .sort((a, b) => (b.favourites || 0) - (a.favourites || 0))
+    .slice(0, ALIAS_TOP)
+  for (const person of top) {
+    const entry = ctx.entryOf.get(person)
+    if (!entry) continue
+    if (!Array.isArray(entry.aliases)) entry.aliases = []
+    for (const name of person.aliases || []) {
+      const slug = slugify(name)
+      if (slug.length < ALIAS_MIN_LENGTH || taken.has(slug)) continue
+      entry.aliases.push(slug)
+      taken.add(slug)
+      ctx.stats.aliases++
+    }
+  }
+}
+
+/**
+ * registry: the loaded slug registry, or null to start an empty one.
+ * frozen:   throw when a page has no entry. The build readers use this so a
+ *           page can never get a slug make-redirects did not record.
+ * aliases:  add and publish character alias redirects (make-redirects only).
+ */
+export function reslugAll(comics, anime, characters, { registry = null, frozen = false, aliases = false } = {}) {
   const byPop = (a, b) => (b.popularity || 0) - (a.popularity || 0)
   const yearOf = (item) => item.startYear
+
+  const reg = registry || { version: 1, entries: {} }
+  const ctx = {
+    registry: reg,
+    sets: reservedSets(reg),
+    frozen,
+    seenKeys: new Set(),
+    entryOf: new Map(),
+    stats: { added: 0, moved: 0, renamed: 0, aliases: 0 },
+  }
 
   // Comics collide only inside their own section (manhwa/manga/manhua/novel).
   const comicMap = new Map()
   for (const kind of READ_SECTIONS) {
     const group = comics.filter((c) => comicKind(c) === kind).sort(byPop)
-    for (const [oldSlug, newSlug] of assign(group, { yearOf })) comicMap.set(oldSlug, newSlug)
+    for (const [oldSlug, newSlug] of assign(kind, group, titleKeyOf, ctx, yearOf)) comicMap.set(oldSlug, newSlug)
   }
 
-  const animeMap = assign([...anime].sort(byPop), { yearOf })
+  const animeMap = assign('anime', [...anime].sort(byPop), titleKeyOf, ctx, yearOf)
 
   const charSorted = [...characters].sort(
     (a, b) => (b.appearsIn?.length || 0) - (a.appearsIn?.length || 0)
   )
-  const charMap = assign(charSorted) // no year: duplicates keep the id slug
+  const charMap = assign('character', charSorted, characterKeyOf, ctx) // no year: duplicates keep the id slug
 
-  // 301 map, built from the OLD slugs before anything is rewritten.
+  if (aliases) addAliases(characters, ctx)
+
+  // 301 map, built from the OLD slugs before anything is rewritten. The id
+  // slug first, in catalog order as before; then every earlier address and
+  // alias of the same page.
   const redirects = {}
+  let aliasRedirects = 0
+  const history = (item, to) => {
+    const entry = ctx.entryOf.get(item)
+    if (!entry) return
+    for (const path of entry.past) if (path !== to) redirects[path] = to
+    if (aliases) {
+      for (const alias of entry.aliases || []) {
+        const from = `/character/${alias}`
+        if (from === to) continue
+        redirects[from] = to
+        aliasRedirects++
+      }
+    }
+  }
   for (const c of comics) {
     const next = comicMap.get(c.slug)
     if (next !== c.slug) redirects[`/${comicKind(c)}/${c.slug}`] = `/${comicKind(c)}/${next}`
+    history(c, `/${comicKind(c)}/${next}`)
   }
   for (const a of anime) {
     const next = animeMap.get(a.slug)
     if (next !== a.slug) redirects[`/anime/${a.slug}`] = `/anime/${next}`
+    history(a, `/anime/${next}`)
   }
   for (const ch of characters) {
     const next = charMap.get(ch.slug)
     if (next !== ch.slug) redirects[`/character/${ch.slug}`] = `/character/${next}`
+    history(ch, `/character/${next}`)
   }
 
   // Rewrite the items and every embedded cross-reference.
@@ -95,5 +295,5 @@ export function reslugAll(comics, anime, characters) {
     }
   }
 
-  return { redirects }
+  return { redirects, registry: reg, ...ctx.stats, aliasRedirects }
 }

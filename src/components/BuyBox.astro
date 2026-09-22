@@ -33,6 +33,15 @@ const ICONS = {
     <p>{sub}</p>
   </div>
 
+  {/* The disclosure goes before the links, not after them. Amazon wants a
+      reader to know we are paid before they tap, and a note under the
+      buttons is read by nobody who has already left for the shop. */}
+  <p class="buys__note">
+    {AMAZON_DISCLOSURE}{' '}We hold no stock and ship nothing. Each link opens
+    Amazon's own search, so the price and the stock you see are theirs and are
+    right at the moment you look.
+  </p>
+
   <ul class="buys">
     {
       rows.map((row, at) => (
@@ -51,10 +60,4 @@ const ICONS = {
       ))
     }
   </ul>
-
-  <p class="buys__note">
-    We hold no stock and ship nothing. Each link opens Amazon, so the price and
-    the stock you see are theirs and are right at the moment you look.
-    {' '}{AMAZON_DISCLOSURE}
-  </p>
 </section>

@@ -13,9 +13,9 @@
  *
  *   node scripts/enrich-characters.mjs [howMany]
  */
-import { readFileSync, writeFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { join } from 'path'
-import { gql, sleep, cutBio, DATA_DIR, REQUEST_DELAY_MS } from './anilist-core.mjs'
+import { gql, sleep, cutBio, DATA_DIR, REQUEST_DELAY_MS, writeJsonAtomic } from './anilist-core.mjs'
 
 // AniList takes 50 ids in one call and allows 30 calls a minute.
 const PER_CALL = 50
@@ -44,7 +44,7 @@ const people = JSON.parse(readFileSync(file, 'utf8'))
 
 // Every slug ends in the AniList id, so a record saved before we started
 // keeping the id separately can still be looked up.
-const idOf = (p) => p.id ?? Number(String(p.slug || '').match(/-(\d+)$/)?.[1]) || null
+const idOf = (p) => p.id ?? (Number(String(p.slug || '').match(/-(\d+)$/)?.[1]) || null)
 
 // A record with a bio has already been through here, or arrived complete with
 // its title. Anything else is thin and worth one call.
@@ -94,5 +94,6 @@ for (let i = 0; i < todo.length; i += PER_CALL) {
   await sleep(REQUEST_DELAY_MS)
 }
 
-writeFileSync(file, JSON.stringify(people))
+// Atomic: a run killed here must leave the old whole file, not half a catalog.
+writeJsonAtomic(file, people)
 console.log(`Done. ${filled} characters gained a bio. ${thin.length - filled} still thin.`)

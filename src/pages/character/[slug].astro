@@ -12,8 +12,11 @@ import {
 import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } from '../../lib/runtime.js'
 import { characterFaq, faqJsonld, wordOf, verbOf, uniqueBySite, linksOf } from '../../lib/answers.mjs'
 import { characterShopLinks } from '../../lib/shop-links.js'
+// The merch page answers 404 when this gate says no, so the link obeys it too.
+import { hasCharacterBuyPage } from '../../lib/gates.mjs'
 import BuyBox from '../../components/BuyBox.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
+import { displayName } from '../../lib/names.mjs'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
 let person
@@ -24,6 +27,13 @@ try {
   return unavailable(Astro, e)
 }
 if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
+
+// The name fans search leads the page. AniList's full name is in Western order
+// ("Jin-U Seong"), but a Korean or Chinese character is searched family name
+// first ("Sung Jin-Woo"), and AniList already holds that form as an alias.
+// `formal` is the AniList name when it differs, `alternates` every other name.
+// See names.mjs for the exact rule. For most characters nothing changes.
+const { primary, formal, alternates } = displayName(person)
 
 // Character pages that are being TESTED with the newer wording. Every branch
 // below that reads this Set is a change with no evidence behind it yet.
@@ -167,11 +177,14 @@ const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220)
 // script. A native-script alias is the same name again to a Japanese reader and
 // noise to everyone else, and it eats the room the closing promise needs.
 // A record built from a title's cast list carries no alias list at all, so the
-// page must never read one straight off the record.
-const aliases = person.aliases || []
-const alias = aliases.find((a) => a.length <= 20 && /^[ -~]+$/.test(a))
+// page must never read one straight off the record. The alias the page already
+// leads with is skipped, or the line would say the same name twice.
+const alias = (person.aliases || []).find((a) => a !== primary && a.length <= 20 && /^[ -~]+$/.test(a))
 const said = (bits) => bits.filter(Boolean).join(', ')
-const opening = `${person.name} is a ${lead.role === 'MAIN' ? 'main character' : 'character'} in the ${word} ${unquote(lead.title)}.`
+// When the page leads with the fan spelling, the AniList spelling follows in
+// brackets, so a search for either name finds both in the snippet.
+const namedAs = formal ? `${primary} (${formal})` : primary
+const opening = `${namedAs} is a ${lead.role === 'MAIN' ? 'main character' : 'character'} in the ${word} ${unquote(lead.title)}.`
 // Under test only: "where to read it legally" is a promise, while a platform
 // name is proof, and a reader decides on proof. Three names at most, because
 // the line has 165 letters to live in.
@@ -238,9 +251,19 @@ const titleTail = promised.length
 //
 // It is NOT the default, and must not become one without evidence. See
 // TITLE_TEST at the top of this file for why.
-const pageTitle = testing
-  ? `${unquote(person.name)}${titleTail} — ${unquote(lead.title)} ${media} character`
-  : `${unquote(person.name)} — ${unquote(lead.title)} ${media} character${titleTail}`
+//
+// The fan spelling leads. The AniList spelling rides along in brackets only
+// while the whole title stays inside what a phone shows (TITLE_ROOM), because
+// the bracket would otherwise push the story's name out of sight. Google still
+// finds the AniList spelling in the h1, the description and the structured
+// data, so dropping it here loses no search.
+const TITLE_ROOM = 65
+const titleFor = (name) =>
+  testing
+    ? `${unquote(name)}${titleTail} — ${unquote(lead.title)} ${media} character`
+    : `${unquote(name)} — ${unquote(lead.title)} ${media} character${titleTail}`
+const withFormal = formal ? titleFor(`${primary} (${formal})`) : ''
+const pageTitle = withFormal && withFormal.length <= TITLE_ROOM ? withFormal : titleFor(primary)
 
 // The date of the last nightly check against AniList, shared by every page.
 const updated = checkedISO
@@ -251,8 +274,9 @@ const jsonld = {
   '@id': `https://manhwaindex.com/character/${person.slug}#person`,
   url: `https://manhwaindex.com/character/${person.slug}`,
   dateModified: updated,
-  name: person.name,
-  alternateName: person.native || undefined,
+  name: primary,
+  // Every other name the character goes by, AniList's own spelling first.
+  alternateName: formal || alternates.length ? [formal, ...alternates].filter(Boolean) : undefined,
   image: person.image,
   // schema.org gives Person a height field, so the fact is machine readable
   // as well as printed.
@@ -272,21 +296,22 @@ const jsonld = {
   canonical={`/character/${person.slug}`}
   image={person.image}
   jsonld={faq.length ? [jsonld, faqJsonld(faq)] : jsonld}
-  crumbs={[{ name: 'Characters', href: '/character' }, { name: person.name }]}
+  crumbs={[{ name: 'Characters', href: '/character' }, { name: primary }]}
 >
   <div class="shell">
     <article class="person">
       <div class="person__portrait">
-        <img src={person.image} alt={`${person.name} portrait`} width="440" height="587" loading="eager" fetchpriority="high" decoding="async" />
+        <img src={person.image} alt={`${primary} portrait`} width="440" height="587" loading="eager" fetchpriority="high" decoding="async" />
       </div>
       <div>
-        <h1>{person.name}</h1>
-        {person.native && <p class="person__native">{person.native}</p>}
-        {aliases.length > 0 && (
-          <p class="person__alias">Also called {aliases.join(' · ')}</p>
+        <h1>{primary}{formal && <> <span class="person__formal">({formal})</span></>}</h1>
+        {/* One line for every other name: the native spelling first, then the
+            AniList alternatives. It used to be two lines, native and aliases. */}
+        {alternates.length > 0 && (
+          <p class="person__alias">Also known as {alternates.join(' · ')}</p>
         )}
         <p>
-          {person.name} is a {lead.role === 'MAIN' ? 'main character' : 'character'} in the {word}{' '}
+          {primary} is a {lead.role === 'MAIN' ? 'main character' : 'character'} in the {word}{' '}
           <a href={`/${leadKind}/${lead.slug}`}>{lead.title}</a>
           {authors.length > 0 && <> by {authors.join(' and ')}</>}. Every official place to {verb}{' '}
           that story is listed further down this page.{' '}
@@ -309,21 +334,21 @@ const jsonld = {
 
     {buys.length > 0 && (
       <BuyBox
-        heading={merchIsCharacter ? `Own a piece of ${person.name}` : `Own ${lead.title}`}
+        heading={merchIsCharacter ? `Own a piece of ${primary}` : `Own ${lead.title}`}
         sub={
           merchIsCharacter
             ? 'Figures, prints and apparel, straight from Amazon.'
-            : `The official print run and merch of ${lead.title}, straight from Amazon.`
+            : `Books and merch of ${lead.title}, from Amazon's live search.`
         }
         rows={buys}
       />
     )}
 
-    {merchIsCharacter && (
+    {merchIsCharacter && hasCharacterBuyPage(person) && (
       <a class="crosslink" href={`/character/${person.slug}/buy`}>
         <div>
           <span class="crosslink__lead">The full merch page</span>
-          <span class="crosslink__title">Where to buy {person.name} merch</span>
+          <span class="crosslink__title">Where to buy {primary} merch</span>
           <span class="crosslink__lead">Figures, posters and apparel, in your own store</span>
         </div>
       </a>
@@ -332,7 +357,7 @@ const jsonld = {
     {person.description && (
       <section class="section">
         <div class="section__head">
-          <h2>About {person.name}</h2>
+          <h2>About {primary}</h2>
           <p>From AniList, the same source as the rest of this page.</p>
         </div>
         <div class="synopsis" set:html={bioHtml(person.description)} />
@@ -351,7 +376,7 @@ const jsonld = {
 
     <section class="section">
       <div class="section__head">
-        <h2>Where {person.name} shows up</h2>
+        <h2>Where {primary} shows up</h2>
         <p>Open a title to see the official apps that carry it.</p>
       </div>
       <ul class="appears">
@@ -390,7 +415,7 @@ const jsonld = {
     {faq.length > 0 && (
       <section class="section">
         <div class="section__head">
-          <h2>Common questions about {person.name}</h2>
+          <h2>Common questions about {primary}</h2>
           <p>Answered from the same facts as the rest of this page.</p>
         </div>
         <dl class="qa">

@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { reslugAll } from './reslug.mjs'
+import { loadRegistry } from './slug-registry.mjs'
 import { dropBlocked, dropBlockedRows } from './blocked.js'
 
 // Resolved from the working directory, not from import.meta.url: this module is
@@ -25,8 +26,15 @@ const animeRaw = dropBlockedRows(dropBlocked(readJson('anime')))
 const characterData = readJson('characters')
 import { characterHasPage, genreSlug } from './format.js'
 
-// Public URLs carry clean slugs, never database ids (see reslug.mjs).
-reslugAll(comicsRaw, animeRaw, characterData)
+// Public URLs carry clean slugs, never database ids (see reslug.mjs). The
+// slugs come from data/slug-registry.json, which make-redirects.mjs saved at
+// the start of this build; frozen, so a built page and a shard can never
+// disagree about an address. See make-shards.mjs for REGISTRY_READONLY.
+{
+  const registry = loadRegistry()
+  const frozen = !!registry && process.env.REGISTRY_READONLY !== '1'
+  reslugAll(comicsRaw, animeRaw, characterData, { registry, frozen })
+}
 
 // Novels ride in comics.json with kind 'novel'. The site keeps them apart.
 export const comics = comicsRaw.filter((c) => c.kind !== 'novel')

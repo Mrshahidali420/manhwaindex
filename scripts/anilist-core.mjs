@@ -14,10 +14,18 @@
  *   - id_in accepts 50 ids per call, so that is how we walk everything
  */
 
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
+import { mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BLOCKED_MEDIA, dropBlocked, dropBlockedRows } from '../src/lib/blocked.js'
+import { slugify } from '../src/lib/slugify.mjs'
+import { writeFileAtomic, writeJsonAtomic } from '../src/lib/write-atomic.mjs'
+
+// Every catalog write goes through a temporary file and a rename, so a run
+// killed mid-write leaves the last whole file, never a torn one. The helpers
+// live in src/lib so the slug registry can use them too; they are re-exported
+// here for the ingest scripts. slugify moved the same way (reslug.mjs needs it).
+export { slugify, writeFileAtomic, writeJsonAtomic }
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const DATA_DIR = join(ROOT, 'data')
@@ -204,16 +212,6 @@ const isReadLink = (link) =>
 
 const isWatchLink = (link) => link.type === 'STREAMING'
 
-export const slugify = (value) =>
-  (value || '')
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-
 // Bios end on a full sentence, never mid-word. Spoiler blocks ~!...!~ are
 // dropped whole, so a cut never lands inside one and leaks it.
 const BIO_MAX = 1500
@@ -369,16 +367,33 @@ export function loadSeen() {
 function writeSeen(items) {
   const out = {}
   for (const item of items) out[item.id] = item.updatedAt ?? 0
-  writeFileSync(SEEN_FILE, JSON.stringify(out))
+  writeJsonAtomic(SEEN_FILE, out)
 }
 
-const readJson = (file, fallback) => {
+/**
+ * A missing file is the fallback (a first run). Any other failure is an error.
+ * This used to return the fallback for a torn or corrupt file too: the daily
+ * job then built on an empty catalog, wrote the empty result back, and the
+ * cache handed that loss to every run after it.
+ */
+export const readJson = (file, fallback) => {
+  let text
   try {
-    return JSON.parse(readFileSync(file, 'utf8'))
-  } catch {
-    return fallback
+    text = readFileSync(file, 'utf8')
+  } catch (error) {
+    if (error.code === 'ENOENT') return fallback
+    throw new Error(`${file} could not be read: ${error.message}`)
+  }
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    throw new Error(`${file} is corrupt: ${error.message}`)
   }
 }
+
+// How big the catalog was when loadAssembled read it. assembleAndWrite
+// refuses to write anything clearly smaller back (see guardShrink).
+let LOADED = null
 
 /**
  * Read the last assembled catalog back into memory.
@@ -388,6 +403,7 @@ export function loadAssembled() {
   const comics = readJson(join(DATA_DIR, 'comics.json'), [])
   const anime = readJson(join(DATA_DIR, 'anime.json'), [])
   const characters = readJson(join(DATA_DIR, 'characters.json'), [])
+  LOADED = { comics: comics.length, anime: anime.length, characters: characters.length }
   CHARACTERS.clear()
   PRIOR_ROWS.clear()
   for (const c of characters) {
@@ -566,9 +582,11 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
         (y.appearsIn[0]?.popularity || 0) - (x.appearsIn[0]?.popularity || 0)
     )
 
-  writeFileSync(join(DATA_DIR, 'characters.json'), JSON.stringify(characterList))
-  writeFileSync(join(DATA_DIR, 'comics.json'), JSON.stringify(comics))
-  writeFileSync(join(DATA_DIR, 'anime.json'), JSON.stringify(anime))
+  guardShrink({ comics: comics.length, anime: anime.length, characters: characterList.length })
+
+  writeJsonAtomic(join(DATA_DIR, 'characters.json'), characterList)
+  writeJsonAtomic(join(DATA_DIR, 'comics.json'), comics)
+  writeJsonAtomic(join(DATA_DIR, 'anime.json'), anime)
   writeSeen([...comics, ...anime])
 
   const stats = {
@@ -585,6 +603,27 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
     characters: characterList.length,
     byCountry: comics.filter((c) => c.kind !== 'novel').reduce((acc, c) => ((acc[c.country] = (acc[c.country] || 0) + 1), acc), {}),
   }
-  writeFileSync(join(DATA_DIR, 'stats.json'), JSON.stringify(stats, null, 2))
+  writeJsonAtomic(join(DATA_DIR, 'stats.json'), stats, 2)
   return stats
+}
+
+/**
+ * The catalog only grows: the ingest adds and refreshes, it never deletes. A
+ * result clearly smaller than what loadAssembled read means records were lost
+ * on the way (a half-read file, a walk that started from the seed), and
+ * writing it would carry the loss into the cache and on to the live site.
+ * Throwing leaves the old files on disk untouched. ALLOW_SHRINK=1 lets an
+ * intended drop through (a FRESH=1 backfill, a big block list).
+ */
+const SHRINK_LIMIT = 0.98
+
+function guardShrink(now) {
+  if (!LOADED || process.env.ALLOW_SHRINK) return
+  for (const name of ['comics', 'anime', 'characters']) {
+    if (now[name] >= LOADED[name] * SHRINK_LIMIT) continue
+    throw new Error(
+      `SHRINK GUARD: ${name} would fall from ${LOADED[name]} to ${now[name]}. ` +
+        'Nothing was written. Run with ALLOW_SHRINK=1 if the drop is intended.'
+    )
+  }
 }

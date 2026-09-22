@@ -6,9 +6,10 @@
  * take one catalog record and return the text for a whole page.
  *
  * Two rules keep this file safe:
- *   1. It imports platform-facts.js and NOTHING else. No catalog, no JSON.
- *      That lets the Worker run it at request time and lets make-shards.mjs
- *      run it at build time from plain node.
+ *   1. It imports platform-facts.js and names.mjs (pure, import-free) and
+ *      NOTHING else. No catalog, no JSON. That lets the Worker run it at
+ *      request time and lets make-shards.mjs run it at build time from plain
+ *      node.
  *   2. It states only what the record and the platform facts already say.
  *      No guessing, no prices, no promises about a licence we cannot see.
  *
@@ -16,6 +17,7 @@
  * a complete set of answer pages tomorrow with no extra step.
  */
 import { factsFor, FREE, PAY } from './platform-facts.js'
+import { displayName } from './names.mjs'
 
 /* -------------------------------------------------------------- tiny words */
 
@@ -480,7 +482,9 @@ export function titleFaq(item, kind) {
 export function characterFaq(person, lead, leadKind, series, bio = '', height = '', voice = '') {
   const word = wordOf(leadKind)
   const verb = verbOf(leadKind)
-  const who = person.name
+  // The name the page leads with, so every question matches the h1 and the
+  // search that brought the reader here. See names.mjs.
+  const { primary: who, formal, alternates } = displayName(person)
   const faq = []
 
   const role =
@@ -572,11 +576,17 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
   }
 
   if (person.aliases?.length || person.native) {
-    const other = (person.aliases || []).slice(0, 4)
+    // The native spelling has its own sentence, so it is left out of the list.
+    // Compared tidied: the alternates are whitespace-tidied, the raw native
+    // name may not be, and a stray space would print the name twice.
+    const tidy = (text) => String(text || '').replace(/\s+/g, ' ').trim()
+    const other = alternates.filter((name) => tidy(name) !== tidy(person.native)).slice(0, 4)
     faq.push({
       q: `What is ${who}'s full name?`,
       a:
-        `The full name is ${who}.` +
+        (formal
+          ? `Fans write it ${who}, family name first. AniList lists the full name as ${formal}.`
+          : `The full name is ${who}.`) +
         (person.native ? ` In the original script it is written ${person.native}.` : '') +
         (other.length ? ` They are also called ${listWords(other)}.` : ''),
     })

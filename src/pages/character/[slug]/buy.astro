@@ -13,6 +13,8 @@ import { faqJsonld } from '../../../lib/answers.mjs'
 import { kindOfAppearance } from '../../../lib/format.js'
 import { characterShopLinks, FIGURE_POPULARITY } from '../../../lib/shop-links.js'
 import { characterBuyAnswer } from '../../../lib/buy.mjs'
+import { displayName } from '../../../lib/names.mjs'
+import { hasCharacterBuyPage, hasBuyPage } from '../../../lib/gates.mjs'
 
 let person
 try {
@@ -32,6 +34,8 @@ const leadKind = kindOfAppearance(lead)
 // The gate. Under this line no figure of this person was ever made, so the
 // page would be a shelf with nothing on it.
 if ((lead.popularity || 0) < FIGURE_POPULARITY) return notFound(Astro)
+// The sitemap's own gate, so the two can never disagree about this page.
+if (!hasCharacterBuyPage(person)) return notFound(Astro)
 
 let series
 try {
@@ -44,7 +48,14 @@ const buys = characterShopLinks(person, series || lead, countryOf(Astro))
 if (buys.length === 0) return notFound(Astro)
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 
-const answer = characterBuyAnswer(person, lead, series, leadKind, merchIsCharacter)
+// The fan spelling leads here too, the same as on the profile page. The buy
+// text is written from `person.name` and treats `aliases` as the other names,
+// so it is handed a copy with the lead name swapped in and the AniList name
+// first among the others. The shop rows above still search the record as it is.
+// When nothing is swapped, the record goes in untouched.
+const { primary, formal } = displayName(person)
+const named = formal ? { ...person, name: primary, aliases: [formal, ...(person.aliases || [])] } : person
+const answer = characterBuyAnswer(named, lead, series, leadKind, merchIsCharacter)
 const profile = `/character/${person.slug}`
 const seriesHome = `/${leadKind}/${lead.slug}`
 
@@ -87,14 +98,14 @@ const jsonld = [
   jsonld={jsonld}
   crumbs={[
     { name: 'Characters', href: '/character' },
-    { name: person.name, href: profile },
+    { name: primary, href: profile },
     { name: 'Merch' },
   ]}
 >
   <div class="shell title-page">
     <div class="cover-rail">
       <div class="cover-wrap">
-        <img class="cover" src={person.image} alt={`${person.name} portrait`} width="440" height="587" loading="eager" fetchpriority="high" decoding="async" />
+        <img class="cover" src={person.image} alt={`${primary} portrait`} width="440" height="587" loading="eager" fetchpriority="high" decoding="async" />
       </div>
     </div>
 
@@ -102,7 +113,7 @@ const jsonld = [
       <nav class="crumbs" aria-label="Breadcrumb">
         <a href="/">Home</a>
         <a href="/character">Characters</a>
-        <a href={profile}>{person.name}</a>
+        <a href={profile}>{primary}</a>
       </nav>
       <h1>{answer.heading}</h1>
       {person.native && <p class="title-head__native">{person.native}</p>}
@@ -121,8 +132,8 @@ const jsonld = [
 
       {/* The reader came here to buy. The shelves go first. */}
       <BuyBox
-        heading={merchIsCharacter ? `Own a piece of ${person.name}` : `Own ${lead.title}`}
-        sub="Official shops, in your own country's store."
+        heading={merchIsCharacter ? `Own a piece of ${primary}` : `Own ${lead.title}`}
+        sub="Amazon, in your own country's store."
         rows={buys}
       />
 
@@ -191,18 +202,23 @@ const jsonld = [
         </dl>
       </section>
 
-      <a class="crosslink" href={`${seriesHome}/buy`}>
-        <div>
-          <span class="crosslink__lead">The story itself</span>
-          <span class="crosslink__title">Where to buy {lead.title}</span>
-          <span class="crosslink__lead">Printed volumes, discs, art books and posters</span>
-        </div>
-      </a>
+      {
+        /* Only when the story's own buy page exists, or this is a door to a 404. */
+        series && hasBuyPage(series) && (
+          <a class="crosslink" href={`${seriesHome}/buy`}>
+            <div>
+              <span class="crosslink__lead">The story itself</span>
+              <span class="crosslink__title">Where to buy {lead.title}</span>
+              <span class="crosslink__lead">Printed volumes, discs, art books and posters</span>
+            </div>
+          </a>
+        )
+      }
 
       <a class="crosslink" href={profile}>
         <div>
           <span class="crosslink__lead">Everything we know about them</span>
-          <span class="crosslink__title">{person.name}</span>
+          <span class="crosslink__title">{primary}</span>
           <span class="crosslink__lead">
             Every title they appear in, and where to read or watch it legally
           </span>

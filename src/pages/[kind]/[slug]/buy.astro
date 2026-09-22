@@ -16,6 +16,7 @@ import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { faqJsonld } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
 import { buyAnswer, BUY_POPULARITY } from '../../../lib/buy.mjs'
+import { hasBuyPage, hasFreePage } from '../../../lib/gates.mjs'
 import { statusWord, charactersOf, genreSlug } from '../../../lib/format.js'
 
 const KINDS = new Set(SECTIONS)
@@ -42,6 +43,8 @@ if ((item.popularity || 0) < BUY_POPULARITY) return notFound(Astro)
 const answer = buyAnswer(item, kind)
 const buys = shopLinks(item, countryOf(Astro))
 if (buys.length === 0) return notFound(Astro)
+// The sitemap's own gate, so the two can never disagree about this page.
+if (!hasBuyPage(item)) return notFound(Astro)
 
 const home = `/${kind}/${item.slug}`
 const word = answer.word
@@ -52,7 +55,7 @@ const cast = charactersOf(item).slice(0, 12)
 
 const facts = [
   ['Status', statusWord(item.status)],
-  ...(isComic && item.volumes ? [['Volumes in print', item.volumes]] : []),
+  ...(isComic && item.volumes ? [['Volumes (original release)', item.volumes]] : []),
   isComic
     ? ['Chapters', item.chapters ?? 'Not counted']
     : ['Episodes', item.episodes ?? 'Not counted'],
@@ -119,7 +122,7 @@ const jsonld = [
       <p class="title-answer">{answer.lede}</p>
 
       {/* The reader came here to buy. The shops go first. */}
-      <BuyBox heading={`Own ${item.title}`} sub="Official shops, in your own country's store." rows={buys} />
+      <BuyBox heading={`Own ${item.title}`} sub="Amazon, in your own country's store." rows={buys} />
 
       {
         answer.paragraphs.map((block) => (
@@ -186,13 +189,18 @@ const jsonld = [
         </dl>
       </section>
 
-      <a class="crosslink" href={`${home}/free`}>
-        <div>
-          <span class="crosslink__lead">Not ready to pay yet?</span>
-          <span class="crosslink__title">Where to {verb} {item.title} free</span>
-          <span class="crosslink__lead">Every official platform that gives part of it away</span>
-        </div>
-      </a>
+      {
+        /* Only when the free page exists. With no free platform it answers 404. */
+        hasFreePage(item) && (
+          <a class="crosslink" href={`${home}/free`}>
+            <div>
+              <span class="crosslink__lead">Not ready to pay yet?</span>
+              <span class="crosslink__title">Where to {verb} {item.title} free</span>
+              <span class="crosslink__lead">Every official platform that gives part of it away</span>
+            </div>
+          </a>
+        )
+      }
 
       <a class="crosslink" href={home}>
         <div>

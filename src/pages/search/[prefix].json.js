@@ -8,7 +8,16 @@ import { sectionOf } from '../../lib/section.mjs'
 //
 // The index is now cut into slices named after the first two letters of a word.
 // Typing "to" fetches /search/to.json and nothing else. A title is filed under
-// every word it contains, so "god" still finds "Tower of God".
+// EVERY word (>= 2 letters) in its title and alternate names, not just the
+// first, so "god" still finds "Tower of God" and a one-letter-first-word
+// title like "I'm Standing on a Million Lives" is still reachable once the
+// client (Base.astro's sliceOf) picks a later word to search on.
+//
+// This was chosen over filing only the first word + longest word: at the
+// local seed size (3,598 titles) the biggest slice stays well under 200
+// records either way, so there was no size pressure to trade indexing
+// completeness for. Re-check MAX_PER_SLICE headroom if the catalog's word
+// count per title grows a lot (e.g. long alternate-name lists).
 //
 // What this gives up: matching the middle of a word. "ower" no longer finds
 // "Tower". Every search engine works that way, and it buys back the 95,000
@@ -27,17 +36,28 @@ const MAX_PER_SLICE = 1500
 /** How much alternate-name text rides along, in characters. */
 const MAX_ALT = 32
 
-/** Accents are stripped so loosely typed input still matches. */
+/**
+ * Accents fold away, apostrophes vanish entirely ("I'll" -> "ill", matching
+ * a typed "ill"), and every other punctuation mark becomes a space. This
+ * MUST behave identically to the fold() in src/layouts/Base.astro's inline
+ * search script: this build uses it to decide which slice a title is filed
+ * under, the browser uses its copy to decide which slice to fetch and how
+ * to match rows inside it. If the two drift, a client-side match can land
+ * in a slice the build never wrote it into.
+ */
 const fold = (text) =>
   text
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    .replace(/[’‘'`]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
 
 /** Latin words only: a Japanese synonym cannot be typed into this box. */
 const wordsOf = (text) =>
   fold(text)
-    .split(/[^a-z0-9]+/)
+    .split(/\s+/)
     .filter((w) => w.length >= 2)
 
 // Every cover of the same kind shares one long address, so only the file name

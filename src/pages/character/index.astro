@@ -15,6 +15,7 @@ import CharacterTile from '../../components/CharacterTile.astro'
 import Pager from '../../components/Pager.astro'
 import { charactersWithPages } from '../../lib/catalog.js'
 import { AMAZON_DISCLOSURE } from '../../lib/shop-links.js'
+import { displayName } from '../../lib/names.mjs'
 
 export const PER_PAGE = 120
 
@@ -72,7 +73,7 @@ const jsonld = {
         itemListElement: items.slice(0, 40).map((person, i) => ({
           '@type': 'ListItem',
           position: i + 1,
-          name: person.name,
+          name: displayName(person).primary,
           url: `${site}/character/${person.slug}`,
         })),
       },

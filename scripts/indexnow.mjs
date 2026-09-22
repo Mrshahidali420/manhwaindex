@@ -11,7 +11,8 @@
 // URLs every night is what earns a 429 and, eventually, being ignored. The
 // list of what has already gone out is kept in data/indexnow-sent.json, which
 // rides in the GitHub Actions cache next to the catalog.
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { writeJsonAtomic } from '../src/lib/write-atomic.mjs'
 import { join } from 'node:path'
 
 const KEY = '368b5571dfe5413a9a435c04fac12b49'
@@ -75,7 +76,7 @@ for (let i = 0; i < todo.length; i += BATCH) {
   if (ok) for (const u of batch) sent.add(u)
   // Write after every batch: a run that dies halfway must not re-announce
   // the part that already went out.
-  writeFileSync(SENT_FILE, JSON.stringify([...sent]))
+  writeJsonAtomic(SENT_FILE, [...sent])
   if (i + BATCH < todo.length) await sleep(GAP)
 }
 

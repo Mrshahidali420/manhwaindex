@@ -19,13 +19,12 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
 import { reslugAll } from '../src/lib/reslug.mjs'
+import { loadRegistry, registryHash, registrySize } from '../src/lib/slug-registry.mjs'
 import { dropBlocked, dropBlockedRows } from '../src/lib/blocked.js'
 import { sectionOf } from '../src/lib/section.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
-import { freeSplit, linksOf } from '../src/lib/answers.mjs'
-import { shopName, FIGURE_POPULARITY } from '../src/lib/shop-links.js'
-import { BUY_POPULARITY } from '../src/lib/buy.mjs'
+import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage, hasCharacterBuyPage } from '../src/lib/gates.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -399,7 +398,13 @@ async function main() {
   const anime = dropBlockedRows(dropBlocked(read('anime.json')))
   const characters = read('characters.json')
   since('read json')
-  reslugAll(comics, anime, characters)
+  // Slugs come from the registry make-redirects.mjs just saved. Frozen: a page
+  // it did not register is an error here, never a fresh slug of our own.
+  // Under REGISTRY_READONLY=1 nothing was saved, so the new pages are worked
+  // out again in memory from the same inputs and come out the same.
+  const registry = loadRegistry()
+  const frozen = !!registry && process.env.REGISTRY_READONLY !== '1'
+  reslugAll(comics, anime, characters, { registry, frozen })
   since('reslug')
 
   const titlesWithExtras = attachEnrich([...comics, ...anime])
@@ -436,37 +441,19 @@ async function main() {
 
   // Which titles have earned an answer page. A page that cannot answer its
   // own question is a thin page, so the gates are strict and the sitemap
-  // only ever lists what passed them. The Worker still renders the rest.
+  // only ever lists what passed them. The gates live in src/lib/gates.mjs,
+  // and each answer page runs the same gate and answers 404 when it fails,
+  // so the sitemap and the Worker can never disagree.
   const answerUrls = { free: [], like: [], buy: [], charBuy: [], cast: [] }
   for (const item of titles) {
     const path = `/${kindOf(item)}/${item.slug}`
-    if (freeSplit(linksOf(item)).free.length > 0) answerUrls.free.push(`${path}/free`)
-    if ((item.similar || []).length >= 4) answerUrls.like.push(`${path}/like`)
-    // "all members of X" and "X characters" are real searches and the title
-    // page only shows the first twelve faces. Under six faces the title page
-    // already shows them all, so a separate page would say nothing new.
-    const faces = (item.characters || []).filter((c) => c.image)
-    if (faces.length >= 6) answerUrls.cast.push(`${path}/characters`)
-    // A buy page is only worth having for a story people search for. Under
-    // the line it was almost certainly never printed in English, so every
-    // shop link would open an empty shelf.
-    if ((item.popularity || 0) >= BUY_POPULARITY && shopName(item).length >= 2) {
-      answerUrls.buy.push(`${path}/buy`)
-    }
+    if (hasFreePage(item)) answerUrls.free.push(`${path}/free`)
+    if (hasLikePage(item)) answerUrls.like.push(`${path}/like`)
+    if (hasCastPage(item)) answerUrls.cast.push(`${path}/characters`)
+    if (hasBuyPage(item)) answerUrls.buy.push(`${path}/buy`)
   }
-  // The same for characters, but the line is higher: a figure of one named
-  // person only gets made for a story that sold enough to pay for the mould.
-  // The lead is picked exactly as the page picks it, or the sitemap would
-  // list pages the Worker answers with a 404.
   for (const person of pages) {
-    const rows = person.appearsIn || []
-    const main = rows.filter((a) => a.role === 'MAIN')
-    const from = main.length ? main : rows
-    const lead = from.find((a) => a.kind !== 'anime') || from[0]
-    if (!lead) continue
-    if ((lead.popularity || 0) < FIGURE_POPULARITY) continue
-    if (String(person.name || '').trim().length < 2) continue
-    answerUrls.charBuy.push(`/character/${person.slug}/buy`)
+    if (hasCharacterBuyPage(person)) answerUrls.charBuy.push(`/character/${person.slug}/buy`)
   }
 
   writeFileSync(join(ROOT, 'data', 'answer-urls.json'), JSON.stringify(answerUrls))
@@ -477,6 +464,10 @@ async function main() {
     titles: titles.length,
     characterPages: pages.length,
     builtAt: Date.now(),
+    // Which slug registry this site was built from. scripts/slug-registry.mjs
+    // reads it from the saved live manifest: a live site that shipped with a
+    // registry, followed by a run that has none, means the registry was lost.
+    ...(registry ? { slugs: { entries: registrySize(registry), hash: registryHash(registry) } } : {}),
   }
   await guardAgainstShrink(manifest)
   writeFileSync(join(ROOT, 'data', 'shards.json'), JSON.stringify(manifest, null, 2))

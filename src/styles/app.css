@@ -1437,7 +1437,8 @@ main:has(.title-page) {
   color: var(--dawn-dim);
   font-size: 0.78rem;
   line-height: 1.6;
-  margin: 0.85rem 0 0;
+  /* The note sits above the links now, so its gap goes below it. */
+  margin: 0 0 0.85rem;
 }
 @media (max-width: 480px) {
   .buy a {
@@ -4386,4 +4387,51 @@ main:has(.title-page) {
 
 @media (prefers-reduced-motion: reduce) {
   .crosslink, .appears a, .platform a, .buy a { transition: none; }
+}
+
+/* Visually hidden but still readable by a screen reader / announced by
+   aria-live. Used by the header search's result-count live region. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Header search: "no match" and "search failed" rows. */
+.finder-empty,
+.finder-error {
+  padding: 0.7rem 0.9rem;
+  color: var(--dawn-dim);
+  font-size: 0.9rem;
+}
+.finder-empty a,
+.finder-error .finder-retry {
+  color: inherit;
+  text-decoration: underline;
+}
+.finder-error .finder-retry {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ---- character names (names.mjs) ------------------------------------------
+   When a character page leads with the fan spelling ("Sung Jin-Woo"), the
+   AniList spelling follows it inside the h1 in brackets. It is the same name,
+   so it reads as a quiet second line, not a second headline. */
+.person__formal {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--dawn-dim);
+  font-size: 0.5em;
+  font-weight: 500;
+  letter-spacing: 0;
 }
