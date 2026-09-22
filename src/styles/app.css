@@ -686,6 +686,10 @@ img {
   text-decoration: none;
   transition: border-color 140ms var(--ease-dawn), box-shadow 140ms var(--ease-dawn);
 }
+/* five doors on a four-wide (or two-wide) grid: the last one takes the whole row */
+.kinds a:last-child {
+  grid-column: 1 / -1;
+}
 .kinds a:hover {
   border-color: var(--rose);
   box-shadow: 0 12px 30px -14px rgb(224 104 138 / 0.4);
