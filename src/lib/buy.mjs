@@ -246,7 +246,11 @@ export function characterBuyAnswer(person, lead, series, leadKind, merchIsCharac
   const isMain = lead.role === 'MAIN'
   const names = otherCharNames(person)
 
-  const called = withAlias(who, names, 34)
+  // Only the AniList name rides in the title tag ("Sung Jin-Woo (Jin-U
+  // Seong)"), and only when the page leads with a different one. A first
+  // alias is often a nickname ("Erwin Smith (Eyebrow)"), which reads as a
+  // joke in a search result. The nicknames still show on the page itself.
+  const called = person.formalName ? withAlias(who, [unquote(person.formalName)], 34) : who
   const pageTitle = merchIsCharacter
     ? `Buy ${called} figures and merch — ${from}`
     : `Buy ${called} merch — ${from} ${word} and figures`

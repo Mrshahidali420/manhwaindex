@@ -4435,3 +4435,70 @@ main:has(.title-page) {
   font-weight: 500;
   letter-spacing: 0;
 }
+
+/* ---- character wall on phones, three a row (23 Sep 2026) ------------------
+   The wall was meant to show three faces a row on a phone, but the later
+   `.people { gap: 1.25rem 1rem }` rule beat the phone gap, so three thirds
+   plus two 1rem gaps no longer fit. The row broke into two cards that kept
+   their one-third width, and a third of the screen sat empty. A grid of three
+   equal columns cannot overflow that way: the columns share whatever width is
+   left after the gaps. The same class is used by the full cast page
+   (/<kind>/<slug>/characters), which was meant to be three a row as well.
+   Desktop keeps its fixed-width flex row; none of this applies above 760px. */
+@media (max-width: 760px) {
+  .people.people--wall {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem 0.5rem;
+    padding-bottom: 0;
+  }
+  .people.people--wall > li {
+    min-width: 0;
+  }
+  /* A card is about 110px wide here. Long names wrap to two lines and stop
+     there, so one long name cannot push its row taller than the rest. */
+  .people.people--wall b {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 0.74rem;
+    line-height: 1.25;
+    margin-top: 0.35rem;
+  }
+  .people.people--wall span {
+    font-size: 0.68rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* The doors sit at the foot of the card, so a one-line name and a two-line
+     name still leave every Details and Merch button on the same line. They
+     stack full width and stay 40px tall, the smallest a thumb hits reliably. */
+  .people--wall.people--doors .tile__doors {
+    flex-direction: column;
+    gap: 4px;
+    margin-top: auto;
+    padding-top: 0.4rem;
+  }
+  .people--wall.people--doors .tile__doors a {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 0.25rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.03em;
+  }
+}
+/* A small tablet has room for a fourth face before the desktop row takes over. */
+@media (min-width: 521px) and (max-width: 760px) {
+  .people.people--wall {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+/* The Merch door on the wall jumps to #buy on the profile. Without this the
+   sticky header would land on top of the box's heading. */
+.buybox[id] {
+  scroll-margin-top: 5.5rem;
+}

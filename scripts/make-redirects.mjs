@@ -14,7 +14,14 @@
 // ALIAS_REDIRECTS=0 turns the character alias redirects off.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { reslugAll } from '../src/lib/reslug.mjs'
+import {
+  reslugAll,
+  migrateFanNameSlugs,
+  FAN_NAME_MIGRATION,
+  migrateSeriesSlugs,
+  SERIES_SUFFIX_MIGRATION,
+  titleYears,
+} from '../src/lib/reslug.mjs'
 import { dropBlocked, dropBlockedRows } from '../src/lib/blocked.js'
 import { loadRegistry, saveRegistry, newRegistry, registrySize } from '../src/lib/slug-registry.mjs'
 import { writeFileAtomic } from '../src/lib/write-atomic.mjs'
@@ -40,6 +47,48 @@ const start =
     titles: comics.length + anime.length,
     characterPages: characters.filter((c) => c.image && (c.appearsIn || []).length > 0).length,
   })
+
+// The one-time move of characters to their fan-name slug (see
+// migrateFanNameSlugs in reslug.mjs). It runs here, the only writer, before
+// the redirects are worked out, so the old slug lands in `past` and redirects
+// in this same build. Under REGISTRY_READONLY=1 it is skipped: nothing would
+// be saved, so the frozen readers would still build pages on the old slugs
+// while this map pointed away from them.
+if (!(start.migrations || []).includes(FAN_NAME_MIGRATION)) {
+  if (readonly) {
+    console.log(`slug registry: ${FAN_NAME_MIGRATION} pending, skipped under REGISTRY_READONLY=1`)
+  } else {
+    const keep = new Set(read('character-slug-keep.json').slugs)
+    const m = migrateFanNameSlugs(characters, start, keep)
+    console.log(
+      `slug registry: ${FAN_NAME_MIGRATION} ran: ${m.candidates} characters lead with a fan name, ` +
+        `moved: ${m.moved}, kept (search impressions or visits): ${m.kept}, ` +
+        `skipped (address used by another page): ${m.collided}, skipped (too short or already there): ${m.short}`
+    )
+    for (const example of m.examples) console.log(`  ${example}`)
+  }
+}
+
+// The second one-time move: characters on an id slug (/character/luna-5407)
+// go to their name plus their story (see migrateSeriesSlugs). After the
+// fan-name move, so a character that took its fan name there is no longer on
+// an id slug here, and skipped under REGISTRY_READONLY=1 for the same reason.
+if (!(start.migrations || []).includes(SERIES_SUFFIX_MIGRATION)) {
+  if (readonly) {
+    console.log(`slug registry: ${SERIES_SUFFIX_MIGRATION} pending, skipped under REGISTRY_READONLY=1`)
+  } else {
+    const keep = new Set(read('character-slug-keep.json').slugs)
+    const m = migrateSeriesSlugs(characters, start, keep, titleYears(comics, anime))
+    console.log(
+      `slug registry: ${SERIES_SUFFIX_MIGRATION} ran: ${m.candidates} character pages on an id slug, ` +
+        `moved: ${m.moved} (${m.withYear} with the story's year), ` +
+        `kept (search impressions or visits): ${m.kept}, ` +
+        `skipped (both series slugs used by another page): ${m.collided}, ` +
+        `skipped (no usable story name): ${m.noSeries}`
+    )
+    for (const example of m.examples) console.log(`  ${example}`)
+  }
+}
 
 const result = reslugAll(comics, anime, characters, { registry: start, aliases })
 const { redirects, registry } = result

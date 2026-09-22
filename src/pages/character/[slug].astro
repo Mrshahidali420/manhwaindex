@@ -158,12 +158,28 @@ const facts = [
   person.favourites ? ['AniList favourites', person.favourites.toLocaleString()] : null,
 ].filter(Boolean)
 
-// A character is what a figure is actually made of, so this is the page where
-// merch is the honest answer — but only for a story big enough to have figures
-// made of it. For every other story the shop rows fall back to the printed
-// volumes, which always exist. `buys` says which of the two it gave us.
+// A character is what a figure is actually made of, so this page offers the
+// character's own merch AND the story's books. A well-known face gets its merch
+// first; a lesser one gets the books first; a face in the crowd, or a story too
+// small for figures, gets only the books and one series merch row. The rules
+// live in characterShopLinks. `buys` says which of them it gave us.
 const buys = characterShopLinks(person, series || lead, countryOf(Astro))
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')
+const merchFirst = buys[0]?.kind === 'figures'
+// The heading names whatever the first row sells, so the box never promises
+// figures above a row of books. The book rows can name two series (the big
+// story first, then the spin-off this page leads with), so the words stay
+// general rather than name a title the first row may not be.
+const buyHeading = merchFirst
+  ? `Own a piece of ${primary}`
+  : merchIsCharacter
+    ? `Books and merch of ${primary}`
+    : `Own the story ${primary} is from`
+const buySub = merchFirst
+  ? `Figures, prints and apparel of ${primary}, then the books of the story, from Amazon's live search.`
+  : merchIsCharacter
+    ? `The books of the story, then figures and merch of ${primary}, from Amazon's live search.`
+    : `Printed volumes and series merch, from Amazon's live search.`
 
 const bioPlain = person.description ? bioText(person.description) : ''
 const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height, voiced?.voice || '')
@@ -333,15 +349,7 @@ const jsonld = {
     </article>
 
     {buys.length > 0 && (
-      <BuyBox
-        heading={merchIsCharacter ? `Own a piece of ${primary}` : `Own ${lead.title}`}
-        sub={
-          merchIsCharacter
-            ? 'Figures, prints and apparel, straight from Amazon.'
-            : `Books and merch of ${lead.title}, from Amazon's live search.`
-        }
-        rows={buys}
-      />
+      <BuyBox id="buy" heading={buyHeading} sub={buySub} rows={buys} />
     )}
 
     {merchIsCharacter && hasCharacterBuyPage(person) && (
@@ -405,6 +413,28 @@ const jsonld = {
                 <img src={mate.image} alt={`${mate.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
                 <b>{mate.name}</b>
                 <span>{mate.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {/* Other pages that share this name, worked out at build time by
+        make-shards.mjs (the Worker never holds the whole cast). A reader who
+        searched "Luna" may want a different Luna; this is the way across. */}
+    {person.namesakes?.length > 0 && (
+      <section class="section">
+        <div class="section__head">
+          <h2>Other characters named {primary}</h2>
+          <p>Same name, a different story. Open one to see where they turn up.</p>
+        </div>
+        <ul class="appears">
+          {person.namesakes.map((other) => (
+            <li>
+              <a href={`/character/${other.slug}`}>
+                <img src={other.image} alt={`${other.name} portrait`} width="46" height="64" loading="lazy" decoding="async" />
+                <span><b>{other.name}</b>{other.series && <span>{other.series}</span>}</span>
               </a>
             </li>
           ))}

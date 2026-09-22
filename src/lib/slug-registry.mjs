@@ -12,6 +12,7 @@
 //   {
 //     version: 1,
 //     bootstrappedAt, bootstrappedFrom: { runId, titles, characterPages },
+//     migrations: ["fan-name-slugs-1", "series-suffix-slugs-1"],   one-time moves already applied
 //     entries: {
 //       "t:<anilistId>": { ns, slug, raw, past: [] },
 //       "c:<characterId>": { ns: "character", slug, raw, past: [], aliases: [] }

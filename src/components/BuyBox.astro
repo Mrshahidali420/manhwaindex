@@ -13,7 +13,9 @@
  */
 import { AMAZON_DISCLOSURE } from '../lib/shop-links.js'
 
-const { heading, sub, rows = [] } = Astro.props
+// `id` is optional. The character page sets it so the Merch door on the
+// character wall can jump straight to this box.
+const { heading, sub, rows = [], id } = Astro.props
 
 // Line art, 24x24, one stroke weight. An emoji would render differently on
 // every phone and would read as a comment rather than a label.
@@ -27,7 +29,7 @@ const ICONS = {
 }
 ---
 
-<section class="buybox">
+<section class="buybox" id={id}>
   <div class="buybox__head">
     <h2>{heading}</h2>
     <p>{sub}</p>

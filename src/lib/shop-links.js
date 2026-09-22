@@ -261,26 +261,166 @@ export const FIGURE_POPULARITY = 40000
 // sitemap, the page and every link to it: hasCharacterBuyPage in gates.mjs.
 
 /**
- * Merch for one character.
+ * How many AniList members must keep a character in their favourites before
+ * their own name is worth searching on Amazon.
+ *
+ * FIGURE_POPULARITY above says whether the STORY is big enough for figures.
+ * These two say whether THIS PERSON is one of the faces the figures are made
+ * of. In the catalog, 1,000 favourites is roughly the top few hundred names
+ * (Luffy, Naruto, Anya, Erwin, Nanami): figure lines exist for nearly all of
+ * them, so their own merch leads the box. Under 100 is a face in the crowd:
+ * a figure search for that name opens an empty or wrong shelf, so those pages
+ * only get the story's books and the story's own merch row.
+ */
+export const FAN_FAVOURITES = 1000
+export const FEW_FAVOURITES = 100
+
+/**
+ * A fan favourite in their own right: enough favourites that figures of them
+ * sell even when the title we hold for them is small. That happens when AniList
+ * files a loved side character only under a spin-off, or when the story's own
+ * record is thin (Miku Hatsune, 3,637 favourites, sits under a title of 369).
+ *
+ * Why 500. In the catalog, the characters this line lets through that the
+ * story line (FIGURE_POPULARITY) would refuse are Hinami Fueguchi, Shuu
+ * Tsukiyama and Nishiki Nishio from Tokyo Ghoul and Miku Hatsune, all of them
+ * sold as figures. At 250 the list starts taking names from stories of 3,000
+ * to 13,000 readers, where a figure search mostly opens an empty shelf.
+ */
+export const FIGURE_FAVOURITES = 500
+
+/**
+ * The best-known title a character is in: the appearance with the highest
+ * popularity. The profile page leads with a comic where the person is a main
+ * character, and for a side character that is often a spin-off nobody bought
+ * ("Attack on Titan: No Regrets" for Erwin Smith). Figures are made for the
+ * big story, so the figure search and the figure line are judged on this one.
+ */
+export function bestKnownTitle(person) {
+  let best = null
+  for (const row of person?.appearsIn || []) {
+    if (!best || (row.popularity || 0) > (best.popularity || 0)) best = row
+  }
+  return best
+}
+
+/**
+ * Whether figures of this character are likely to exist at all. Either the
+ * person is a fan favourite in their own right, or the biggest story they are
+ * in clears the figure line. A record with no favourites count was never
+ * enriched, so it is judged on the story alone.
+ *
+ * hasCharacterBuyPage in gates.mjs is built on this, and so are the shop rows
+ * below, so a buy page never exists without figure rows to show on it for a
+ * reason the two disagree about.
+ */
+export function isFigureWorthy(person) {
+  const fans = person?.favourites
+  if (fans != null && fans >= FIGURE_FAVOURITES) return true
+  // A big story alone is not enough for a face almost nobody follows: their
+  // page would offer only the story's books, which the story's own buy page
+  // already does, and a merch page with no merch of its person is thin.
+  if (fans != null && fans < FEW_FAVOURITES) return false
+  return (bestKnownTitle(person)?.popularity || 0) >= FIGURE_POPULARITY
+}
+
+/**
+ * A title as the name on a figure box: no "Season 3", no "Part 2", no
+ * "Final Season". Figures are sold under the story's name, not a season's.
+ */
+function franchiseName(row) {
+  return shopName(row || {})
+    .replace(/\s+(the\s+)?final\s+season\b.*$/i, '')
+    .replace(/\s+(season|part|cour)\s+\w+.*$/i, '')
+    .trim()
+}
+
+/**
+ * The books rows for one character: at most two series.
+ *
+ * First the biggest story they are in ("Attack on Titan"), because that is the
+ * one most readers came from. Then the title the page leads with, where they
+ * are a main character, when it is a different series ("Attack on Titan: No
+ * Regrets"). Same series twice is shown once.
+ */
+function characterBooks(top, series, country) {
+  const rows = []
+  const seen = new Set()
+  for (const [item, name] of [
+    [top, franchiseName(top)],
+    [series, shopName(series || {})],
+  ]) {
+    const key = String(name || '').toLowerCase()
+    if (key.length < 2 || seen.has(key)) continue
+    seen.add(key)
+    const novel = item?.kind === 'novel'
+    rows.push({
+      kind: 'books',
+      icon: 'book',
+      label: `${name} ${novel ? 'light novels' : 'books'}`,
+      // A live Amazon search, not a vetted list: it can show other
+      // sellers and other editions, so the note promises no more than that.
+      note: "Printed volumes, from Amazon's live search",
+      cta: 'Shop books',
+      url: shopUrl(bookTerms({ kind: novel ? 'novel' : 'manga' }, name), BOOKS, country),
+    })
+  }
+  return rows.slice(0, 2)
+}
+
+/**
+ * The buy rows for one character: their own merch and the story's books.
  *
  * A character is what a figure is actually made of, so the series name alone
  * finds the wrong shelf. The series is still added as a second word, because a
  * first name on its own matches half the shop — but only the first few words
- * of it, or the search matches nothing.
+ * of it, or the search matches nothing. That series is the biggest one they
+ * are in, not the spin-off the page may lead with.
  *
- * `series` is the story's own record: its title, its kind and its popularity.
+ * Both groups show, because a reader who loves a character wants either one:
+ *   - a well-known face (FAN_FAVOURITES and up): their merch first, then books.
+ *   - a lesser face: the books first, then their merch.
+ *   - a face in the crowd (under FEW_FAVOURITES), or no figures likely at all
+ *     (isFigureWorthy says no): the books plus one series merch row.
+ * A record with no favourites count at all was never enriched. Unknown is not
+ * the same as obscure, so it is treated as a lesser face.
+ *
+ * `series` is the story's own record for the title the page leads with: its
+ * title, its kind and its popularity.
  */
 export function characterShopLinks(person, series, country) {
   const who = String(person?.name || '').replace(/\s+/g, ' ').trim()
   if (who.length < 2) return []
 
-  // Not famous enough for a figure. Offer the story itself.
-  if ((series?.popularity || 0) < FIGURE_POPULARITY) {
-    return shopLinks(series || {}, country)
+  const top = bestKnownTitle(person) || series || {}
+  const fans = person?.favourites
+  const books = characterBooks(top, series, country)
+
+  // No figure of this person is likely. Offer the story itself: its books and
+  // one merch row for the whole series, which a series search does fill.
+  if (!isFigureWorthy(person) || (fans != null && fans < FEW_FAVOURITES)) {
+    const name = franchiseName(top)
+    if (name.length < 2) return books
+    return [
+      ...books,
+      {
+        kind: 'merch',
+        icon: 'figure',
+        label: `${name} figures and merch`,
+        note: 'Figures, plushies and collectibles',
+        cta: 'Shop merch',
+        url: shopUrl(`${name} anime`, TOYS, country),
+      },
+    ]
   }
 
-  const both = `${who} ${shortName(shopName(series), 4)}`.trim()
+  const both = `${who} ${shortName(franchiseName(top), 4)}`.trim()
+  const own = ownMerch(who, both, country)
+  return fans >= FAN_FAVOURITES ? [...own, ...books] : [...books, ...own]
+}
 
+/** The rows that search one character's own name. */
+function ownMerch(who, both, country) {
   return [
     {
       kind: 'figures',

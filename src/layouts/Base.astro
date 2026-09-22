@@ -91,7 +91,7 @@ const nodes = [
     publisher: { '@id': organization['@id'] },
     potentialAction: {
       '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${site}/manhwa?q={search_term_string}` },
+      target: { '@type': 'EntryPoint', urlTemplate: `${site}/search?q={search_term_string}` },
       'query-input': 'required name=search_term_string',
     },
   },
@@ -687,13 +687,14 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         </button>
 
         <div class="masthead__menu" id="site-menu">
-          <div class="finder" id="finder">
+          <form class="finder" id="finder" role="search" action="/search" method="get">
             <svg class="finder__icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3.6-3.6" />
             </svg>
             <input
               id="finder-input"
+              name="q"
               type="search"
               placeholder={searchLabel}
               autocomplete="off"
@@ -705,7 +706,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
             />
             <ul id="finder-results" role="listbox" hidden></ul>
             <span id="finder-status" class="sr-only" aria-live="polite"></span>
-          </div>
+          </form>
 
           <nav aria-label="Browse">
             <a href="/" class="nav-home">Home</a>
@@ -817,107 +818,31 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
     )}
 
     <script>
-      // Header search. The index is cut into slices named after the first two
-      // letters of a word, so typing "to" downloads /search/to.json and
-      // nothing else. One slice is a few hundred kilobytes; the whole index
-      // would be 28 MB. A slice stays in memory once it has been fetched.
+      // Header search. The index is cut into slices, so typing "to" downloads
+      // one small file and nothing else. One slice is a few hundred
+      // kilobytes; the whole index would be tens of megabytes. A slice stays
+      // in memory once it has been fetched. The matching/ranking/fetching
+      // logic itself lives in src/lib/finder-core.js, shared with the full
+      // results page at /search — see that module for what each piece does
+      // and why it must agree with the build side.
+      import {
+        fold,
+        escapeHtml,
+        coverUrl,
+        loadManifest,
+        isManifestLoaded,
+        loadSlice,
+        isSliceLoaded,
+        longestWord,
+        slicePathFor,
+        rankMatches,
+      } from '../lib/finder-core.js'
+
       const input = document.getElementById('finder-input')
       const list = document.getElementById('finder-results')
       const status = document.getElementById('finder-status')
 
-      // prefix -> a promise for that slice's records.
-      const slices = new Map()
-
-      // Records carry only the cover file name. Every cover of the same kind
-      // shares this address, so repeating it on every record would be waste.
-      const COVER_BASE = 'https://s4.anilist.co/file/anilistcdn/media/'
-
-      // Accents fold away, apostrophes vanish entirely ("I'll" -> "ill",
-      // matching a typed "ill"), and every other punctuation mark becomes a
-      // space. This MUST behave identically to the fold() in
-      // src/pages/search/[prefix].json.js: that build decides which slice a
-      // title is filed under with its copy, this decides which slice to
-      // fetch and how to match rows in it with this one. If the two drift, a
-      // match here can land in a slice the build never filed it into.
-      const fold = (text) =>
-        text
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[̀-ͯ]/g, '')
-          .replace(/[’‘'`]/g, '')
-          .replace(/[^a-z0-9]+/g, ' ')
-          .trim()
-
-      /**
-       * Which slice answers this query: the two-letter prefix of the first
-       * word that is at least 2 letters long. The build only files a record
-       * under words that long (see wordsOf() in [prefix].json.js), so a
-       * query whose first word is a single letter — "I'm Standing on a
-       * Million Lives" folds to "im standing on a million lives" — has to
-       * skip past "i" or it lands on a slice nothing was ever filed under.
-       *
-       * Of those words, the LONGEST one wins. A slice keeps only its most
-       * popular rows (MAX_PER_SLICE), and a common word like "the" fills
-       * its slice with titles the reader did not mean, so a less popular
-       * "the ..." title never made the cut. Every word of a title is filed,
-       * so any word the reader typed finds it; the longest word is the one
-       * whose slice is least likely to be full.
-       */
-      function sliceOf(needle) {
-        const word = needle
-          .split(/\s+/)
-          .filter((w) => w.length >= 2)
-          .sort((a, b) => b.length - a.length)[0] || ''
-        return word.slice(0, 2)
-      }
-
-      // A slice is folded once, here, and never again. Folding is
-      // normalize() plus toLowerCase() on every row; doing that for 1,500
-      // rows on every keypress is what made the box feel slow on a phone.
-      // Each row grows two fields: the folded title, and the folded title
-      // plus alternate names as one string to test against.
-      function prepare(rows) {
-        for (const row of rows) {
-          const folded = fold(row[0])
-          row[5] = folded
-          row[6] = row[4] ? folded + " " + row[4] : folded
-        }
-        return rows
-      }
-
-      function loadSlice(prefix) {
-        let job = slices.get(prefix)
-        if (!job) {
-          // A 404 is not an error: nothing in the catalog has a word
-          // starting with those two letters, and that is a legitimate
-          // empty slice. A rejected fetch (offline, DNS, interrupted) is a
-          // real failure — do not cache it, so the next keystroke or a
-          // "Try again" click retries instead of staying blank forever.
-          job = fetch(`/search/${prefix}.json`)
-            // Only a 404 means "empty slice". A 500 or 503 is a failure, and
-            // treating it as empty would show "No match" until a reload.
-            .then((res) => {
-              if (res.status === 404) return []
-              if (!res.ok) throw new Error(`slice ${prefix}: ${res.status}`)
-              return res.json()
-            })
-            .then(prepare)
-            .catch((err) => {
-              slices.delete(prefix)
-              throw err
-            })
-          slices.set(prefix, job)
-        }
-        return job
-      }
-
       let active = -1
-
-      const escapeHtml = (text) =>
-        String(text).replace(
-          /[&<>"]/g,
-          (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]
-        )
 
       const optionId = (i) => `finder-option-${i}`
 
@@ -937,19 +862,25 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         announce('')
       }
 
-      // A record is [ title, url, cover file, year, alternate names ].
-      function renderResults(matches) {
+      // A record is [ title, url, cover file, year, alternate names ]. `total`
+      // is how many rows matched before this was cut down to 8 — the "See
+      // all" row at the bottom always links to the full /search page, using
+      // that count, so a query with more matches than the dropdown shows has
+      // somewhere to go.
+      function renderResults(matches, query, total) {
         active = -1
         input.removeAttribute('aria-activedescendant')
-        list.innerHTML = matches
+        const rows = matches
           .map(([title, url, cover, year], i) => {
             const kind = url.split('/')[1]
-            const src = cover.includes('://')
-              ? cover
-              : `${COVER_BASE}${kind === 'anime' ? 'anime' : 'manga'}/cover/small/${cover}`
+            const src = coverUrl(kind, cover)
             return `<li id="${optionId(i)}" role="option" aria-selected="false"><a href="${escapeHtml(url)}"><img src="${escapeHtml(src)}" alt="Cover of ${escapeHtml(title)}" loading="lazy" width="34" height="48" /><span><b>${escapeHtml(title)}</b><em>${escapeHtml(kind)}${year ? ' · ' + year : ''}</em></span></a></li>`
           })
           .join('')
+        const seeAll = total > 0
+          ? `<li class="finder-seeall" role="presentation"><a href="/search?q=${encodeURIComponent(query)}">See all ${total} result${total === 1 ? '' : 's'} for “${escapeHtml(query)}”</a></li>`
+          : ''
+        list.innerHTML = rows + seeAll
         list.hidden = false
         input.setAttribute('aria-expanded', 'true')
         announce(matches.length === 1 ? '1 result' : `${matches.length} results`)
@@ -986,9 +917,9 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         })
       }
 
-      // Every word of the query must appear; better matches float up:
-      // exact title, then title-starts-with, then word-starts-with,
-      // then substring. Ties go to the more popular title.
+      // Ranking and slice lookup are shared with /search — see
+      // src/lib/finder-core.js. This wraps that with the dropdown's own
+      // loading/error UI and its 8-row cap.
       //
       // `turn` guards against a slow slice landing after the person has typed
       // on. Only the newest search is allowed to draw.
@@ -1005,13 +936,30 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
 
         if (needle.length < 2) return clearResults()
 
-        const prefix = sliceOf(needle)
-        if (!prefix) return renderEmpty(q)
+        const word = longestWord(needle)
+        if (!word) return renderEmpty(q)
 
-        // The first search for a prefix downloads that slice. On a phone
-        // that is a few hundred milliseconds of nothing, which reads as a
-        // broken box. Say what is happening instead.
-        if (!slices.has(prefix)) {
+        // The manifest and the first search for a slice both download
+        // something. On a phone that is a few hundred milliseconds of
+        // nothing, which reads as a broken box. Say what is happening
+        // instead, whichever of the two is still in flight.
+        if (!isManifestLoaded()) {
+          list.innerHTML = '<li class="finder-wait" role="presentation">Searching…</li>'
+          list.hidden = false
+          input.setAttribute('aria-expanded', 'true')
+        }
+
+        let splitPrefixes
+        try {
+          splitPrefixes = await loadManifest()
+        } catch {
+          if (mine !== turn) return
+          return renderError()
+        }
+        if (mine !== turn) return
+
+        const prefix = slicePathFor(needle, splitPrefixes)
+        if (!isSliceLoaded(prefix)) {
           list.innerHTML = '<li class="finder-wait" role="presentation">Searching…</li>'
           list.hidden = false
           input.setAttribute('aria-expanded', 'true')
@@ -1026,24 +974,9 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         }
         if (mine !== turn) return
 
-        const words = needle.split(/\s+/).filter(Boolean)
-        const scored = []
-        for (const row of rows) {
-          const title = row[5]
-          const hay = row[6]
-          if (!words.every((w) => hay.includes(w))) continue
-          let score = 1
-          if (title === needle) score = 4
-          else if (title.startsWith(needle)) score = 3
-          else if (hay.includes(' ' + needle) || hay.startsWith(needle)) score = 2
-          scored.push([score, row])
-        }
-        // Sorting is stable, so equal scores keep the popularity order the
-        // slice was written in. That is why no popularity is stored.
-        scored.sort((a, b) => b[0] - a[0])
-        const top = scored.slice(0, 8).map((x) => x[1])
-        if (!top.length) renderEmpty(q)
-        else renderResults(top)
+        const matched = rankMatches(rows, needle)
+        if (!matched.length) renderEmpty(q)
+        else renderResults(matched.slice(0, 8), q, matched.length)
       }
 
       function highlight(delta) {
@@ -1068,11 +1001,20 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           highlight(-1)
         }
         if (e.key === 'Enter') {
-          // Result rows only. The "No match" row carries browse links too,
-          // and Enter must not send a reader to /manhwa by surprise.
+          // A highlighted row (arrowed to, by hand): open it, same as a
+          // click. Nothing highlighted: let the surrounding <form
+          // role="search"> submit natively to /search?q=... — that also
+          // makes the phone keyboard's Go/search key work with no JS at
+          // all. Guard only the too-short case, so Enter on an empty or
+          // 1-letter box does not send the reader to a query-less page.
           const rows = list.querySelectorAll('li[role="option"] a')
-          const pick = rows[active >= 0 ? active : 0]
-          if (pick) location.href = pick.href
+          const pick = active >= 0 ? rows[active] : null
+          if (pick) {
+            e.preventDefault()
+            location.href = pick.href
+            return
+          }
+          if (fold(input.value.trim()).length < 2) e.preventDefault()
         }
         if (e.key === 'Escape') clearResults()
       })

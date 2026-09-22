@@ -3,15 +3,16 @@
  * "Where to buy X merch."
  *
  * A character is what a figure is actually made of, so this is the page that
- * answers a merch search honestly. Only characters from a story big enough to
- * have merch made of it get one: see FIGURE_POPULARITY in shop-links.js.
+ * answers a merch search honestly. Only a fan favourite, or a character from a
+ * story big enough to have merch made of it, gets one: see isFigureWorthy in
+ * shop-links.js and hasCharacterBuyPage in gates.mjs.
  */
 import Base from '../../../layouts/Base.astro'
 import BuyBox from '../../../components/BuyBox.astro'
 import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { faqJsonld } from '../../../lib/answers.mjs'
 import { kindOfAppearance } from '../../../lib/format.js'
-import { characterShopLinks, FIGURE_POPULARITY } from '../../../lib/shop-links.js'
+import { characterShopLinks } from '../../../lib/shop-links.js'
 import { characterBuyAnswer } from '../../../lib/buy.mjs'
 import { displayName } from '../../../lib/names.mjs'
 import { hasCharacterBuyPage, hasBuyPage } from '../../../lib/gates.mjs'
@@ -31,11 +32,13 @@ const main = person.appearsIn.filter((a) => a.role === 'MAIN')
 const lead = best(main.length ? main : person.appearsIn)
 const leadKind = kindOfAppearance(lead)
 
-// The gate. Under this line no figure of this person was ever made, so the
-// page would be a shelf with nothing on it.
-if ((lead.popularity || 0) < FIGURE_POPULARITY) return notFound(Astro)
-// The sitemap's own gate, so the two can never disagree about this page.
-if (!hasCharacterBuyPage(person)) return notFound(Astro)
+// The sitemap's own gate, and the only one, so the two can never disagree
+// about this page. It judges the biggest story the person is in, not the lead
+// title above: the lead is often a spin-off far smaller than the story itself.
+// A real character with no merch page of their own is sent to their profile,
+// whose Amazon box (#buy) offers what there is. A 301, not a 404: some of these
+// addresses were in the sitemap before the merch rule changed on 23 Sep 2026.
+if (!hasCharacterBuyPage(person)) return Astro.redirect(`/character/${person.slug}#buy`, 301)
 
 let series
 try {
@@ -54,7 +57,9 @@ const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 // first among the others. The shop rows above still search the record as it is.
 // When nothing is swapped, the record goes in untouched.
 const { primary, formal } = displayName(person)
-const named = formal ? { ...person, name: primary, aliases: [formal, ...(person.aliases || [])] } : person
+const named = formal
+  ? { ...person, name: primary, formalName: formal, aliases: [formal, ...(person.aliases || [])] }
+  : person
 const answer = characterBuyAnswer(named, lead, series, leadKind, merchIsCharacter)
 const profile = `/character/${person.slug}`
 const seriesHome = `/${leadKind}/${lead.slug}`

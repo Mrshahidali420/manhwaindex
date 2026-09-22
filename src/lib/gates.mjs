@@ -17,7 +17,7 @@
  * catalog and no files: this module must stay safe to load in the Worker.
  */
 import { freeSplit, linksOf } from './answers.mjs'
-import { shopName, FIGURE_POPULARITY } from './shop-links.js'
+import { shopName, isFigureWorthy } from './shop-links.js'
 import { BUY_POPULARITY } from './buy.mjs'
 
 /** "Where to read X free": only when at least one platform gives some away. */
@@ -51,18 +51,19 @@ export function hasBuyPage(item) {
 }
 
 /**
- * "Where to buy X merch", for one character. The line is higher than for a
- * story: a figure of one named person only gets made for a story that sold
- * enough to pay for the mould. The lead is picked exactly as the profile page
- * picks it: a main role first, and a comic over its own anime.
+ * "Where to buy X merch", for one character. A figure of one named person only
+ * gets made when enough people want it: either the person is a fan favourite
+ * in their own right (FIGURE_FAVOURITES), or the BIGGEST story they are in sold
+ * enough to pay for the mould (FIGURE_POPULARITY). See isFigureWorthy in
+ * shop-links.js, which the shop rows use too.
+ *
+ * It used to judge the title the profile page leads with: a main role first,
+ * a comic over its anime. For a side character that is often a spin-off nobody
+ * bought, so Erwin Smith was judged on "Attack on Titan: No Regrets" (16,239)
+ * and Kento Nanami on a Jujutsu Kaisen light novel, and both had no merch page.
  */
 export function hasCharacterBuyPage(person) {
-  const rows = person?.appearsIn || []
-  const main = rows.filter((a) => a.role === 'MAIN')
-  const from = main.length ? main : rows
-  const lead = from.find((a) => a.kind !== 'anime') || from[0]
-  if (!lead) return false
-  if ((lead.popularity || 0) < FIGURE_POPULARITY) return false
+  if (!(person?.appearsIn || []).length) return false
   if (String(person.name || '').trim().length < 2) return false
-  return true
+  return isFigureWorthy(person)
 }

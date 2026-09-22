@@ -206,10 +206,25 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6000
 
       - name: Deploy to Cloudflare
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 735d0fbab0757142b2c29917563e0626
+
+      # Straight after the deploy, before anything else can fail: the build
+      # registered new and moved addresses, and they are live now. If this
+      # waited behind the manifest steps and one of those failed, the cache
+      # would keep yesterday's registry while today's addresses serve, and the
+      # next night could hand a moved page a different address.
+      # Never while the recovered marker exists: a stand-in must not replace
+      # the real registry in the cache.
+      - name: Save the slug registry
+        if: always() && steps.deploy.outcome == 'success' && hashFiles('data/slug-registry.json') != '' && hashFiles('data/slug-registry.recovered') == ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/slug-registry.json
+          key: slug-registry-${{ github.run_id }}
 
       # Only after a successful deploy: the file must describe what is live.
       - name: Record the live manifest
@@ -221,16 +236,6 @@ jobs:
           path: data/live-manifest.json
           key: live-manifest-${{ github.run_id }}
 
-      # The build registered any new page in the registry; keep it now that
-      # those addresses are live. Never while the recovered marker exists: a
-      # stand-in must not replace the real registry in the cache.
-      - name: Save the slug registry
-        if: hashFiles('data/slug-registry.json') != '' && hashFiles('data/slug-registry.recovered') == ''
-        uses: actions/cache/save@v4
-        with:
-          path: data/slug-registry.json
-          key: slug-registry-${{ github.run_id }}
-
       # Copy the catalog, the walk positions and the registry up to R2. Runs
       # even when the build failed, like the catalog save: the records cost
       # API calls. It refuses to replace the snapshot with a smaller catalog.
@@ -240,6 +245,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+          REGISTRY_NOT_LIVE: ${{ steps.deploy.outcome != 'success' && '1' || '' }}
         run: node --max-old-space-size=6000 scripts/catalog-snapshot.mjs push
 
       # IndexNow tells Bing, Yandex, Seznam and Naver about new pages the same

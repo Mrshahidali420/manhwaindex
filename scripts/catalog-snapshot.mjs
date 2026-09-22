@@ -201,6 +201,13 @@ async function push(tmp) {
       warn('data/slug-registry.recovered exists: the stand-in registry is not uploaded')
       continue
     }
+    // The build writes new addresses into the registry before it deploys. If
+    // the deploy did not happen, those addresses are not live, and a copy of
+    // them in R2 would describe a site nobody can visit.
+    if (name === 'slug-registry.json' && process.env.REGISTRY_NOT_LIVE === '1') {
+      console.log('deploy did not succeed: the slug registry is not uploaded')
+      continue
+    }
     const local = inspect(join(DATA, name))
     if (local.state !== 'ok') continue
     if (name === 'slug-registry.json') registryEntries = local.count

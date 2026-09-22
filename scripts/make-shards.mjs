@@ -18,7 +18,8 @@ import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
-import { reslugAll } from '../src/lib/reslug.mjs'
+import { reslugAll, leadAppearance } from '../src/lib/reslug.mjs'
+import { displayName } from '../src/lib/names.mjs'
 import { loadRegistry, registryHash, registrySize } from '../src/lib/slug-registry.mjs'
 import { dropBlocked, dropBlockedRows } from '../src/lib/blocked.js'
 import { sectionOf } from '../src/lib/section.mjs'
@@ -321,6 +322,68 @@ function writeOverviews(titles, pools) {
   }
 }
 
+/**
+ * "Other characters named Luna" on every Luna's page. Ten characters can share
+ * one name, and a reader who searched it may have landed on the wrong one; the
+ * list is the way across, and a real internal link to each namesake. It needs
+ * every character page at once, which the Worker never has, so it is worked
+ * out here and stored in the record, like `similar` for titles.
+ *
+ * Names match once case, accents and punctuation are folded away ("Jin-Woo"
+ * and "jin woo" are one name). Most-loved first, then most appearances. Stored
+ * only when there is someone to list, so a unique name costs the shard nothing.
+ */
+const NAMESAKES_MAX = 12
+const nameKey = (name) =>
+  String(name || '')
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+// The list shows a 46px face, and AniList's medium character image is a
+// quarter of the large one's bytes. Only the folder differs; checked 23 Sep
+// 2026 on a random sample and on default.jpg.
+const smallFace = (url) => String(url || '').replace('/character/large/', '/character/medium/')
+
+function attachNamesakes(pages) {
+  const groups = new Map()
+  for (const person of pages) {
+    const name = displayName(person).primary
+    const key = nameKey(name)
+    if (!key) continue
+    let group = groups.get(key)
+    if (!group) groups.set(key, (group = []))
+    group.push({ person, name })
+  }
+  let linked = 0
+  for (const group of groups.values()) {
+    if (group.length < 2) continue
+    group.sort(
+      (a, b) =>
+        (b.person.favourites || 0) - (a.person.favourites || 0) ||
+        b.person.appearsIn.length - a.person.appearsIn.length ||
+        (a.person.slug < b.person.slug ? -1 : a.person.slug > b.person.slug ? 1 : 0)
+    )
+    // One card per address: a duplicate record on the same slug is one page.
+    const cards = []
+    const seen = new Set()
+    for (const { person, name } of group) {
+      if (seen.has(person.slug)) continue
+      seen.add(person.slug)
+      const lead = leadAppearance(person)
+      cards.push({ slug: person.slug, name, series: lead?.title || '', image: smallFace(person.image) })
+    }
+    for (const { person } of group) {
+      const others = cards.filter((card) => card.slug !== person.slug).slice(0, NAMESAKES_MAX)
+      if (!others.length) continue
+      person.namesakes = others
+      linked++
+    }
+  }
+  return linked
+}
+
 // Phase timings. A build that crawls must say WHERE it crawls: one run of
 // this script took 57 minutes and printed nothing at all until it was killed.
 let mark = Date.now()
@@ -421,6 +484,8 @@ async function main() {
 
   // Only characters that earn a page are sharded. The rest are never served.
   const pages = characters.filter((c) => c.image && (c.appearsIn || []).length > 0)
+  const withNamesakes = attachNamesakes(pages)
+  console.log(`  namesakes listed on ${withNamesakes} of ${pages.length} character pages`)
   const c = writeShards(join(OUT, 'c'), pages, CHARACTER_SHARDS, (person) => person.slug)
 
   // The site shell (header and footer) shows two counts and the top genres.

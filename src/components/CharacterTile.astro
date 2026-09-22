@@ -2,18 +2,25 @@
 /**
  * One character on the wall: a face, a name, and two doors under it.
  *
- * "Details" opens the profile. "Merch" opens the character's own buy page,
- * the one with figure, poster and apparel shelves in the reader's store. The
- * merch door only shows when that page really exists: the buy page answers
- * 404 when its gate in src/lib/gates.mjs says no, so the wall must apply the
- * same gate or it sends readers to a dead end.
+ * "Details" opens the profile. "Merch" opens the best shop we have for them:
+ *   - the character's own buy page, when its gate in src/lib/gates.mjs says
+ *     that page exists. The buy page answers 404 when the gate says no, so the
+ *     wall must apply the same gate or it sends readers to a dead end.
+ *   - otherwise the Amazon box on the character's profile (#buy). Every
+ *     profile carries one, with the story's books and, for a known face, their
+ *     own figures. So every card gets a Merch door, and none of them opens a
+ *     thin page or leaves the site straight from the wall.
  */
 import { kindOfAppearance } from '../lib/catalog.js'
 import { hasCharacterBuyPage } from '../lib/gates.mjs'
 import { displayName } from '../lib/names.mjs'
 
 const { person, eager = false } = Astro.props
-const merch = hasCharacterBuyPage(person)
+const buyPage = hasCharacterBuyPage(person)
+// characterShopLinks gives nothing for a name under two letters, so the
+// profile would have no box to jump to.
+const merch = buyPage || String(person.name || '').trim().length >= 2
+const merchHref = buyPage ? `/character/${person.slug}/buy` : `/character/${person.slug}#buy`
 // The same name the profile page leads with, so the card and the page agree.
 const { primary: name } = displayName(person)
 ---
@@ -34,7 +41,7 @@ const { primary: name } = displayName(person)
   <div class="tile__doors">
     <a href={`/character/${person.slug}`} aria-label={`${name} details`}>Details</a>
     {merch && (
-      <a class="tile__merch" href={`/character/${person.slug}/buy`} aria-label={`Buy ${name} figures and merch`}>
+      <a class="tile__merch" href={merchHref} aria-label={buyPage ? `Buy ${name} figures and merch` : `Shop ${name} merch and books`}>
         <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
           <path d="M3 6h18" />

@@ -16,6 +16,9 @@ const CACHE_SECONDS = 86400
 // template change stays invisible for a full day.
 const BUILD = String(shards.builtAt || 0)
 
+// The answer pages that hang under a title or a character page.
+const SUBPAGE = /^(\/[^/]+\/[^/]+)(\/(?:buy|free|like|characters))$/
+
 // Where the page script posts one row per view, per outbound click and per
 // exit. It is short on purpose: it travels in every page.
 const BEACON_PATH = '/_a'
@@ -216,6 +219,14 @@ export default {
 
     const target = redirects[path]
     if (target) return Response.redirect(`${url.origin}${target}${url.search}`, 301)
+
+    // A page that moved takes its answer pages with it. The map holds only the
+    // page itself, so /character/jin-u-seong/buy is matched here by its parent
+    // and follows it to /character/sung-jin-woo/buy. One lookup, no new rows.
+    const sub = SUBPAGE.exec(path)
+    if (sub && redirects[sub[1]]) {
+      return Response.redirect(`${url.origin}${redirects[sub[1]]}${sub[2]}${url.search}`, 301)
+    }
 
     if (url.pathname === PASS_PATH) {
       if (request.method !== 'POST') return new Response(null, { status: 405 })

@@ -24,6 +24,11 @@
  *                                build the registry and save it.
  *
  * Locally, with no saved live manifest, it simply builds the registry.
+ *
+ * A rebuild no longer gives exactly the pre-registry slugs: a character whose
+ * page leads with the fan-searched name now gets its slug from that name (see
+ * reslug.mjs). The live registry is already bootstrapped, so this only
+ * matters for an accept_registry rebuild, which is a deliberate owner action.
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
