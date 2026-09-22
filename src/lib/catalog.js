@@ -97,7 +97,15 @@ export function findCharacter(slug) {
   return characters.find((c) => c.slug === slug)
 }
 
-export const charactersWithPages = characters.filter(characterHasPage)
+// Most-loved first: the character's own AniList favourites count, then the
+// popularity of their biggest title as the tie-break. Sorting by the title
+// alone put a whole cast side by side and the wall read as one show, then
+// the next.
+export const byFavourites = (a, b) =>
+  (b.favourites || 0) - (a.favourites || 0) ||
+  (b.appearsIn?.[0]?.popularity || 0) - (a.appearsIn?.[0]?.popularity || 0)
+
+export const charactersWithPages = characters.filter(characterHasPage).sort(byFavourites)
 
 // --- genres -----------------------------------------------------------------
 // Every genre that appears in the catalog, with counts, biggest first.

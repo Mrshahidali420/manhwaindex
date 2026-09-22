@@ -532,7 +532,13 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
       aliases: c.aliases || [],
       appearsIn: c.appearsIn.sort((x, y) => y.popularity - x.popularity),
     }))
-    .sort((x, y) => (y.appearsIn[0]?.popularity || 0) - (x.appearsIn[0]?.popularity || 0))
+    // Most-loved character first, biggest title as the tie-break. The wall
+    // reads the same order, so a whole cast no longer sits in one clump.
+    .sort(
+      (x, y) =>
+        (y.favourites || 0) - (x.favourites || 0) ||
+        (y.appearsIn[0]?.popularity || 0) - (x.appearsIn[0]?.popularity || 0)
+    )
 
   writeFileSync(join(DATA_DIR, 'characters.json'), JSON.stringify(characterList))
   writeFileSync(join(DATA_DIR, 'comics.json'), JSON.stringify(comics))
