@@ -1,8 +1,9 @@
 ---
-import { FILTERS } from '../lib/filters.js'
+import { filtersFor } from '../lib/filters.js'
 
 // One row of filter links for a browse shelf. `active` is a FILTERS key,
-// or undefined on the unfiltered page.
+// or undefined on the unfiltered page. Only filters that apply to this
+// kind are shown (see FILTERS[key].kinds in lib/filters.js).
 const { kind, active } = Astro.props
 ---
 
@@ -11,7 +12,7 @@ const { kind, active } = Astro.props
     <a href={`/${kind}`} aria-current={active ? undefined : 'page'}>All</a>
   </li>
   {
-    Object.entries(FILTERS).map(([key, def]) => (
+    filtersFor(kind).map(([key, def]) => (
       <li>
         <a href={`/${kind}/only/${key}`} aria-current={active === key ? 'page' : undefined}>
           {def.label}

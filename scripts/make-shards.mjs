@@ -26,6 +26,7 @@ import { sectionOf } from '../src/lib/section.mjs'
 import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
 import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage, hasCharacterBuyPage } from '../src/lib/gates.mjs'
+import { hubSeasonKeys, seasonKeyOf } from '../src/lib/season-core.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -474,6 +475,14 @@ async function main() {
   since('enrich')
 
   rmSync(OUT, { recursive: true, force: true })
+
+  // The title page links "Aired: Fall 2025" to that season's hub, but the
+  // Worker has no catalog to know whether the hub was built. The same rule the
+  // hub builder uses (src/lib/season-core.mjs) marks the anime that have one.
+  const hubKeys = hubSeasonKeys(anime)
+  for (const item of anime) {
+    if (hubKeys.has(seasonKeyOf(item))) item.seasonHub = true
+  }
 
   const titles = [...comics, ...anime]
   precompute(titles)

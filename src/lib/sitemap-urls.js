@@ -9,7 +9,8 @@ import {
   animeByPopularity,
   platformHubs,
 } from './catalog.js'
-import { FILTERS } from './filters.js'
+import { filtersFor } from './filters.js'
+import { seasonHubs } from './seasons.mjs'
 import { sectionOf } from './section.mjs'
 import { MOODS } from './moods.mjs'
 // Written by scripts/make-shards.mjs on every build. It holds only the answer
@@ -58,7 +59,7 @@ function coreUrls() {
     anime: animeByPopularity,
   }
   for (const [kind, items] of Object.entries(shelves)) {
-    for (const [filter, def] of Object.entries(FILTERS)) {
+    for (const [filter, def] of filtersFor(kind)) {
       if (items.some((item) => def.keep(item, kind))) {
         urls.push({ loc: `${SITE}/${kind}/only/${filter}`, priority: '0.6' })
       }
@@ -69,6 +70,16 @@ function coreUrls() {
   // "what can I read on X", so they sit high in the crawl order.
   for (const hub of platformHubs) {
     urls.push({ loc: `${SITE}/platform/${hub.slug}`, priority: '0.8' })
+  }
+
+  // One hub per anime season, plus its deeper pages, for searches like
+  // "fall 2025 anime". Only seasons that earned a hub are listed.
+  urls.push({ loc: `${SITE}/anime/season`, priority: '0.8' })
+  for (const hub of seasonHubs) {
+    urls.push({ loc: `${SITE}${hub.path}`, priority: '0.7' })
+    for (let page = 2; page <= hub.pages; page++) {
+      urls.push({ loc: `${SITE}${hub.path}/${page}`, priority: '0.4' })
+    }
   }
 
   for (const g of genres) {

@@ -478,8 +478,9 @@ export function titleFaq(item, kind) {
  * `lead` is the appearance row for the title the character matters most in.
  * `series` is that title's own record, or null when it could not be loaded.
  * `bio` is the character's description as plain text, already shortened.
+ * `facts` is parseFacts(description).facts: the bio's own fact lines.
  */
-export function characterFaq(person, lead, leadKind, series, bio = '', height = '', voice = '') {
+export function characterFaq(person, lead, leadKind, series, bio = '', height = '', voice = '', facts = []) {
   const word = wordOf(leadKind)
   const verb = verbOf(leadKind)
   // The name the page leads with, so every question matches the h1 and the
@@ -538,6 +539,30 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
         `credit AniList gives for the anime.`,
     })
   }
+
+  // "what is X's rank", "what group is X in". Asked only when the bio's own
+  // fact lines answer it, in the words the bio uses. These two questions ride
+  // on top of the usual list, so no page loses a question it had before.
+  const factOf = (label) =>
+    (facts.find((f) => f.label === label)?.value || '').replace(/[.\s]+$/, '')
+  const workLabel = ['Occupation', 'Position', 'Rank'].find((label) => factOf(label))
+  const extra = []
+  if (workLabel) {
+    const noun = workLabel.toLowerCase()
+    extra.push({
+      q: `What is ${who}'s ${noun}?`,
+      a: `${who}'s ${noun} is ${factOf(workLabel)}. This is the ${noun} listed ` +
+        `in ${who}'s AniList profile.`,
+    })
+  }
+  if (factOf('Affiliation')) {
+    extra.push({
+      q: `What group is ${who} in?`,
+      a: `${who} is affiliated with ${factOf('Affiliation')}. This is the ` +
+        `affiliation listed in ${who}'s AniList profile.`,
+    })
+  }
+  faq.push(...extra)
 
   const authors = listWords(
     (series?.authors || []).map((a) => a.name).filter(Boolean).slice(0, 3)
@@ -612,7 +637,7 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
     })
   }
 
-  return faq.slice(0, 9)
+  return faq.slice(0, 9 + extra.length)
 }
 
 /** JSON-LD for a question set. Google reads this; a person reads the block. */

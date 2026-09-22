@@ -21,6 +21,7 @@ import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage } from '../../lib/gat
 import BuyBox from '../../components/BuyBox.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { sectionOf, SECTIONS } from '../../lib/section.mjs'
+import { seasonLabel, seasonPath, seasonWhen } from '../../lib/season-core.mjs'
 
 // This page is rendered by the Worker when someone asks for it. It is not
 // built as a file, so the number of titles has no ceiling.
@@ -148,6 +149,10 @@ const facts = [
   isComic ? ['Chapters', item.chapters ?? 'Not counted'] : ['Episodes', item.episodes ?? 'Not counted'],
   isComic ? ['Volumes', item.volumes ?? '—'] : ['Studio', item.studios[0] ?? '—'],
   ['First released', item.startYear ?? '—'],
+  // make-shards.mjs sets seasonHub only when that season's hub page was built.
+  ...(!isComic && item.seasonHub
+    ? [[seasonWhen(item.seasonYear, item.season) > 0 ? 'Airs' : 'Aired', { text: `${seasonLabel(item.season)} ${item.seasonYear}`, href: seasonPath(item.seasonYear, item.season) }]]
+    : []),
   ['Country', { KR: 'South Korea', JP: 'Japan', CN: 'China', TW: 'Taiwan' }[item.country] || '—'],
   ['Format', word],
   ...(item.authors?.length ? [['Author', item.authors.map((a) => a.name).join(', ')]] : []),
@@ -641,7 +646,7 @@ const updatedLong = checkedLong
           {facts.map(([label, value]) => (
             <div>
               <dt>{label}</dt>
-              <dd>{value}</dd>
+              <dd>{value && value.href ? <a href={value.href}>{value.text}</a> : value}</dd>
             </div>
           ))}
         </dl>

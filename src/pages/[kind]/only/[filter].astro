@@ -5,13 +5,13 @@ import CoverGrid from '../../../components/CoverGrid.astro'
 import FilterChips from '../../../components/FilterChips.astro'
 import Pager from '../../../components/Pager.astro'
 import { KINDS, PER_PAGE } from '../index.astro'
-import { FILTERS, FILTER_MAX_PAGES } from '../../../lib/filters.js'
+import { FILTER_MAX_PAGES, filtersFor } from '../../../lib/filters.js'
 
 
 export function getStaticPaths() {
   const paths = []
   for (const [kind, config] of Object.entries(KINDS)) {
-    for (const [filter, def] of Object.entries(FILTERS)) {
+    for (const [filter, def] of filtersFor(kind)) {
       const items = config.items().filter((item) => def.keep(item, kind))
       if (items.length === 0) continue
       paths.push({ params: { kind, filter }, props: { config, def, items } })

@@ -12,7 +12,11 @@ import Countdown from '../components/Countdown.astro'
 import { airingThisWeek } from '../lib/catalog.js'
 import { airingDays, scheduleLede } from '../lib/schedule.mjs'
 import { faqJsonld, listWords } from '../lib/answers.mjs'
+import { seasonHubOf } from '../lib/seasons.mjs'
+import { currentSeason } from '../lib/season-core.mjs'
 
+const now = currentSeason()
+const thisSeason = seasonHubOf(now.year, now.season)
 const days = airingDays(airingThisWeek)
 const lede = scheduleLede(days)
 const total = days.reduce((sum, day) => sum + day.shows.length, 0)
@@ -92,6 +96,7 @@ const jsonld = [
         days.length === 0 && (
           <p class="overview">
             Nothing is on the calendar right now. That happens between seasons. Browse
+            <a href="/anime/season">anime by season</a> or
             <a href="/anime"> every anime in the index</a> in the meantime.
           </p>
         )
@@ -153,5 +158,10 @@ const jsonld = [
         }
       </dl>
     </section>
+
+    <nav class="genre-next" aria-label="Anime by season">
+      {thisSeason && <a href={thisSeason.path}>This season: {thisSeason.label} →</a>}
+      <a href="/anime/season">Anime by season →</a>
+    </nav>
   </div>
 </Base>

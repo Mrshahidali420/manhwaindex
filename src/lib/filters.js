@@ -28,7 +28,23 @@ export const FILTERS = {
     blurb: (word) => `Still releasing. New chapters or episodes are coming for every ${word} here.`,
     keep: (item) => item.status === 'RELEASING',
   },
+  movies: {
+    label: 'Movies',
+    blurb: (word) => `Feature films only — every ${word} here is an anime movie.`,
+    keep: (item) => item.format === 'MOVIE',
+    // Comics, novels and characters have no movie format, so this filter
+    // only ever applies to the anime kind. Every place that loops over
+    // FILTERS must skip a filter for a kind not listed here, instead of
+    // relying on keep() to quietly return nothing.
+    kinds: ['anime'],
+  },
 }
+
+// The single place that honours a filter's `kinds` restriction. Every site
+// that loops over FILTERS for a given kind should filter through this first,
+// rather than re-checking `def.kinds` inline at each call site.
+export const filtersFor = (kind) =>
+  Object.entries(FILTERS).filter(([, def]) => !def.kinds || def.kinds.includes(kind))
 
 // The filter listings keep a cap of 100 pages, and the main listings no longer
 // do. The reason is duplication: /manhwa/only/free is a slice of the same

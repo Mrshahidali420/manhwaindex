@@ -8,6 +8,7 @@ import {
   bioText,
   genreSlug,
   parseHeight,
+  parseFacts,
 } from '../../lib/format.js'
 import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } from '../../lib/runtime.js'
 import { characterFaq, faqJsonld, wordOf, verbOf, uniqueBySite, linksOf } from '../../lib/answers.mjs'
@@ -144,12 +145,27 @@ const height = parseHeight(person.description)
 // with nothing at all.
 const voiced = person.appearsIn.find((a) => a.voice) || null
 
-const facts = [
+const personal = [
   person.age ? ['Age', person.age] : null,
   height ? ['Height', height] : null,
   person.gender ? ['Gender', person.gender] : null,
   person.bloodType ? ['Blood type', person.bloodType] : null,
   person.birthday ? ['Birthday', person.birthday] : null,
+].filter(Boolean)
+
+// The fact lines AniList writers put at the top of a bio (rank, affiliation,
+// occupation, race...), lifted into the table. `bio` is the same description
+// without those lines, so the About section never prints them a second time.
+// The record's own rows win the table; a bio line for the same thing stays in
+// the bio unless it says exactly the same (see parseFacts).
+const { facts: bioFacts, bio } = parseFacts(person.description, {
+  own: Object.fromEntries(personal.map(([term, value]) => [term.toLowerCase(), value])),
+})
+const fromBio = bioFacts.map((f) => [f.label, f.value])
+
+const facts = [
+  ...personal,
+  ...fromBio,
   voiced ? ['Japanese voice', voiced.voice] : null,
   ['From', lead.title],
   authors.length ? ['Made by', authors.join(' · ')] : null,
@@ -181,8 +197,9 @@ const buySub = merchFirst
     ? `The books of the story, then figures and merch of ${primary}, from Amazon's live search.`
     : `Printed volumes and series merch, from Amazon's live search.`
 
-const bioPlain = person.description ? bioText(person.description) : ''
-const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height, voiced?.voice || '')
+// Without the fact lines, so "Who is X?" opens on a sentence, not "Height:".
+const bioPlain = bio.trim() ? bioText(bio) : ''
+const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height, voiced?.voice || '', bioFacts)
 
 // The old description was the same sentence on every character page with only
 // the name swapped, which says nothing a searcher cannot already see in the
@@ -284,6 +301,18 @@ const pageTitle = withFormal && withFormal.length <= TITLE_ROOM ? withFormal : t
 // The date of the last nightly check against AniList, shared by every page.
 const updated = checkedISO
 
+// schema.org Person also has jobTitle and affiliation. Filled only when the bio
+// states them, in the bio's own words. Rank is left out: "S-Class" is a grade,
+// not a job.
+const factOf = (...labels) =>
+  labels.map((l) => bioFacts.find((f) => f.label === l)?.value).find(Boolean) || ''
+const jobTitle = factOf('Occupation', 'Position')
+// One Organization per affiliation line. A single line is never split on its
+// commas: "Team 7, Konoha" may be one name.
+const affiliations = (bioFacts.find((f) => f.label === 'Affiliation')?.values || [])
+  .map((name) => ({ '@type': 'Organization', name }))
+const affiliation = affiliations.length > 1 ? affiliations : affiliations[0]
+
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -297,6 +326,8 @@ const jsonld = {
   // schema.org gives Person a height field, so the fact is machine readable
   // as well as printed.
   height: height || undefined,
+  jobTitle: jobTitle || undefined,
+  affiliation: affiliation || undefined,
   description: truncate(bioPlain || description, 300),
   subjectOf: person.appearsIn.map((a) => ({
     '@type': a.kind === 'anime' ? 'TVSeries' : 'Book',
@@ -362,13 +393,13 @@ const jsonld = {
       </a>
     )}
 
-    {person.description && (
+    {bio.trim() && (
       <section class="section">
         <div class="section__head">
           <h2>About {primary}</h2>
           <p>From AniList, the same source as the rest of this page.</p>
         </div>
-        <div class="synopsis" set:html={bioHtml(person.description)} />
+        <div class="synopsis" set:html={bioHtml(bio)} />
       </section>
     )}
 
