@@ -28,10 +28,38 @@ if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro
 // The lead title is the one this page is about. A comic wins over its own
 // anime: the comic is where the character was made, and a reader searching a
 // character's name nearly always types the comic word with it.
-const best = (rows) =>
-  rows.find((a) => a.kind !== 'anime') || rows[0]
+//
+// But a comic nobody carries answers nothing. When the preferred title has no
+// official link and a sibling title has one, the sibling leads instead. Anos
+// Voldigoad was the proof: his comic is unlicensed, his anime runs on three
+// services, and the page led with the comic and told every reader that no
+// platform carries it. 989 impressions, 2 clicks.
+//
+// Three tries at most. A character with many appearances must not cost many
+// shard reads, and the first title with a link is already the right answer.
+const ranked = (rows) => [
+  ...rows.filter((a) => a.kind !== 'anime'),
+  ...rows.filter((a) => a.kind === 'anime'),
+]
 const main = person.appearsIn.filter((a) => a.role === 'MAIN')
-const lead = best(main.length ? main : person.appearsIn)
+const order = ranked(main.length ? main : person.appearsIn)
+
+let lead = order[0]
+let series = null
+let links = []
+try {
+  for (const row of order.slice(0, 3)) {
+    const found = await loadTitle(envOf(Astro), kindOfAppearance(row), row.slug)
+    const rows = found ? uniqueBySite(linksOf(found)) : []
+    // The first title that reads at all is the fallback; the first title that
+    // carries a link wins outright.
+    if (!series) { lead = row; series = found; links = rows }
+    if (rows.length) { lead = row; series = found; links = rows; break }
+  }
+} catch (e) {
+  // The shard did not read: 503, not 404. The page still exists.
+  return unavailable(Astro, e)
+}
 const leadKind = kindOfAppearance(lead)
 // The word a person actually types: "manga", "manhwa", "manhua" or "anime".
 // The old title never used it, so a search for "<name> manga" matched nothing
@@ -62,20 +90,13 @@ const unquote = (text) => String(text || '').replace(/["“”]/g, '').replace(/
 // page answers a search. A shortened name would lose those words for good, to
 // win nothing: the part a reader sees -- the character's name -- sits at the
 // front either way.
-const pageHeading = `${unquote(person.name)} — ${unquote(lead.title)} ${media} character`
+// The same words the title tag now ends with, kept here so the reasoning above
+// stays next to the pieces it is about.
 
 // The character record holds only a thumbnail of the story. The story's own
-// record holds the official places to read it, who made it and what it is
-// about, and all of that belongs on this page too: a reader who lands here
-// wants the same answer as a reader who lands on the title page.
-let series
-try {
-  series = await loadTitle(envOf(Astro), leadKind, lead.slug)
-} catch (e) {
-  // The shard did not read: 503, not 404. The page still exists.
-  return unavailable(Astro, e)
-}
-const links = series ? uniqueBySite(linksOf(series)) : []
+// record, loaded above, holds the official places to read it, who made it and
+// what it is about, and all of that belongs on this page too: a reader who
+// lands here wants the same answer as a reader who lands on the title page.
 const siteCount = links.length
 const authors = (series?.authors || []).map((a) => a.name).filter(Boolean).slice(0, 3)
 const genres = (series?.genres || []).slice(0, 6)
@@ -134,7 +155,15 @@ const aliases = person.aliases || []
 const alias = aliases.find((a) => a.length <= 20 && /^[ -~]+$/.test(a))
 const said = (bits) => bits.filter(Boolean).join(', ')
 const opening = `${person.name} is a ${lead.role === 'MAIN' ? 'main character' : 'character'} in the ${word} ${unquote(lead.title)}.`
-const promise = ` Full profile, every title they appear in, and where to ${verb} it legally.`
+// "Where to read it legally" is a promise. A platform name is proof, and the
+// reader decides on proof: "Watch it on Netflix" beats any wording we can
+// invent. Three names at most, because the line has 165 letters to live in.
+const sites = links.slice(0, 3).map((l) => l.site).filter(Boolean)
+const listed =
+  sites.length > 1 ? `${sites.slice(0, -1).join(', ')} and ${sites[sites.length - 1]}` : sites[0]
+const promise = sites.length
+  ? ` ${verb === 'watch' ? 'Watch' : 'Read'} it on ${listed}.`
+  : ` Full profile, every title they appear in, and where to ${verb} it legally.`
 
 // Tried longest first, and the first one that fits is kept. The story's own
 // name is never shortened here: a description that names the wrong story is
@@ -169,14 +198,28 @@ const promised = [
 // A character who turns up in both the comic and the anime has two answers,
 // and a title that names a voice actor then offers only "where to read" reads
 // as a mistake. So the closing promise follows what the page really lists.
+//
+// When the lead title really carries links, promise that one thing. "Read or
+// Watch" on a page whose comic nobody carries sends the reader to a dead end,
+// and a promise the page cannot keep costs the next click too.
 const bothMedia = mediaWords.length > 1
-const goTo = bothMedia ? 'Read or Watch' : verb === 'watch' ? 'Watch' : 'Read'
+const goTo = links.length
+  ? verb === 'watch' ? 'Watch' : 'Read'
+  : bothMedia ? 'Read or Watch' : verb === 'watch' ? 'Watch' : 'Read'
 
 const titleTail = promised.length
   ? `: ${promised.join(', ')} and Where to ${goTo}`
   : `: Full Profile and Where to ${goTo}`
 
-const pageTitle = `${pageHeading}${titleTail}`
+// Google shows about sixty letters and cuts the rest. The old order spent all
+// sixty on the character's name and the story's full name -- the words the
+// searcher already typed -- so the part that earns the click never appeared.
+//
+// The promise now sits second, right after the name, and the story's name
+// closes the line. No word is lost: Google still READS the whole title and
+// still counts the story's name when it decides what this page answers. Only
+// the order changed, and the order is the part a reader sees.
+const pageTitle = `${unquote(person.name)}${titleTail} — ${unquote(lead.title)} ${media} character`
 
 // The date of the last nightly check against AniList, shared by every page.
 const updated = checkedISO
