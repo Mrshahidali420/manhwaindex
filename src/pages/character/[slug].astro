@@ -144,6 +144,8 @@ const height = parseHeight(person.description)
 // carries one wins. "Who voices X" is a heavy search and today we answer it
 // with nothing at all.
 const voiced = person.appearsIn.find((a) => a.voice) || null
+// The English dub, from the same kind of row. Absent until the anime carries it.
+const voicedEn = person.appearsIn.find((a) => a.voiceEn) || null
 
 const personal = [
   person.age ? ['Age', person.age] : null,
@@ -167,6 +169,7 @@ const facts = [
   ...personal,
   ...fromBio,
   voiced ? ['Japanese voice', voiced.voice] : null,
+  voicedEn ? ['English voice', voicedEn.voiceEn] : null,
   ['From', lead.title],
   authors.length ? ['Made by', authors.join(' · ')] : null,
   series?.startYear ? ['Started', String(series.startYear)] : null,
@@ -199,7 +202,7 @@ const buySub = merchFirst
 
 // Without the fact lines, so "Who is X?" opens on a sentence, not "Height:".
 const bioPlain = bio.trim() ? bioText(bio) : ''
-const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height, voiced?.voice || '', bioFacts)
+const faq = characterFaq(person, lead, leadKind, series, truncate(bioPlain, 220), height, voiced?.voice || '', bioFacts, voicedEn?.voiceEn || '')
 
 // The old description was the same sentence on every character page with only
 // the name swapped, which says nothing a searcher cannot already see in the

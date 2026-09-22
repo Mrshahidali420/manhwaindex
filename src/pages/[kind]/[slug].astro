@@ -186,6 +186,21 @@ const alsoKnown = [...new Set((item.synonyms || []).filter((n) => /^[ -~À-ɏ'�
 // stock nothing, so these open a search on Amazon and let the reader see what
 // is really in print.
 const buys = shopLinks(item, countryOf(Astro))
+
+// An anime's key credits (director, writer, designer, composer), from AniList.
+// Grouped by role so two composers share one row. Empty on a comic and on any
+// anime the record has no credits for yet, and then nothing below is drawn.
+const staff = isComic ? [] : item.staff || []
+const staffRows = [...new Set(staff.map((s) => s.role))].map((role) => [
+  role,
+  staff.filter((s) => s.role === role).map((s) => s.name).join(', '),
+])
+const people = (...roles) =>
+  staff.filter((s) => roles.includes(s.role)).map((s) => ({ '@type': 'Person', name: s.name }))
+const director = people('Director')
+const musicBy = people('Music')
+const creator = people('Original Creator', 'Original Story')
+
 const jsonld = {
   '@context': 'https://schema.org',
   '@type': isComic ? 'Book' : 'TVSeries',
@@ -202,6 +217,9 @@ const jsonld = {
   ...(item.kind === 'novel' ? { bookFormat: 'https://schema.org/EBook' } : {}),
   ...(item.episodes ? { numberOfEpisodes: item.episodes } : {}),
   ...(item.authors?.length ? { author: item.authors.map((a) => ({ '@type': 'Person', name: a.name })) } : {}),
+  ...(director.length ? { director } : {}),
+  ...(musicBy.length ? { musicBy } : {}),
+  ...(creator.length ? { creator } : {}),
   // No trailer block here on purpose. Google needs an uploadDate on a video
   // and AniList never gives one, so every trailer we described was marked
   // invalid in Search Console. A made-up date would be worse than no block.
@@ -238,6 +256,8 @@ const cast = charactersOf(item).slice(0, 12)
 // a voice actor found the name nowhere on the page they landed on.
 // A comic has no voices, so the count stays at zero and nothing changes there.
 const voicedCast = isComic ? 0 : cast.filter((c) => c.voice).length
+// The English dub cast, named under the Japanese one where AniList has it.
+const dubbedCast = isComic ? 0 : cast.filter((c) => c.voiceEn).length
 
 // You may also like: worked out at build time and stored in the record,
 // so the Worker does no searching at request time.
@@ -653,6 +673,25 @@ const updatedLong = checkedLong
       </section>
 
       {
+        staffRows.length > 0 && (
+          <section class="answer">
+            <div class="answer__head">
+              <h2>Who made it</h2>
+              <p>The key staff credits AniList lists for this anime.</p>
+            </div>
+            <dl class="facts">
+              {staffRows.map(([role, names]) => (
+                <div>
+                  <dt>{role}</dt>
+                  <dd>{names}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )
+      }
+
+      {
         faq.length > 0 && (
           <section class="answer">
             <div class="answer__head">
@@ -863,7 +902,9 @@ const updatedLong = checkedLong
             <div class="answer__head">
               <h2>Who is in it</h2>
               <p>
-                {voicedCast > 0
+                {dubbedCast > 0
+                  ? `The Japanese voice actor is named under each face, and the English one below it. Tap a face to see every other story that character turns up in.`
+                  : voicedCast > 0
                   ? `The voice actor is named under each face. Tap a face to see every other story that character turns up in.`
                   : 'Tap a face to see every other story that character turns up in.'}
               </p>
@@ -876,6 +917,7 @@ const updatedLong = checkedLong
                     <b>{person.name}</b>
                     <span>{person.role === 'MAIN' ? 'Main' : 'Supporting'}</span>
                     {!isComic && person.voice && <span class="people__voice">{person.voice}</span>}
+                    {!isComic && person.voiceEn && <span class="people__voice">English: {person.voiceEn}</span>}
                   </a>
                 </li>
               ))}

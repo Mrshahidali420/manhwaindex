@@ -13,6 +13,10 @@
  *
  * Run it by hand, once, after adding a field to MEDIA_FIELDS:
  *   node --max-old-space-size=6000 scripts/backfill-fields.mjs
+ *
+ * BACKFILL_KINDS=anime (or comic, novel, or a comma list) refetches only those
+ * kinds. A field only an anime carries (staff credits, English voices) needs
+ * ~420 calls instead of ~2,150. Every other title keeps the row it has.
  */
 
 import {
@@ -32,8 +36,18 @@ const { comics, anime } = loadAssembled()
 const known = [...comics, ...anime]
 console.log(`holding ${comics.length} comics and ${anime.length} anime`)
 
+const KINDS = ['anime', 'comic', 'novel']
+const wantKinds = String(process.env.BACKFILL_KINDS || '')
+  .split(',')
+  .map((k) => k.trim().toLowerCase())
+  .filter(Boolean)
+const unknownKind = wantKinds.find((k) => !KINDS.includes(k))
+if (unknownKind) throw new Error(`BACKFILL_KINDS: unknown kind "${unknownKind}". Use ${KINDS.join(', ')}.`)
+const wanted = wantKinds.length ? known.filter((item) => wantKinds.includes(item.kind)) : known
+if (wantKinds.length) console.log(`BACKFILL_KINDS=${wantKinds.join(',')}: refetching ${wanted.length} of ${known.length} titles`)
+
 // One bucket per call. AniList takes 50 ids at a time.
-const ids = known.map((item) => item.id)
+const ids = wanted.map((item) => item.id)
 const batches = []
 for (let i = 0; i < ids.length; i += IDS_PER_CALL) batches.push(ids.slice(i, i + IDS_PER_CALL))
 

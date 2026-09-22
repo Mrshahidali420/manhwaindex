@@ -39,6 +39,64 @@ const MAX_RETRIES = 12
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/**
+ * Staff rows asked for per title. The first four still make the author list,
+ * exactly as before; the rest are there so an anime can name its director,
+ * writer, designer and composer. See staffOf.
+ *
+ * AniList's RELEVANCE order is the credit order, and Music sits around row
+ * 13-20, so twelve rows missed it. 25 is the most AniList returns here (50
+ * came back byte for byte the same, tested 23 Sep 2026). A few long credit
+ * lists (Attack on Titan) still put Music past row 25; those pages go without.
+ */
+const STAFF_PER_TITLE = 25
+const AUTHOR_STAFF = 4
+
+/**
+ * The anime credits a page names, in the order it names them. AniList role
+ * strings carry suffixes ("Director (eps 1-12)"), so the suffix is cut off
+ * before the match. "Episode Director" and "Assistant Director" do not match.
+ */
+const STAFF_ROLES = [
+  'Original Creator', 'Original Story', 'Director', 'Series Composition',
+  'Character Design', 'Chief Animation Director', 'Music',
+]
+const STAFF_MAX = 8
+// Three composers is a real credit; a fourth would crowd the list.
+const STAFF_PER_ROLE = 3
+const roleKey = (role) => String(role || '').replace(/\s*\(.*$/, '').trim().toLowerCase()
+const STAFF_ROLE_BY_KEY = new Map(STAFF_ROLES.map((role) => [role.toLowerCase(), role]))
+
+/** [{ role, name }] for the credits above, deduped, at most STAFF_MAX. */
+export function staffOf(edges) {
+  const rows = []
+  const seen = new Set()
+  const perRole = new Map()
+  for (const e of edges || []) {
+    const role = STAFF_ROLE_BY_KEY.get(roleKey(e.role))
+    const name = e.node?.name?.full
+    if (!role || !name || seen.has(`${role}|${name}`)) continue
+    if ((perRole.get(role) || 0) >= STAFF_PER_ROLE) continue
+    seen.add(`${role}|${name}`)
+    perRole.set(role, (perRole.get(role) || 0) + 1)
+    rows.push({ role, name })
+  }
+  const order = (row) => STAFF_ROLES.indexOf(row.role)
+  return rows.sort((a, b) => order(a) - order(b)).slice(0, STAFF_MAX)
+}
+
+/**
+ * The cast's voices, every language in one list. AniList cannot be asked for
+ * voiceActors twice with an alias (JAPANESE and ENGLISH): tested 23 Sep 2026,
+ * both copies came back with the English names, so the Japanese credit turned
+ * into the English one. One unfiltered list, split here, is the safe way.
+ */
+export const VOICE_ROLES = `voiceActorRoles(sort: [RELEVANCE]) { voiceActor { name { full } languageV2 } }`
+
+/** The first voice AniList lists in one language ('Japanese', 'English'), or null. */
+export const voiceIn = (roles, language) =>
+  (roles || []).find((r) => r.voiceActor?.languageV2 === language)?.voiceActor?.name?.full || null
+
 export const MEDIA_FIELDS = `
   id idMal siteUrl type format status countryOfOrigin updatedAt source(version: 3)
   rankings { rank type allTime year context }
@@ -62,10 +120,10 @@ export const MEDIA_FIELDS = `
   trailer { id site thumbnail }
   nextAiringEpisode { airingAt episode }
   studios(isMain: true) { nodes { name } }
-  staff(perPage: 4, sort: RELEVANCE) { edges { role node { name { full } } } }
+  staff(perPage: ${STAFF_PER_TITLE}, sort: [RELEVANCE]) { edges { role node { name { full } } } }
   streamingEpisodes { title url site }
   relations { edges { relationType node { id type format countryOfOrigin title { romaji english } } } }
-  characters(perPage: 10, sort: [ROLE, RELEVANCE]) { edges { role voiceActors(language: JAPANESE, sort: [RELEVANCE]) { name { full } } node { id name { full native alternative } image { large } description(asHtml: false) gender age bloodType favourites dateOfBirth { month day } } } }
+  characters(perPage: 10, sort: [ROLE, RELEVANCE]) { edges { role ${VOICE_ROLES} node { id name { full native alternative } image { large } description(asHtml: false) gender age bloodType favourites dateOfBirth { month day } } } }
 `
 
 /** Walk the id space. This is the only way to reach every title. */
@@ -238,6 +296,7 @@ export function shape(media, kind = kindOfMedia(media)) {
     country: e.node.countryOfOrigin,
     title: e.node.title.english || e.node.title.romaji,
   }))
+  const staff = kind === 'anime' ? staffOf(media.staff?.edges) : []
 
   return {
     kind, // 'comic' | 'novel' | 'anime'
@@ -300,9 +359,15 @@ export function shape(media, kind = kindOfMedia(media)) {
       .map((l) => ({ site: l.site, url: l.url, type: l.type })),
     streamingEpisodes: (media.streamingEpisodes || []).slice(0, 3).map((e) => ({ title: e.title, url: e.url, site: e.site })),
     studios: media.studios?.nodes?.map((s) => s.name) || [],
+    // Only the first four staff rows, as when the query asked for four: the
+    // wider list must not drag a "Touch-up Art" credit into the author line.
     authors: (media.staff?.edges || [])
+      .slice(0, AUTHOR_STAFF)
       .filter((e) => /story|art|original/i.test(e.role || ''))
       .map((e) => ({ name: e.node.name.full, role: e.role })),
+    // Director, writer, designer, composer: the credits an anime page names.
+    // A comic keeps no such list, so its record does not grow.
+    ...(staff.length ? { staff } : {}),
     relations,
     characters: (media.characters?.edges || []).map((e) => ({
       id: e.node.id,
@@ -313,7 +378,10 @@ export function shape(media, kind = kindOfMedia(media)) {
       // Who speaks this part in the Japanese dub. "Who voices X" is a real
       // search and today we answer it with nothing. Only for anime: a comic
       // has no voices.
-      voice: (e.voiceActors || []).slice(0, 1).map((v) => v.name.full)[0] || null,
+      voice: voiceIn(e.voiceActorRoles, 'Japanese'),
+      // The English dub's voice, stored only when there is one, so the ~86,000
+      // comic records carry no empty key for it.
+      ...(voiceIn(e.voiceActorRoles, 'English') ? { voiceEn: voiceIn(e.voiceActorRoles, 'English') } : {}),
       // The full body rides along here and is stripped once it reaches CHARACTERS.
       body: {
         id: e.node.id,
@@ -514,10 +582,14 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
           popularity: item.popularity || 0,
           // Only an anime has a voice, so this is null on every comic row.
           voice: ref.voice || null,
+          ...(ref.voiceEn ? { voiceEn: ref.voiceEn } : {}),
         })
       }
       // Keep the id: the daily job needs it to rebuild this same link.
-      item.characters = (item.characters || []).map((r) => ({ id: r.id, slug: r.slug, name: r.name, image: r.image, role: r.role, voice: r.voice || null }))
+      item.characters = (item.characters || []).map((r) => ({
+        id: r.id, slug: r.slug, name: r.name, image: r.image, role: r.role, voice: r.voice || null,
+        ...(r.voiceEn ? { voiceEn: r.voiceEn } : {}),
+      }))
     }
   }
 
@@ -548,7 +620,10 @@ export function assembleAndWrite(comics, anime, startedAt = Date.now()) {
         popularity: item.popularity || 0,
       })
       if (!item.characters.some((r) => r.slug === person.slug)) {
-        item.characters.push({ id: person.id ?? null, slug: person.slug, name: person.name, image: person.image, role: row.role, voice: row.voice || null })
+        item.characters.push({
+          id: person.id ?? null, slug: person.slug, name: person.name, image: person.image, role: row.role, voice: row.voice || null,
+          ...(row.voiceEn ? { voiceEn: row.voiceEn } : {}),
+        })
       }
       restored++
     }

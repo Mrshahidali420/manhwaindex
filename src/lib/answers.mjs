@@ -480,7 +480,7 @@ export function titleFaq(item, kind) {
  * `bio` is the character's description as plain text, already shortened.
  * `facts` is parseFacts(description).facts: the bio's own fact lines.
  */
-export function characterFaq(person, lead, leadKind, series, bio = '', height = '', voice = '', facts = []) {
+export function characterFaq(person, lead, leadKind, series, bio = '', height = '', voice = '', facts = [], voiceEn = '') {
   const word = wordOf(leadKind)
   const verb = verbOf(leadKind)
   // The name the page leads with, so every question matches the h1 and the
@@ -506,8 +506,8 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
   if (person.age) {
     faq.push({
       q: `How old is ${who}?`,
-      a: `${who} is ${person.age}. This is the age given in the official ` +
-        `profile for ${lead.title}.`,
+      a: `${who} is ${person.age}. This is the age listed in ${who}'s ` +
+        `AniList profile.`,
     })
   }
 
@@ -516,8 +516,8 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
   if (height) {
     faq.push({
       q: `How tall is ${who}?`,
-      a: `${who} is ${height}. This is the height given in the official ` +
-        `profile for ${lead.title}.`,
+      a: `${who} is ${height}. This is the height listed in ${who}'s ` +
+        `AniList profile.`,
     })
   }
 
@@ -525,8 +525,8 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
   if (person.birthday) {
     faq.push({
       q: `When is ${who}'s birthday?`,
-      a: `${who} was born on ${person.birthday}, the date AniList carries in ` +
-        `the official profile.`,
+      a: `${who} was born on ${person.birthday}. This is the birthday listed ` +
+        `in ${who}'s AniList profile.`,
     })
   }
 
@@ -536,6 +536,16 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
     faq.push({
       q: `Who voices ${who}?`,
       a: `${voice} plays ${who} in the Japanese version. This is the cast ` +
+        `credit AniList gives for the anime.`,
+    })
+  }
+
+  // "X English voice actor" is its own search, and the dub cast is a
+  // different person. Same source as the Japanese credit above.
+  if (voiceEn) {
+    faq.push({
+      q: `Who voices ${who} in English?`,
+      a: `${voiceEn} plays ${who} in the English dub. This is the cast ` +
         `credit AniList gives for the anime.`,
     })
   }

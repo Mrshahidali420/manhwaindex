@@ -10,7 +10,12 @@ name: Backfill new AniList fields
 # picks the catalog up and rebuilds the site from it.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      kinds:
+        description: 'Only these kinds (anime, comic, novel, comma list). Empty = every title.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -71,6 +76,8 @@ jobs:
         run: bash scripts/unseed.sh
 
       - name: Refetch every known title
+        env:
+          BACKFILL_KINDS: ${{ inputs.kinds }}
         run: node --max-old-space-size=6000 scripts/backfill-fields.mjs
 
       # The refetch costs API calls. Save even when a later step fails.
@@ -105,4 +112,8 @@ jobs:
             console.log('  with ranks:   ' + count(comics, (c) => (c.ranks || []).length))
             console.log('  with readers: ' + count(comics, (c) => c.readers && Object.keys(c.readers).length))
             console.log('  with source:  ' + count(comics, (c) => c.source))
+            const anime = JSON.parse(fs.readFileSync('data/anime.json', 'utf8'))
+            console.log('anime: ' + anime.length)
+            console.log('  with staff:   ' + count(anime, (a) => (a.staff || []).length))
+            console.log('  with EN cast: ' + count(anime, (a) => (a.characters || []).some((c) => c.voiceEn)))
           "

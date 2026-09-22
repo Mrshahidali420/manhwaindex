@@ -133,6 +133,7 @@ const jsonld = [
                     <img src={person.image} alt={`${person.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
                     <b>{person.name}</b>
                     <span>{person.voice ? person.voice : 'Main'}</span>
+                    {kind === 'anime' && person.voiceEn && <span class="people__voice">English: {person.voiceEn}</span>}
                   </a>
                 </li>
               ))}
@@ -155,6 +156,7 @@ const jsonld = [
                     <img src={person.image} alt={`${person.name} portrait`} width="220" height="293" loading="lazy" decoding="async" />
                     <b>{person.name}</b>
                     <span>{person.voice ? person.voice : 'Supporting'}</span>
+                    {kind === 'anime' && person.voiceEn && <span class="people__voice">English: {person.voiceEn}</span>}
                   </a>
                 </li>
               ))}

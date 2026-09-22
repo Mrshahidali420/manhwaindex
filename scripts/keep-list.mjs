@@ -19,7 +19,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DATA_DIR, slugify, cutBio } from './anilist-core.mjs'
+import { DATA_DIR, slugify, cutBio, voiceIn, VOICE_ROLES } from './anilist-core.mjs'
 
 export const KEEP_FILE = join(DATA_DIR, 'keep.json')
 
@@ -35,7 +35,7 @@ export const KEEP_CHARACTERS_QUERY = `query ($ids: [Int]) {
       media(perPage: ${MEDIA_PER_CHARACTER}, sort: [POPULARITY_DESC]) {
         edges {
           characterRole
-          voiceActors(language: JAPANESE, sort: [RELEVANCE]) { name { full } }
+          ${VOICE_ROLES}
           node { id type isAdult }
         }
       }
@@ -97,14 +97,23 @@ export function linkKeptCharacter(node, record, titleById) {
     const item = titleById.get(media.id)
     if (!item) continue
     item.characters = item.characters || []
-    if (item.characters.some((c) => c.id === record.id)) continue
+    const isAnime = item.kind === 'anime'
+    const voiceEn = isAnime ? voiceIn(edge.voiceActorRoles, 'English') : null
+    const held = item.characters.find((c) => c.id === record.id)
+    if (held) {
+      // Already linked: only an English voice the row lacks is filled in, so a
+      // rerun changes nothing else and the link count stays the same.
+      if (voiceEn && !held.voiceEn) held.voiceEn = voiceEn
+      continue
+    }
     item.characters.push({
       id: record.id,
       slug: record.slug,
       name: record.name,
       image: record.image,
       role: edge.characterRole || 'BACKGROUND',
-      voice: item.kind === 'anime' ? (edge.voiceActors || []).slice(0, 1).map((v) => v.name.full)[0] || null : null,
+      voice: isAnime ? voiceIn(edge.voiceActorRoles, 'Japanese') : null,
+      ...(voiceEn ? { voiceEn } : {}),
     })
     linked++
   }
