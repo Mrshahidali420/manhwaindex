@@ -25,18 +25,35 @@ try {
 }
 if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro)
 
+// Character pages that are being TESTED with the newer wording. Every branch
+// below that reads this Set is a change with no evidence behind it yet.
+//
+// Why a list and not a default. Google has indexed a small share of this site,
+// so a page with no impressions is a page Google has not looked at, NOT a page
+// whose wording failed. No data says the current wording is wrong. The data
+// that exists says the opposite: the pages Google did index earn clicks from
+// position 3 and 4 with exactly this wording. The bottleneck is indexing.
+//
+// So the old wording stays everywhere until a test beats it. Judge this one
+// after four weeks: compare the slug's click rate against the 28 days before
+// 22 Sep 2026. Add slugs when it wins, remove them when it does not.
+const TITLE_TEST = new Set([
+  // 989 impressions, 2 clicks, position 10.8 over 28 days. Its lead title is a
+  // comic no platform carries, so the main section told every reader that
+  // nobody carries it, while its anime runs on Crunchyroll, Netflix and Hulu.
+  'anos-voldigoad',
+])
+const testing = TITLE_TEST.has(person.slug)
+
 // The lead title is the one this page is about. A comic wins over its own
 // anime: the comic is where the character was made, and a reader searching a
 // character's name nearly always types the comic word with it.
 //
-// But a comic nobody carries answers nothing. When the preferred title has no
-// official link and a sibling title has one, the sibling leads instead. Anos
-// Voldigoad was the proof: his comic is unlicensed, his anime runs on three
-// services, and the page led with the comic and told every reader that no
-// platform carries it. 989 impressions, 2 clicks.
-//
-// Three tries at most. A character with many appearances must not cost many
-// shard reads, and the first title with a link is already the right answer.
+// Under test only: a comic nobody carries answers nothing, so when the
+// preferred title has no official link and a sibling title has one, the
+// sibling leads instead. Three tries at most, because a character with many
+// appearances must not cost many shard reads. Off test, the first title leads
+// exactly as it always has and the page reads one shard, as before.
 const ranked = (rows) => [
   ...rows.filter((a) => a.kind !== 'anime'),
   ...rows.filter((a) => a.kind === 'anime'),
@@ -48,7 +65,7 @@ let lead = order[0]
 let series = null
 let links = []
 try {
-  for (const row of order.slice(0, 3)) {
+  for (const row of testing ? order.slice(0, 3) : order.slice(0, 1)) {
     const found = await loadTitle(envOf(Astro), kindOfAppearance(row), row.slug)
     const rows = found ? uniqueBySite(linksOf(found)) : []
     // The first title that reads at all is the fallback; the first title that
@@ -155,10 +172,12 @@ const aliases = person.aliases || []
 const alias = aliases.find((a) => a.length <= 20 && /^[ -~]+$/.test(a))
 const said = (bits) => bits.filter(Boolean).join(', ')
 const opening = `${person.name} is a ${lead.role === 'MAIN' ? 'main character' : 'character'} in the ${word} ${unquote(lead.title)}.`
-// "Where to read it legally" is a promise. A platform name is proof, and the
-// reader decides on proof: "Watch it on Netflix" beats any wording we can
-// invent. Three names at most, because the line has 165 letters to live in.
-const sites = links.slice(0, 3).map((l) => l.site).filter(Boolean)
+// Under test only: "where to read it legally" is a promise, while a platform
+// name is proof, and a reader decides on proof. Three names at most, because
+// the line has 165 letters to live in.
+//
+// Off test this stays the sentence that earns clicks from position 3 today.
+const sites = testing ? links.slice(0, 3).map((l) => l.site).filter(Boolean) : []
 const listed =
   sites.length > 1 ? `${sites.slice(0, -1).join(', ')} and ${sites[sites.length - 1]}` : sites[0]
 const promise = sites.length
@@ -203,7 +222,7 @@ const promised = [
 // Watch" on a page whose comic nobody carries sends the reader to a dead end,
 // and a promise the page cannot keep costs the next click too.
 const bothMedia = mediaWords.length > 1
-const goTo = links.length
+const goTo = testing && links.length
   ? verb === 'watch' ? 'Watch' : 'Read'
   : bothMedia ? 'Read or Watch' : verb === 'watch' ? 'Watch' : 'Read'
 
@@ -217,21 +236,9 @@ const titleTail = promised.length
 // never appears. Putting the promise second fixes that, and loses no word:
 // Google still READS the whole title and still counts the story's name.
 //
-// It is NOT the default, and must not become one without evidence. Character
-// pages carry 83% of this site's impressions and 25% of its clicks, and 71 of
-// them earn clicks from position 3 or 4 today. A title rewrite on a page that
-// already wins can only lose. So the new order is a test on a named few, and
-// it spreads only when Search Console shows it beat the old order on them.
-//
-// Test opened 22 Sep 2026. Judge it after four weeks: compare each slug's CTR
-// against the 28 days before. Remove a slug that did worse.
-const TITLE_TEST = new Set([
-  // 989 impressions, 2 clicks, position 10.8 over 28 days. The story name here
-  // runs 116 letters, so the old order showed the reader nothing but names.
-  'anos-voldigoad',
-])
-
-const pageTitle = TITLE_TEST.has(person.slug)
+// It is NOT the default, and must not become one without evidence. See
+// TITLE_TEST at the top of this file for why.
+const pageTitle = testing
   ? `${unquote(person.name)}${titleTail} — ${unquote(lead.title)} ${media} character`
   : `${unquote(person.name)} — ${unquote(lead.title)} ${media} character${titleTail}`
 
