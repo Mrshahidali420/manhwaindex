@@ -2124,6 +2124,31 @@ main:has(.title-page) {
   color: var(--dawn-faint);
 }
 
+/* Hub cards with three covers on top, the same idea as the genre wall: a
+   reader recognises a cover long before a platform name. */
+.ledger--faces li {
+  grid-template-areas: 'faces faces faces' 'mark name count' 'mark note count';
+  align-content: start;
+}
+.ledger__faces {
+  grid-area: faces;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-bottom: 0.6rem;
+}
+.ledger__faces img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--night-sunk);
+}
+.ledger__faces img:only-child {
+  max-width: 34%;
+}
 .ledger__rest {
   margin: 0.9rem 0 0;
   color: var(--dawn-faint);
@@ -2692,6 +2717,19 @@ main:has(.title-page) {
   }
   .people b {
     font-size: 0.78rem;
+  }
+  /* The character wall and a full cast page wrap into rows of three. The
+     sideways strip above is only for the short cast row on a title page. */
+  .people--wall {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    gap: 0.9rem 0.6rem;
+  }
+  .people--wall li {
+    flex: 0 1 calc((100% - 1.2rem) / 3);
+    scroll-snap-align: none;
   }
   .crosslink {
     padding: 0.85rem 0.9rem;

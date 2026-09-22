@@ -32,7 +32,7 @@ const current = Number(page)
         <h1>Characters</h1>
         <p>You remember the name, not the title. Start here.</p>
       </div>
-      <ul class="people">
+      <ul class="people people--wall">
         {items.map((person) => (
           <li>
             <a href={`/character/${person.slug}`}>

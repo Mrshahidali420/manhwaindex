@@ -122,7 +122,7 @@ const jsonld = [
               <h2>The main characters</h2>
               <p>The people the story is about.</p>
             </div>
-            <ul class="people">
+            <ul class="people people--wall">
               {leads.map((person) => (
                 <li>
                   <a href={`/character/${person.slug}`}>
@@ -144,7 +144,7 @@ const jsonld = [
               <h2>The rest of the cast</h2>
               <p>Supporting and background faces, in the order AniList lists them.</p>
             </div>
-            <ul class="people">
+            <ul class="people people--wall">
               {rest.map((person) => (
                 <li>
                   <a href={`/character/${person.slug}`}>

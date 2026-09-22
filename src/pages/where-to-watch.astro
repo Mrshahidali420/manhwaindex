@@ -22,20 +22,32 @@ import { factsFor, PAY, FREE } from '../lib/platform-facts.js'
 import Mark from '../components/Mark.astro'
 
 // One row per service we link to, with how many anime it carries here.
+const FACES = 3
 function tally(items, key) {
   const map = new Map()
+  const faces = new Map()
   for (const item of items) {
     const seen = new Set()
     for (const link of item[key] || []) {
       if (seen.has(link.site)) continue
       seen.add(link.site)
       map.set(link.site, (map.get(link.site) || 0) + 1)
+      // Keep only the few most popular covers per platform, in one pass over
+      // the catalog, so memory stays flat however big it grows.
+      if (item.cover) {
+        const row = faces.get(link.site) || []
+        row.push(item)
+        row.sort((a, b) => b.popularity - a.popularity)
+        if (row.length > FACES) row.length = FACES
+        faces.set(link.site, row)
+      }
     }
   }
   return [...map.entries()]
     .map(([name, count]) => ({
       name,
       count,
+      faces: faces.get(name) || [],
       hub: hubSlugOf(name),
       facts: factsFor(name),
       ...platform(name),
@@ -208,15 +220,27 @@ const jsonld = {
     </section>
 
     {
-      shown.map((g) => (
+      shown.map((g, gi) => (
         <section class="section" id={g.id} data-phase={g.phase}>
           <div class="section__head">
             <h2>{g.h}</h2>
             <p>{g.p}</p>
           </div>
-          <ul class="ledger">
-            {g.rows.map((p) => (
+          <ul class="ledger ledger--faces">
+            {g.rows.map((p, ri) => (
               <li style={`--mark:${p.color}`}>
+                <div class="ledger__faces" aria-hidden="true">
+                  {p.faces.map((item) => (
+                    <img
+                      src={item.cover}
+                      alt=""
+                      width="60"
+                      height="90"
+                      loading={gi === 0 && ri < 4 ? 'eager' : 'lazy'}
+                      decoding="async"
+                    />
+                  ))}
+                </div>
                 <Mark site={p.name} />
                 <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
                 <span>
