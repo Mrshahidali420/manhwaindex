@@ -211,15 +211,29 @@ const titleTail = promised.length
   ? `: ${promised.join(', ')} and Where to ${goTo}`
   : `: Full Profile and Where to ${goTo}`
 
-// Google shows about sixty letters and cuts the rest. The old order spent all
-// sixty on the character's name and the story's full name -- the words the
-// searcher already typed -- so the part that earns the click never appeared.
+// Google shows about sixty letters and cuts the rest. On a long story name the
+// old order spends all sixty on the character's name and the story's name --
+// the words the searcher already typed -- so the part that earns the click
+// never appears. Putting the promise second fixes that, and loses no word:
+// Google still READS the whole title and still counts the story's name.
 //
-// The promise now sits second, right after the name, and the story's name
-// closes the line. No word is lost: Google still READS the whole title and
-// still counts the story's name when it decides what this page answers. Only
-// the order changed, and the order is the part a reader sees.
-const pageTitle = `${unquote(person.name)}${titleTail} — ${unquote(lead.title)} ${media} character`
+// It is NOT the default, and must not become one without evidence. Character
+// pages carry 83% of this site's impressions and 25% of its clicks, and 71 of
+// them earn clicks from position 3 or 4 today. A title rewrite on a page that
+// already wins can only lose. So the new order is a test on a named few, and
+// it spreads only when Search Console shows it beat the old order on them.
+//
+// Test opened 22 Sep 2026. Judge it after four weeks: compare each slug's CTR
+// against the 28 days before. Remove a slug that did worse.
+const TITLE_TEST = new Set([
+  // 989 impressions, 2 clicks, position 10.8 over 28 days. The story name here
+  // runs 116 letters, so the old order showed the reader nothing but names.
+  'anos-voldigoad',
+])
+
+const pageTitle = TITLE_TEST.has(person.slug)
+  ? `${unquote(person.name)}${titleTail} — ${unquote(lead.title)} ${media} character`
+  : `${unquote(person.name)} — ${unquote(lead.title)} ${media} character${titleTail}`
 
 // The date of the last nightly check against AniList, shared by every page.
 const updated = checkedISO
