@@ -110,11 +110,12 @@ export function prepare(rows) {
 const COVER_BASE = 'https://s4.anilist.co/file/anilistcdn/media/'
 
 /** A record's `kind` (from its url, e.g. "/manhwa/..." -> "manhwa") maps to
- * one of two cover folders AniList actually serves from. */
-export function coverUrl(kind, cover) {
-  return cover.includes('://')
-    ? cover
-    : `${COVER_BASE}${kind === 'anime' ? 'anime' : 'manga'}/cover/small/${cover}`
+ * one of two cover folders AniList actually serves from. The header dropdown
+ * draws a thumbnail and keeps 'small'; the results page draws a full card and
+ * asks for 'medium'. Only the folder changes between sizes. */
+export function coverUrl(kind, cover, size = 'small') {
+  if (cover.includes('://')) return size === 'small' ? cover : cover.replace('/small/', `/${size}/`)
+  return `${COVER_BASE}${kind === 'anime' ? 'anime' : 'manga'}/cover/${size}/${cover}`
 }
 
 export const escapeHtml = (text) =>
@@ -244,5 +245,7 @@ export async function runSearch(q) {
   const splitPrefixes = await loadManifest()
   const prefix = slicePathFor(needle, splitPrefixes)
   const rows = await loadSlice(prefix)
-  return { needle, matches: rankMatches(rows, needle) }
+  // A split prefix's own file holds only its most popular rows, so its match
+  // count is not the whole catalog's. The caller says so instead of a number.
+  return { needle, matches: rankMatches(rows, needle), partial: splitPrefixes.has(prefix) }
 }

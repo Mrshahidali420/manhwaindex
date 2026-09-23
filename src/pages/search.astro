@@ -95,21 +95,27 @@ import Base from '../layouts/Base.astro'
   // A record is [ title, url, cover file, year, alternate names ].
   function cardHtml([title, url, cover, year]) {
     const kind = url.split('/')[1]
-    const src = coverUrl(kind, cover)
+    const src = coverUrl(kind, cover, 'medium')
     return (
       `<li class="search-card"><a href="${escapeHtml(url)}">` +
-      `<img src="${escapeHtml(src)}" alt="Cover of ${escapeHtml(title)}" loading="lazy" width="90" height="128" decoding="async" />` +
+      `<img src="${escapeHtml(src)}" alt="Cover of ${escapeHtml(title)}" loading="lazy" width="230" height="325" decoding="async" />` +
       `<span><b>${escapeHtml(title)}</b><em>${escapeHtml(kind)}${year ? ' · ' + year : ''}</em></span>` +
       `</a></li>`
     )
   }
 
-  function showResults(matches, query) {
+  // `partial`: the query only reached a capped file (a very short word such as
+  // "dr"), so the count is the file's size, not the catalog's. Say that.
+  function showResults(matches, query, partial) {
     const total = matches.length
-    setSummary(`${total} result${total === 1 ? '' : 's'} for “${query}”`)
+    setSummary(
+      partial
+        ? `The most popular matches for “${query}”. Type more letters to narrow it down.`
+        : `${total} result${total === 1 ? '' : 's'} for “${query}”`,
+    )
     const shown = matches.slice(0, MAX_SHOWN)
     const note =
-      total > MAX_SHOWN
+      total > MAX_SHOWN && !partial
         ? `<p class="search-note">Showing the first ${MAX_SHOWN} of ${total} results.</p>`
         : ''
     results.innerHTML = `<ul class="search-grid">${shown.map(cardHtml).join('')}</ul>${note}`
@@ -134,10 +140,10 @@ import Base from '../layouts/Base.astro'
     }
     if (mine !== turn) return
 
-    const { needle, matches } = outcome
+    const { needle, matches, partial } = outcome
     if (needle.length < 2) return showHint()
     if (!matches.length) return showEmpty(query)
-    showResults(matches, query)
+    showResults(matches, query, partial)
   }
 
   const params = new URLSearchParams(location.search)
@@ -268,7 +274,8 @@ import Base from '../layouts/Base.astro'
   }
   .search-card img {
     width: 100%;
-    aspect-ratio: 90 / 128;
+    height: auto; /* the height attribute must not beat the aspect-ratio */
+    aspect-ratio: 460 / 651; /* AniList's own cover ratio, as on every other grid */
     object-fit: cover;
     border-radius: 6px;
     border: 1px solid var(--cobalt-line);
