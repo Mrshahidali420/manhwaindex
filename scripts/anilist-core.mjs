@@ -332,6 +332,13 @@ export function shape(media, kind = kindOfMedia(media)) {
     description: (media.description || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim(),
     startYear: media.startDate?.year ?? null,
     startDate: media.startDate?.year ? [media.startDate.year, media.startDate.month || 1, media.startDate.day || 1] : null,
+    // How much of startDate is real. AniList leaves an unknown month or day
+    // empty and the line above stores a 1 there, so without this "January
+    // 2027" reads as "1 January 2027". Readers: startPrecisionOf() in
+    // src/lib/computed.mjs, which also copes with rows fetched before this.
+    startPrecision: media.startDate?.year
+      ? media.startDate.day ? 'day' : media.startDate.month ? 'month' : 'year'
+      : null,
     trailer: media.trailer?.site === 'youtube' ? { id: media.trailer.id, thumb: media.trailer.thumbnail || null } : null,
     nextEpisode: media.nextAiringEpisode ? { at: media.nextAiringEpisode.airingAt, number: media.nextAiringEpisode.episode } : null,
     endYear: media.endDate?.year ?? null,

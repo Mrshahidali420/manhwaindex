@@ -3,7 +3,9 @@ export const prerender = true
 import Base from '../layouts/Base.astro'
 import Countdown from '../components/Countdown.astro'
 import CoverGrid from '../components/CoverGrid.astro'
+import UpcomingList from '../components/UpcomingList.astro'
 import { animeByPopularity, novelsByPopularity, comics, comicsOfCountry, anime, genres, platform, airingThisWeek } from '../lib/catalog.js'
+import { upcomingAnime, upcomingRow } from '../lib/schedule.mjs'
 
 const manhwa = comicsOfCountry('KR')
 const manga = comicsOfCountry('JP')
@@ -28,6 +30,14 @@ const legend = legendNames.map((name) => ({ name, color: platform(name).color })
 // Airing schedule. The countdown itself is drawn in the reader's browser, so
 // the list carries only the raw timestamp. See components/Countdown.astro.
 const airing = airingThisWeek.slice(0, 8)
+
+// Two short teasers for what is coming, worked out at build time like the
+// rest of the page. The full lists live on /schedule.
+const coming = upcomingAnime(anime)
+const anticipated = coming.anticipated.slice(0, 6).map(upcomingRow)
+const comingSoon = coming.dated.slice(0, 6).map(upcomingRow)
+// /schedule splits the dated list in two; land on whichever half comes first.
+const comingSoonHref = coming.big.length ? '/schedule#big-releases' : '/schedule#coming-soon'
 
 // One shelf per catalog, all visible at once. Arrows scroll each shelf.
 const rows = [
@@ -188,6 +198,40 @@ const tinyCover = (url) =>
               </li>
             ))}
           </ul>
+        </section>
+      )
+    }
+
+    {
+      anticipated.length > 0 && (
+        <section class="section" data-phase="night">
+          <div class="section__head section__head--row">
+            <div>
+              <h2>Most anticipated anime</h2>
+              <p>Not out yet, ranked by how many AniList users have them on a list.</p>
+            </div>
+            <a class="section__more section__more--cta" href="/schedule#anticipated">
+              See the full schedule →
+            </a>
+          </div>
+          <UpcomingList rows={anticipated} />
+        </section>
+      )
+    }
+
+    {
+      comingSoon.length > 0 && (
+        <section class="section" data-phase="night">
+          <div class="section__head section__head--row">
+            <div>
+              <h2>Anime coming soon</h2>
+              <p>Announced with an exact premiere date, soonest first.</p>
+            </div>
+            <a class="section__more section__more--cta" href={comingSoonHref}>
+              See the full schedule →
+            </a>
+          </div>
+          <UpcomingList rows={comingSoon} />
         </section>
       )
     }

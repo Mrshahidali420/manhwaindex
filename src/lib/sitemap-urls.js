@@ -10,6 +10,7 @@ import {
   platformHubs,
 } from './catalog.js'
 import { filtersFor } from './filters.js'
+import { genreDeepPaths } from './genre-lists.js'
 import { seasonHubs } from './seasons.mjs'
 import { sectionOf } from './section.mjs'
 import { MOODS } from './moods.mjs'
@@ -84,6 +85,11 @@ function coreUrls() {
 
   for (const g of genres) {
     urls.push({ loc: `${SITE}/genre/${g.slug}`, priority: '0.7' })
+  }
+  // The deeper genre pages: per-kind listings and their numbered pages, and
+  // the four picks. genreDeepPaths() is the same list the routes build from.
+  for (const { path, page } of genreDeepPaths()) {
+    urls.push({ loc: `${SITE}${path}`, priority: page === 1 ? '0.6' : '0.4' })
   }
 
   const counts = {

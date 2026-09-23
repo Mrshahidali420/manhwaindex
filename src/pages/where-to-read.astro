@@ -17,7 +17,7 @@
  */
 export const prerender = true
 import Base from '../layouts/Base.astro'
-import { comics, platform, hubSlugOf, genres } from '../lib/catalog.js'
+import { comics, platform, hubSlugOf, genres, comicsOfCountry, novels } from '../lib/catalog.js'
 import { factsFor, PAY, FREE } from '../lib/platform-facts.js'
 import Mark from '../components/Mark.astro'
 
@@ -107,6 +107,34 @@ const groups = [
 
 const shown = groups.filter((g) => g.rows.length > 0)
 
+// This page used to say "manhwa" and mean it, but it lists platforms for
+// manga, manhua and novels too. One section per kind, built the same way as
+// the groups above: tally readLinks for that kind's own items, most-carried
+// platform first. A kind added tomorrow needs no new prose, only a new row
+// here.
+const KIND_SECTIONS = [
+  { id: 'kind-manhwa', slug: 'manhwa', name: 'manhwa', items: comicsOfCountry('KR') },
+  { id: 'kind-manga', slug: 'manga', name: 'manga', items: comicsOfCountry('JP') },
+  { id: 'kind-manhua', slug: 'manhua', name: 'manhua', items: comicsOfCountry('CN') },
+  { id: 'kind-novel', slug: 'novel', name: 'light novels', items: novels },
+]
+  .filter((k) => k.items.length > 0)
+  .map((k) => {
+    const found = tally(k.items, 'readLinks')
+    const big = found.filter((p) => p.count >= MIN_TITLES)
+    const rows = big.length > 0 ? big : found
+    return {
+      ...k,
+      total: k.items.length,
+      rows,
+      more: found.length - rows.length,
+      // /novel/only/free is not a built page when no light-novel platform in
+      // the catalog is actually free — linking to it would 404. This checks
+      // the same thing the page builder checks before it links here.
+      hasFree: found.some((p) => (p.note || '').toLowerCase().includes('free')),
+    }
+  })
+
 const faq = [
   {
     q: 'Where can I read manhwa?',
@@ -129,6 +157,14 @@ const faq = [
     a: 'Manhwa is Korean and scrolls top to bottom on a phone. Manga is Japanese and reads right to left. Manhua is Chinese. This index carries all three.',
   },
   {
+    q: 'Where can I read manga legally?',
+    a: 'MANGA Plus and VIZ carry official English manga free or with a subscription, and Yen Press and Seven Seas hold most of the print licences. The "Where to read manga" section above lists every platform in this index, most-titles first.',
+  },
+  {
+    q: 'Where can I read manhua or light novels legally?',
+    a: 'Manhua: Tencent Comics, KuaiKan Manhua and WebComics carry the most titles. Light novels: Yen Press and J-Novel Club hold most of the English licences. Both get their own section above.',
+  },
+  {
     q: 'Is this a manhwa reading site?',
     a: 'No. This site holds no chapters. It only tells you which official platform carries a story, so the people who drew it get paid.',
   },
@@ -144,7 +180,7 @@ const faq = [
 
 const site = 'https://manhwaindex.com'
 const description =
-  'The manhwa websites that actually hold the chapters: WEBTOON, Tapas, Tappytoon, Lezhin, Manta, Piccoma and more. Sorted by what each one costs, with how many titles it carries.'
+  'Every official manhwa, manga, manhua and light novel platform this index links to: WEBTOON, Tapas, Tappytoon, Lezhin, VIZ, Yen Press, J-Novel Club and more. Sorted by what each one costs, with how many titles it carries.'
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -153,10 +189,10 @@ const jsonld = {
       '@type': 'CollectionPage',
       '@id': `${site}/where-to-read#page`,
       url: `${site}/where-to-read`,
-      name: 'Where to read manhwa',
+      name: 'Where to read manhwa, manga, manhua and light novels',
       inLanguage: 'en',
       dateModified: new Date().toISOString().slice(0, 10),
-      description: `Every official manhwa, manga and manhua site this index links to: ${all.length} platforms, sorted by what they cost.`,
+      description: `Every official manhwa, manga, manhua and light novel site this index links to: ${all.length} platforms, sorted by what they cost.`,
       mainEntity: {
         '@type': 'ItemList',
         name: 'Official manhwa reading platforms',
@@ -183,7 +219,7 @@ const jsonld = {
 ---
 
 <Base
-  title="Where to Read Manhwa — Every Official Manhwa Site, Free and Paid"
+  title="Where to Read Manhwa, Manga & Light Novels — Every Official Site, Free and Paid"
   description={description}
   canonical="/where-to-read"
   jsonld={jsonld}
@@ -192,7 +228,7 @@ const jsonld = {
   <div class="shell">
     <section class="section">
       <div class="section__head">
-        <h1>Where to read manhwa</h1>
+        <h1>Where to read manhwa, manga, manhua and light novels</h1>
         <p>
           Every site below is run by the people who own the story, or by the
           publisher they sold it to. We hold no chapters here. We only point at
@@ -222,6 +258,38 @@ const jsonld = {
         </li>
       </ol>
     </section>
+
+    {
+      KIND_SECTIONS.map((k) => (
+        <section class="section" id={k.id}>
+          <div class="section__head">
+            <h2>Where to read {k.name}</h2>
+            <p>
+              {k.rows.length} platform{k.rows.length === 1 ? '' : 's'} carry{' '}
+              {k.total.toLocaleString()} {k.name} in this index.{' '}
+              <a href={`/${k.slug}`}>Browse {k.name}</a>
+              {k.hasFree && ' · '}
+              {k.hasFree && <a href={`/${k.slug}/only/free`}>Free {k.name}</a>}
+            </p>
+          </div>
+          <ul class="ledger">
+            {k.rows.map((p) => (
+              <li style={`--mark:${p.color}`}>
+                <Mark site={p.name} />
+                <b>{p.hub ? <a href={`/platform/${p.hub}`}>{p.name}</a> : p.name}</b>
+                <span>{p.note || 'Official'}</span>
+                <em>{p.count.toLocaleString()} titles</em>
+              </li>
+            ))}
+          </ul>
+          {
+            k.more > 0 && (
+              <p class="ledger__rest">…and {k.more} smaller platforms.</p>
+            )
+          }
+        </section>
+      ))
+    }
 
     {
       shown.map((g, gi) => (

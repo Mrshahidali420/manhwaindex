@@ -247,6 +247,7 @@ const premiere = (p) =>
   p.status === 'NOT_YET_RELEASED'
     ? {
         ...(p.startDate ? { startDate: p.startDate } : {}),
+        ...(p.startPrecision ? { startPrecision: p.startPrecision } : {}),
         ...(p.season && p.seasonYear ? { season: p.season, seasonYear: p.seasonYear } : {}),
       }
     : {}

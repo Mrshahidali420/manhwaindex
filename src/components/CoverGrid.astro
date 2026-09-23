@@ -1,17 +1,13 @@
 ---
-import { platform, formatWord, statusWord } from '../lib/format.js'
+import { platform, formatWord, statusWord, pathOf } from '../lib/format.js'
 
 const { items, base, shelf = false, eager = 0, badges = false } = Astro.props
 
 // One grid can hold both comics and anime, so a single `base` is not always
 // enough. Leave `base` off and each card works out its own address from what
-// the record already says it is.
-const hrefOf = (item) =>
-  base
-    ? `${base}/${item.slug}`
-    : item.kind === 'anime'
-      ? `/anime/${item.slug}`
-      : `/${formatWord(item)}/${item.slug}`
+// the record already says it is. pathOf, not formatWord: a comic from outside
+// Korea, Japan, China and Taiwan is filed under /manga, and "/comic" is no page.
+const hrefOf = (item) => (base ? `${base}/${item.slug}` : pathOf(item, item.kind))
 
 // The first covers of the first grid on a page are the largest thing the
 // visitor sees, so they must not wait for the lazy loader.

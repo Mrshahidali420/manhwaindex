@@ -204,25 +204,75 @@ export function readingOrder(item, kind) {
 const SEASON_WORDS = { WINTER: 'Winter', SPRING: 'Spring', SUMMER: 'Summer', FALL: 'Fall' }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTHS_LONG = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/**
+ * How much of a start date is real: 'day', 'month', 'year', or null.
+ *
+ * AniList leaves an unknown month or day empty and the ingest stores a 1 in
+ * its place, so "January 2027" and "1 January 2027" look the same in
+ * startDate. Rows fetched since the ingest learned this carry startPrecision.
+ * An older row is read cautiously: a day other than the 1st, or a month other
+ * than January, can only have come from AniList, but a 1 proves nothing, so
+ * it drops to the coarser part. No false day is ever shown.
+ */
+export function startPrecisionOf(entry) {
+  const [year, month, day] = entry?.startDate || []
+  if (!year) return null
+  if (entry.startPrecision) return entry.startPrecision
+  if (day !== 1) return 'day'
+  if (month !== 1) return 'month'
+  return 'year'
+}
+
+/** The start date in words, never finer than what is known: "12 Jan 2027", "January 2027", "2027". */
+export function startDateText(entry) {
+  const [year, month, day] = entry?.startDate || []
+  const precision = startPrecisionOf(entry)
+  if (precision === 'day') return `${day} ${MONTHS[month - 1]} ${year}`
+  if (precision === 'month') return `${MONTHS_LONG[month - 1]} ${year}`
+  if (precision === 'year') return String(year)
+  return null
+}
+
+/**
+ * The first second after the known part of the start date: the next day,
+ * month or year. A title whose window closed before now has already started,
+ * whatever its status still says.
+ */
+export function startWindowEnd(entry) {
+  const [year, month, day] = entry?.startDate || []
+  const precision = startPrecisionOf(entry)
+  if (precision === 'day') return Date.UTC(year, month - 1, day + 1) / 1000
+  if (precision === 'month') return Date.UTC(year, month, 1) / 1000
+  if (precision === 'year') return Date.UTC(year + 1, 0, 1) / 1000
+  return null
+}
 
 /**
  * What an announced title can say about its own date, best first:
  *   a full day  -> "premieres on 10 Jan 2027" and a clock that counts down
+ *   a month     -> "is announced for January 2027"
  *   a season    -> "is announced for Winter 2027"
  *   a year      -> "is announced for 2027"
  *   nothing     -> "is announced. No air date yet."
- * AniList fills a missing month or day with 1, so a 1 January date is never
- * trusted as a real day: it falls through to the season or the year.
+ * Only a part of the date AniList actually gave is used. See startPrecisionOf.
  */
 export function announced(entry, nowSec = Date.now() / 1000) {
   const [year, month, day] = entry.startDate || []
   const season = SEASON_WORDS[entry.season] && entry.seasonYear
     ? `${SEASON_WORDS[entry.season]} ${entry.seasonYear}`
     : null
-  const firstOfJan = month === 1 && day === 1
-  if (year && !firstOfJan) {
+  const precision = startPrecisionOf(entry)
+  if (precision === 'day') {
     const at = Date.UTC(year, month - 1, day) / 1000
-    if (at > nowSec) return { at, text: `premieres on ${day} ${MONTHS[month - 1]} ${year}.` }
+    if (at > nowSec) return { at, text: `premieres on ${startDateText(entry)}.` }
+  }
+  if (precision === 'month' && startWindowEnd(entry) > nowSec) {
+    return { at: null, text: `is announced for ${startDateText(entry)}.` }
   }
   if (season) return { at: null, text: `is announced for ${season}.` }
   const soonYear = year || entry.startYear

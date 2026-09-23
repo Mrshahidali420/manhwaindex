@@ -17,12 +17,24 @@
  */
 export const prerender = true
 import Base from '../layouts/Base.astro'
-import { comicsOfCountry, animeByPopularity, genres } from '../lib/catalog.js'
-import { shelfLinks, shopUrl, AMAZON_DISCLOSURE, BOOKS, TOYS, ALL } from '../lib/shop-links.js'
+import {
+  comicsOfCountry,
+  animeByPopularity,
+  genres,
+  novelsByPopularity,
+  charactersWithPages,
+} from '../lib/catalog.js'
+import { shelfLinks, characterShopLinks, shopUrl, AMAZON_DISCLOSURE, BOOKS, TOYS, ALL } from '../lib/shop-links.js'
+import { hasCharacterBuyPage } from '../lib/gates.mjs'
+import { displayName } from '../lib/names.mjs'
 
 // How many covers a shelf shows. Enough to browse, few enough that the page
 // still loads fast on a phone.
 const PER_SHELF = 18
+
+// The novel and character shelves are narrower doors, so a shorter row is
+// enough to browse without the page growing much longer.
+const PER_SHOP_ROW = 12
 
 // Chinese titles come from two places, and a reader does not care which.
 const manhua = [...comicsOfCountry('CN'), ...comicsOfCountry('TW')].sort(
@@ -71,6 +83,28 @@ const shelves = [
     more: '/anime',
   },
 ].filter((shelf) => shelf.items.length > 0)
+
+// Light novels: the prose originals, ranked the same way as every other
+// shelf. A novel is only ever sold as a book, so it gets one button, not two.
+const novelItems = novelsByPopularity.slice(0, PER_SHOP_ROW).map((item) => ({
+  item,
+  url: shelfLinks(item).find((row) => row.kind === 'books')?.url,
+}))
+
+// Characters worth a merch button: the same gate the character's own buy
+// page is built on (hasCharacterBuyPage), so a link here never opens a page
+// that redirects away. characterShopLinks always returns a 'figures' row
+// once that gate has passed, because the fallback-to-books branch it can
+// return instead needs the gate to have failed.
+const characterItems = charactersWithPages
+  .filter(hasCharacterBuyPage)
+  .slice(0, PER_SHOP_ROW)
+  .map((person) => ({
+    person,
+    name: displayName(person).primary,
+    url: characterShopLinks(person).find((row) => row.kind === 'figures')?.url,
+  }))
+  .filter((row) => row.url)
 
 // Genre doors. The catalog decides which genres are big enough to show, so
 // this row keeps itself honest without anybody editing a list. The genre name
@@ -178,6 +212,8 @@ const jsonld = {
 
     <nav class="shop-jump" aria-label="Jump to a shelf">
       {shelves.map((shelf) => <a href={`#${shelf.id}`}>{shelf.short}</a>)}
+      <a href="#novels">Novels</a>
+      <a href="#characters">Characters</a>
       <a href="#genres">By genre</a>
     </nav>
 
@@ -242,6 +278,95 @@ const jsonld = {
         </section>
       ))
     }
+
+    <section class="section" id="novels">
+      <div class="section__head">
+        <h2>Light novels</h2>
+        <p>
+          The prose originals and spin-offs behind these series, most read first.
+          {AMAZON_DISCLOSURE}
+        </p>
+      </div>
+      <ul class="shop-shelf">
+        {
+          novelItems.map(({ item, url }, i) => (
+            <li class="shop-card">
+              <a class="shop-card__cover" href={`/novel/${item.slug}`}>
+                <img
+                  src={item.cover}
+                  alt={`Cover of ${item.title}`}
+                  width="230"
+                  height="345"
+                  loading={i < 6 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+                <span class="shop-card__title">{item.title}</span>
+              </a>
+              {url && (
+                <p class="shop-card__buy">
+                  <a
+                    href={url}
+                    rel="noopener nofollow sponsored"
+                    target="_blank"
+                    data-aff="books"
+                    aria-label={`Buy the novel for ${item.title} on Amazon`}
+                  >
+                    Buy the novel
+                  </a>
+                </p>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+      <p class="shop-shelf__more">
+        <a href="/novel">See every light novel in this shelf →</a>
+      </p>
+    </section>
+
+    <section class="section" id="characters">
+      <div class="section__head">
+        <h2>Characters</h2>
+        <p>
+          Fan-favourite faces from stories big enough that figures of them are
+          really made. Each link opens Amazon's live search for that character.
+          {AMAZON_DISCLOSURE}
+        </p>
+      </div>
+      <ul class="shop-shelf">
+        {
+          characterItems.map(({ person, name, url }, i) => (
+            <li class="shop-card">
+              <a class="shop-card__cover" href={`/character/${person.slug}`}>
+                <img
+                  src={person.image}
+                  alt={`${name} portrait`}
+                  width="230"
+                  height="345"
+                  loading={i < 6 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+                <span class="shop-card__title">{name}</span>
+              </a>
+              <p class="shop-card__buy">
+                <a
+                  href={url}
+                  rel="noopener nofollow sponsored"
+                  target="_blank"
+                  data-aff="figures"
+                  aria-label={`Buy figurines of ${name} on Amazon`}
+                >
+                  Buy figurines
+                </a>
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="shop-shelf__more">
+        <a href="/character">See more characters →</a>
+      </p>
+    </section>
 
     <section class="section" id="genres">
       <div class="section__head">

@@ -17,6 +17,7 @@
 export const prerender = true
 import Base from '../../layouts/Base.astro'
 import { genres, comics, anime } from '../../lib/catalog.js'
+import { genreLists, GENRE_KINDS, KIND_LABEL } from '../../lib/genre-lists.js'
 
 // The biggest genres get named in the copy, so the page says something
 // real instead of only carrying a wall of links.
@@ -44,10 +45,19 @@ for (const item of [...comics, ...anime]) {
    On a phone this saves scrolling past thirty cards to reach Romance. */
 const quick = genres.slice(0, 10)
 
+/* The count line on each card, split by kind, so a reader sees at a glance
+   which kind a genre leans toward. Kinds with no titles are left off. */
+const countLine = (g) => {
+  const lists = genreLists(g.name)
+  return GENRE_KINDS.filter((kind) => lists[kind].length > 0)
+    .map((kind) => `${lists[kind].length.toLocaleString('en-US')} ${KIND_LABEL[kind]}`)
+    .join(' · ')
+}
+
 const faqs = [
   {
     q: 'What is the difference between manhwa, manga and manhua?',
-    a: 'Manhwa is Korean, manga is Japanese and manhua is Chinese. Every genre page splits its titles into those three, plus anime, so you can stay in the one you prefer.',
+    a: 'Manhwa is Korean, manga is Japanese and manhua is Chinese. Every genre page splits its titles into those three, plus novels and anime, so you can stay in the one you prefer.',
   },
   {
     q: 'Where do these genres come from?',
@@ -140,9 +150,7 @@ const jsonld = {
                   </span>
                   <span class="genre-wall__text">
                     <b>{g.name}</b>
-                    <span>
-                      {g.comics.toLocaleString()} comics · {g.anime.toLocaleString()} anime
-                    </span>
+                    <span>{countLine(g)}</span>
                   </span>
                 </a>
               </li>
