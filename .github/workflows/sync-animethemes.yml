@@ -1,0 +1,97 @@
+name: Sync opening and ending songs
+
+# Once a week: page the AnimeThemes anime list (about 50 calls), gap-fill from
+# AniSongDB by MAL id (about 35 calls), and write data/themes.json. It does NOT
+# deploy; the next daily deploy restores the file and builds it into the pages.
+#
+# Both owners gave written permission (23 Sep 2026) for commercial use. We keep
+# song titles, artists and episode ranges as plain text, never their files.
+
+on:
+  schedule:
+    # Mondays 01:00 UTC, an hour before the daily deploy.
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: 'Write the new list even when it covers under 90% of the old one (1 = yes).'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+# Shared with every workflow that writes the catalog or its R2 snapshot: two
+# pushes to latest/meta.json at once would each drop the other's file list.
+concurrency:
+  group: catalog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # catalog-snapshot drives the wrangler npm installs.
+      - run: npm install --no-audit --no-fund
+
+      # The last song list, for the shrink guard. Its own cache entry: never
+      # add it to the anilist-data path list (a new path hides every old
+      # catalog entry).
+      - name: Restore the song list
+        uses: actions/cache/restore@v4
+        with:
+          path: data/themes.json
+          key: animethemes-${{ github.run_id }}
+          restore-keys: animethemes-
+
+      # Read only, for the AniSongDB gap-fill (MAL ids of the anime we hold).
+      # The path list is the same as everywhere else, on purpose. Never saved.
+      - name: Restore the catalog
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/comics.json
+            data/anime.json
+            data/characters.json
+          key: anilist-data-${{ github.run_id }}
+          restore-keys: anilist-data-
+
+      # Only the two files this job reads. Fills in what the caches could not.
+      - name: Fill gaps from the R2 snapshot
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+          SNAPSHOT_ONLY: anime.json,themes.json
+        run: node --max-old-space-size=6000 scripts/catalog-snapshot.mjs pull
+
+      # Exits 1 and writes nothing when the new list covers under 90% of the
+      # old one, so the steps below never save a half-failed run.
+      - name: Fetch the song lists
+        env:
+          ALLOW_SHRINK: ${{ github.event.inputs.allow_shrink == '1' && '1' || '' }}
+        run: node --max-old-space-size=6000 scripts/sync-animethemes.mjs
+
+      - name: Save the song list
+        uses: actions/cache/save@v4
+        with:
+          path: data/themes.json
+          key: animethemes-${{ github.run_id }}
+
+      # A copy that does not expire. Only themes.json moves; every other file
+      # in R2 keeps its copy and its count.
+      - name: Save a snapshot to R2
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+          SNAPSHOT_ONLY: themes.json
+        run: node scripts/catalog-snapshot.mjs push

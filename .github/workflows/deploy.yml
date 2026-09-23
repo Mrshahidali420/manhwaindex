@@ -104,6 +104,15 @@ jobs:
           key: slug-registry-${{ github.run_id }}
           restore-keys: slug-registry-
 
+      # Opening and ending songs, written weekly by sync-animethemes.yml. Read
+      # only here. Missing is fine: the pages just show no song list.
+      - name: Restore the song list
+        uses: actions/cache/restore@v4
+        with:
+          path: data/themes.json
+          key: animethemes-${{ github.run_id }}
+          restore-keys: animethemes-
+
       # R2 is the second home of everything above. It only fills in what the
       # cache could not: a missing file, or a catalog with fewer records than
       # the snapshot. It never makes anything smaller. It runs after every

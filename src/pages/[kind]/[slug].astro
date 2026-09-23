@@ -19,6 +19,7 @@ import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/co
 import { shopLinks } from '../../lib/shop-links.js'
 import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage } from '../../lib/gates.mjs'
 import BuyBox from '../../components/BuyBox.astro'
+import Themes from '../../components/Themes.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { sectionOf, SECTIONS } from '../../lib/section.mjs'
 import { seasonLabel, seasonPath, seasonWhen } from '../../lib/season-core.mjs'
@@ -690,6 +691,8 @@ const updatedLong = checkedLong
           </section>
         )
       }
+
+      {!isComic && <Themes themes={item.themes} title={item.title} />}
 
       {
         faq.length > 0 && (

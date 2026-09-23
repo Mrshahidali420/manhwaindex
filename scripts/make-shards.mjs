@@ -60,6 +60,34 @@ function attachEnrich(titles) {
   return hits
 }
 
+// A long-running show can have dozens of songs. The page lists the first of
+// each kind; the record stays small.
+const THEMES_PER_TYPE = 12
+
+/**
+ * Opening and ending songs, from data/themes.json (scripts/sync-animethemes.mjs),
+ * folded into each anime record. The file is optional: without it every page
+ * still builds, just with no song list.
+ */
+function attachThemes(anime) {
+  let byId = {}
+  try {
+    byId = read('themes.json').byAnilistId || {}
+  } catch {
+    console.log('  no data/themes.json. Building without song lists.')
+  }
+  let hits = 0
+  for (const item of anime) {
+    const rows = byId[String(item.id)]
+    if (!Array.isArray(rows) || !rows.length) continue
+    const op = rows.filter((r) => r.type === 'OP').slice(0, THEMES_PER_TYPE)
+    const ed = rows.filter((r) => r.type === 'ED').slice(0, THEMES_PER_TYPE)
+    item.themes = [...op, ...ed]
+    hits++
+  }
+  return hits
+}
+
 export const kindOf = sectionOf
 
 /** Write one folder of shards. The count is fixed: see shard-key.js. */
@@ -472,6 +500,7 @@ async function main() {
   since('reslug')
 
   const titlesWithExtras = attachEnrich([...comics, ...anime])
+  const animeWithThemes = attachThemes(anime)
   since('enrich')
 
   rmSync(OUT, { recursive: true, force: true })
@@ -552,6 +581,7 @@ async function main() {
   const mb = (n) => `${(n / 1048576).toFixed(1)} MB`
   console.log(`titles     ${titles.length} in ${t.count} shards, ${mb(t.bytes)}, biggest ${t.biggest} records`)
   console.log(`MAL extras folded into ${titlesWithExtras} of ${titles.length} records`)
+  console.log(`song lists folded into ${animeWithThemes} of ${anime.length} anime`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`shard files ${t.count + c.count}  (the free plan allows 20,000 files in total)`)
   console.log(`answer pages ${answerUrls.free.length} free, ${answerUrls.like.length} like, ${answerUrls.buy.length} buy, ${answerUrls.charBuy.length} character buy, ${answerUrls.cast.length} cast`)

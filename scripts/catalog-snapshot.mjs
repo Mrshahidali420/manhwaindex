@@ -17,8 +17,8 @@
  *   daily/YYYY-MM-DD/<file>.gz    one copy per day, kept 8 days
  *
  * Files: comics.json, anime.json, characters.json (the catalog), and the
- * state that is expensive to lose: characters-walk.json, novels-walk.json and
- * slug-registry.json.
+ * state that is expensive to lose: characters-walk.json, novels-walk.json,
+ * slug-registry.json and themes.json.
  *
  * Rules:
  *   - pull never makes anything smaller. A catalog file is replaced only when
@@ -62,8 +62,16 @@ const REQUIRED = process.env.R2_REQUIRED === '1'
 const IN_CI = !!process.env.GITHUB_ACTIONS
 
 const CATALOG = ['comics.json', 'anime.json', 'characters.json']
-const STATE = ['characters-walk.json', 'novels-walk.json', 'slug-registry.json']
+// themes.json is the song list (scripts/sync-animethemes.mjs). Its own guard
+// lives in that script; here it is plain state, fetched when missing.
+const STATE = ['characters-walk.json', 'novels-walk.json', 'slug-registry.json', 'themes.json']
 const RECOVERED_MARKER = join(DATA, 'slug-registry.recovered')
+
+// SNAPSHOT_ONLY=a.json,b.json limits a push or pull to those files, so a job
+// that owns one small file (the weekly song sync) never moves the 140 MB
+// catalog. Files left out keep their copy and their count in R2.
+const ONLY = new Set((process.env.SNAPSHOT_ONLY || '').split(',').map((s) => s.trim()).filter(Boolean))
+const wanted = (name) => ONLY.size === 0 || ONLY.has(name)
 
 // Daily copies older than this are deleted on push.
 const KEEP_DAYS = 8
@@ -178,6 +186,7 @@ async function push(tmp) {
   const upload = []
 
   for (const name of CATALOG) {
+    if (!wanted(name)) continue
     const local = inspect(join(DATA, name))
     if (local.state !== 'ok') {
       warn(`data/${name} is ${local.state}; not uploaded (R2 keeps its last copy)`)
@@ -197,6 +206,7 @@ async function push(tmp) {
 
   let registryEntries = prev?.registryEntries ?? null
   for (const name of STATE) {
+    if (!wanted(name)) continue
     if (name === 'slug-registry.json' && existsSync(RECOVERED_MARKER)) {
       warn('data/slug-registry.recovered exists: the stand-in registry is not uploaded')
       continue
@@ -292,7 +302,7 @@ async function pull(tmp) {
   const done = []
 
   for (const name of CATALOG) {
-    if (!listed.has(name)) continue
+    if (!listed.has(name) || !wanted(name)) continue
     const target = join(DATA, name)
     const local = inspect(target)
     const remote = meta.counts?.[keyOfCatalog(name)] || 0
@@ -313,7 +323,7 @@ async function pull(tmp) {
   }
 
   for (const name of STATE) {
-    if (!listed.has(name)) continue
+    if (!listed.has(name) || !wanted(name)) continue
     const target = join(DATA, name)
     if (inspect(target).state === 'ok') continue
     const out = await fetchTo(name, tmp)

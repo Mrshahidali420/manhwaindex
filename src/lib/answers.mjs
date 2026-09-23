@@ -372,6 +372,51 @@ export function likeAnswer(item, kind) {
   }
 }
 
+/* ------------------------------------------------ opening and ending songs */
+
+// Rows come from data/themes.json via make-shards (item.themes):
+// { type: 'OP'|'ED', seq, title, artists: [..], episodes?, version? }.
+
+/** "OP1", "ED2". */
+export const themeLabel = (row) => `${row.type}${row.seq}`
+
+/** "1-13" -> "episodes 1–13", "1" -> "episode 1". Anything odd is kept as it came. */
+export function episodesWords(row) {
+  const text = (row.episodes || '').trim()
+  if (!text) return ''
+  if (/^\d+$/.test(text)) return `episode ${text}`
+  if (/^[\d\s,-]+$/.test(text)) return `episodes ${text.replace(/(\d)\s*-\s*(\d)/g, '$1–$2').replace(/-$/, ' on')}`
+  return text
+}
+
+/** '"Kaikai Kitan" by Eve'. */
+export function songWords(row) {
+  const by = listWords(row.artists || [])
+  return by ? `"${row.title}" by ${by}` : `"${row.title}"`
+}
+
+/** One answer per kind, from its first song. Empty unless the record has songs. */
+function songFaq(item, kind) {
+  if (kind !== 'anime' || !Array.isArray(item.themes)) return []
+  const out = []
+  for (const [type, noun] of [['OP', 'opening'], ['ED', 'ending']]) {
+    const rows = item.themes.filter((r) => r.type === type)
+    if (!rows.length) continue
+    const first = rows[0]
+    const when = episodesWords(first)
+    out.push({
+      q: `What is the ${noun} song of ${item.title}?`,
+      a:
+        (rows.length === 1
+          ? `The ${noun} is ${songWords(first)}`
+          : `${item.title} has ${rows.length} ${noun} songs. The first is ${songWords(first)}`) +
+        `${when ? `, used on ${when}` : ''}.` +
+        (rows.length > 1 ? ` The song list on this page has the others.` : ''),
+    })
+  }
+  return out
+}
+
 /* ------------------------------------------- the "is it on X" question set */
 
 // The platforms people name in a search box. Everything else is a long tail
@@ -464,7 +509,9 @@ export function titleFaq(item, kind) {
     })
   }
 
-  return faq.slice(0, 7)
+  // The song questions ride on top of the usual seven, so no page loses a
+  // question it had before.
+  return [...faq.slice(0, 7), ...songFaq(item, kind)]
 }
 
 /**

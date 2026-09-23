@@ -41,3 +41,7 @@ data/slug-registry.recovered
 # Half-written files from an atomic write or an R2 pull that was killed.
 data/*.tmp
 data/*.r2
+
+# Opening and ending songs (scripts/sync-animethemes.mjs). Lives in the Actions
+# cache (animethemes-*) and in R2, like the walk files.
+data/themes.json
