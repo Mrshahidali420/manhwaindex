@@ -23,18 +23,9 @@ const utc = new Date(at * 1000).toLocaleDateString('en-US', {
 <span class="countdown" data-airs={at} data-local={local ? '1' : null}>{utc} UTC</span>
 
 <script>
-  const MINUTE = 60
-  const HOUR = 3600
-  const DAY = 86400
-
-  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
-
-  function phrase(left) {
-    if (left <= 0) return 'airing now'
-    if (left < HOUR) return `in ${plural(Math.round(left / MINUTE), 'minute')}`
-    if (left < DAY) return `in ${plural(Math.round(left / HOUR), 'hour')}`
-    return `in ${plural(Math.round(left / DAY), 'day')}`
-  }
+  // The words live in one shared module, so the My list page and the For you
+  // block count down in exactly the same words as this clock.
+  import { phrase, DAY } from '../lib/countdown-core.js'
 
   function paint() {
     const now = Date.now() / 1000

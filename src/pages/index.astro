@@ -120,6 +120,144 @@ const tinyCover = (url) =>
   </nav>
 
   <div class="shell">
+    {/*
+      For you. This page is one file served to everybody, so the section ships
+      empty and hidden, and only a reader who has saved something ever sees it:
+      the script below reads their list from their own browser, loads the pool
+      (/d/feed.v1.json) and fills it. Nobody else downloads anything extra.
+    */}
+    <script is:inline>
+      // Runs before the For you section is drawn, so a reader who has a list
+      // gets the section's full height at once (as grey placeholder cards)
+      // instead of the page jumping when the picks arrive. A plain text test,
+      // not a JSON parse: it only has to know the list is not empty. Blocked
+      // storage throws, and then nothing changes.
+      try {
+        if (/"titles":\{"/.test(localStorage.getItem('mi_list_v1') || '')) {
+          document.documentElement.classList.add('mi-has-list')
+        }
+      } catch (e) {}
+    </script>
+    <section class="section foryou" id="for-you" data-phase="night" aria-labelledby="foryou-h" hidden>
+      <div class="section__head section__head--row">
+        <div>
+          <h2 id="foryou-h">For you</h2>
+          <p>Picked in your browser from the titles you saved. Your list stays in your browser.</p>
+        </div>
+        <a class="section__more section__more--cta" href="/my-list">My list →</a>
+      </div>
+      <div class="foryou__week" hidden>
+        <h3>Your list this week</h3>
+        <ul class="airing foryou__weeklist"></ul>
+      </div>
+      <ul class="grid foryou__grid">
+        {Array.from({ length: 12 }, () => (
+          <li class="card foryou__ghost" aria-hidden="true">
+            <span class="card__art"><span class="foryou__ghostart" /></span>
+            <p class="card__title">&nbsp;</p>
+            <p class="card__meta">&nbsp;</p>
+            <p class="foryou__why">&nbsp;<br />&nbsp;</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+    <script>
+      import { openStore, track } from '../lib/my-list.js'
+      import { loadFeed } from '../lib/list-data.js'
+      import { pickFeed, thisWeek } from '../lib/feed-core.js'
+      import { coverFrom } from '../lib/list-row.js'
+      import { phrase } from '../lib/countdown-core.js'
+
+      const SECTION_WORD = { manhwa: 'Manhwa', manga: 'Manga', manhua: 'Manhua', novel: 'Novel', anime: 'Anime' }
+
+      // textContent only: titles come from data, never run as markup.
+      function el(tag, props = {}, ...children) {
+        const node = document.createElement(tag)
+        for (const [key, value] of Object.entries(props)) {
+          if (value === undefined || value === null) continue
+          if (key === 'text') node.textContent = value
+          else if (key === 'class') node.className = value
+          else node.setAttribute(key, String(value))
+        }
+        for (const child of children) if (child) node.append(child)
+        return node
+      }
+
+      // Nothing to show after all: take the placeholder away again.
+      const giveUp = () => document.documentElement.classList.remove('mi-has-list')
+
+      async function fillForYou() {
+        const store = openStore()
+        const entries = Object.values(store.get().titles)
+        if (!entries.length) return giveUp()
+        let pool
+        try {
+          pool = await loadFeed()
+        } catch (e) {
+          return giveUp() // No pool, no section: the page is exactly as before.
+        }
+        const now = Math.floor(Date.now() / 1000)
+        const picks = pickFeed(entries, pool)
+        const week = thisWeek(entries, pool.airing, now)
+        if (!picks.length && !week.length) return giveUp()
+
+        const section = document.getElementById('for-you')
+        const weekBox = section.querySelector('.foryou__week')
+        section.querySelector('.foryou__weeklist').replaceChildren(
+          ...week.map(({ entry, at, num }) =>
+            el(
+              'li',
+              {},
+              el(
+                'a',
+                { href: `/${entry.ns}/${entry.slug}` },
+                entry.cover ? el('img', { src: entry.cover, alt: '', width: '52', height: '74', loading: 'lazy', decoding: 'async' }) : null,
+                el('span', {}, el('b', { text: entry.title }), el('em', { text: `${num ? `Episode ${num}` : 'New episode'} · ${phrase(at - now)}` }))
+              )
+            )
+          )
+        )
+        weekBox.hidden = week.length === 0
+
+        const grid = section.querySelector('.foryou__grid')
+        grid.replaceChildren(
+          ...picks.map((item, i) =>
+            el(
+              'li',
+              { class: 'card' },
+              el(
+                'a',
+                { href: `/${item.ns}/${item.slug}`, 'data-pos': i + 1, 'data-id': item.id, 'data-ns': item.ns, 'data-rel': item.related ? '1' : '0' },
+                el(
+                  'span',
+                  { class: 'card__art' },
+                  el('img', { src: coverFrom(item.ns, item.cover), alt: `Cover of ${item.title}`, width: '230', height: '345', loading: 'lazy', decoding: 'async' }),
+                  item.score ? el('b', { class: 'card__score', text: (item.score / 10).toFixed(1) }) : null
+                ),
+                el('p', { class: 'card__title', text: item.title }),
+                el('p', { class: 'card__meta' }, el('span', { text: SECTION_WORD[item.ns] || item.ns })),
+                el('p', { class: 'foryou__why', text: item.reason })
+              )
+            )
+          )
+        )
+        grid.addEventListener('click', (event) => {
+          const link = event.target.closest && event.target.closest('a[data-pos]')
+          if (!link) return
+          track('feed_click', {
+            position: Number(link.dataset.pos),
+            title_id: Number(link.dataset.id),
+            section: link.dataset.ns,
+            related: Number(link.dataset.rel),
+          })
+        })
+        section.hidden = false
+        track('feed_view', { picks: picks.length, this_week: week.length, titles: entries.length })
+      }
+
+      fillForYou()
+    </script>
+
     {
       rows.map((row) => (
         <section class="section" data-phase="night">

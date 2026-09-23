@@ -1,7 +1,9 @@
 # Roadmap: accounts, a personal feed, and recommendations
 
-Status: **not started, and not to be started until the site earns money.**
-Written 14 September 2026.
+Status: **step 1 built on 23 September 2026** (a local list, named lists,
+AniList import and a "For you" feed, all in the reader's browser). Steps 2
+onward (accounts) are still parked until the site earns money.
+Written 14 September 2026. Plan for step 1: `tasks/my-list-plan.md`.
 
 ## Why this is parked
 
@@ -51,6 +53,32 @@ titles they saved, and rank the whole index against that tag profile. That
 is a personal feed with **zero** infrastructure.
 
 This is the one item here worth doing early. It is a weekend of work.
+
+**Done, 23 September 2026.** What shipped, and where it lives:
+
+- The list: `src/lib/my-list.js`, localStorage key `mi_list_v1`. Statuses
+  match AniList's (the one-tap add is PLANNING), plus named lists that work
+  like playlists. Caps: 500 titles, 20 lists. The shape maps 1:1 onto
+  AniList, so step 2 can sync it without a migration.
+- The button: `src/components/MyListButton.astro`, on every title page except
+  Full Bloom. The page is edge-cached for everybody, so the button is drawn
+  by browser JS from the reader's own storage.
+- The page: `/my-list` (`src/pages/my-list.astro`), prerendered and noindex.
+  Tabs per list, status per title, alerts (finished, new platform, episode
+  soon), "this week", the AniList import and a clear-all button.
+- The feed: "For you" on the homepage, hidden until the reader has a list.
+  `src/lib/feed-core.js` scores the pool against a genre and tag profile,
+  with a bonus for titles tied to a saved one. It is a dot product, as
+  planned, and every pick says why it is there.
+- The data: `scripts/make-shards.mjs` writes 512 list-row files
+  (`/d/l/<n>.json`, keyed by AniList id) and one pool (`/d/feed.v1.json`).
+  Static files, so no Worker requests and no new route.
+- Import (step 3 below, done early for AniList only): two browser POSTs to
+  AniList's public API. Our server never sees the username. MyAnimeList stays
+  out: Jikan and MAL terms do not allow it.
+
+Not done yet: manual reorder, sharing a list (`?share=` on the same page),
+and anything that needs an account.
 
 ### 2. Accounts (only after money)
 

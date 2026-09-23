@@ -22,6 +22,7 @@ import BuyBox from '../../components/BuyBox.astro'
 import TopPicks from '../../components/TopPicks.astro'
 import { picksForTitle, picksShowFor } from '../../lib/picks.js'
 import Themes from '../../components/Themes.astro'
+import MyListButton from '../../components/MyListButton.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { sectionOf, SECTIONS } from '../../lib/section.mjs'
 import { seasonLabel, seasonPath, seasonWhen } from '../../lib/season-core.mjs'
@@ -482,6 +483,8 @@ const updatedLong = checkedLong
           </li>
         ))}
       </ul>
+      {/* Drawn from the reader's own browser; Full Bloom keeps its old shape. */}
+      {!isProtected && <MyListButton item={item} ns={kind} />}
     </header>
 
     <div class="title-body">

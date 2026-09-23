@@ -3790,6 +3790,55 @@ main:has(.title-page) {
 .miss-search:hover,
 .miss-search:focus-visible { border-color: var(--rose); color: var(--dawn); }
 
+/* The not-found page's "where to go next" table: name, what is there, and the
+   address, one row per door. On a phone the three stack. */
+.miss-about {
+  max-width: 62ch;
+  margin: 0 0 1.75rem;
+  color: var(--dawn-dim);
+  line-height: 1.7;
+}
+.miss-next h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+.miss-next ul {
+  list-style: none;
+  margin: 0 0 2.5rem;
+  padding: 0;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-r);
+  background: var(--sf);
+  overflow: hidden;
+}
+.miss-next li + li { border-top: 1px solid var(--sf-line); }
+.miss-next a {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.7fr) 2fr auto;
+  align-items: center;
+  gap: 0.35rem 1.25rem;
+  min-height: 44px;
+  padding: 0.85rem 1.1rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background 160ms var(--ease-dawn);
+}
+.miss-next a:hover,
+.miss-next a:focus-visible { background: rgb(224 104 138 / 0.08); }
+.miss-next__name { font-weight: 700; color: var(--dawn); }
+.miss-next__what { color: var(--dawn-dim); font-size: 0.9rem; line-height: 1.5; }
+.miss-next__path {
+  color: var(--rose-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.miss-next a:hover .miss-next__path { color: var(--rose); }
+@media (max-width: 640px) {
+  .miss-next a { grid-template-columns: 1fr auto; }
+  .miss-next__what { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .miss-next a { transition: none; }
+}
+
 /* ======================================================================== *
  * Title and character page refresh, 22 Sep 2026.
  *
@@ -4596,4 +4645,527 @@ main:has(.title-page) {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin-right: 0.35rem;
+}
+
+/* ======================================================================== *
+ * My list, 23 Sep 2026: the title-page button and its popover, the
+ * /my-list page and the homepage "For you" block. All of it is drawn by
+ * browser JS from the reader's own storage (src/lib/my-list.js), on the one
+ * surface, edge and radius tokens above. Every control is at least 44px
+ * tall, because most readers tap.
+ * ======================================================================== */
+
+/* ---------- the button on a title page ----------------------------------- */
+
+.mylist {
+  position: relative;
+  margin: -0.4rem 0 1.4rem;
+}
+.mylist__bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mylist__add,
+.mylist__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.05rem;
+  border: 1px solid var(--rose);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rose) 14%, transparent);
+  color: var(--dawn);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms var(--ease-dawn), border-color 150ms var(--ease-dawn), color 150ms var(--ease-dawn);
+}
+.mylist__add:hover,
+.mylist__more:hover {
+  background: color-mix(in srgb, var(--rose) 28%, transparent);
+  color: var(--day);
+}
+.mylist__add:focus-visible,
+.mylist__more:focus-visible,
+.mylist__pop :is(select, input, button, a):focus-visible,
+.ml :is(button, select, input, a):focus-visible,
+.foryou a:focus-visible {
+  outline: 2px solid var(--day);
+  outline-offset: 2px;
+}
+.mylist__more {
+  border-color: var(--sf-line-strong);
+  background: var(--sf);
+  font-weight: 600;
+}
+.mylist__more svg,
+.mylist__icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mylist__more[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.mylist__tick {
+  display: none;
+}
+/* Saved: the button goes to the lit "day" state and the plus turns to a tick. */
+.mylist--on .mylist__add {
+  background: var(--dawn);
+  border-color: var(--dawn);
+  color: var(--night);
+}
+.mylist--on .mylist__plus {
+  display: none;
+}
+.mylist--on .mylist__tick {
+  display: inline;
+}
+.mylist__note {
+  margin: 0.4rem 0 0;
+  color: var(--dawn-dim);
+  font-size: 0.82rem;
+}
+.mylist__note:empty {
+  margin: 0;
+}
+.mylist__pop {
+  position: absolute;
+  z-index: 30;
+  top: calc(44px + 0.5rem);
+  left: 0;
+  width: min(22rem, calc(100vw - 2.5rem));
+  padding: 1rem;
+  border: 1px solid var(--sf-line-strong);
+  border-radius: var(--sf-r);
+  background: var(--night-raised);
+  box-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.7);
+}
+.mylist__pop[hidden] {
+  display: none;
+}
+.mylist__field,
+.mylist__new label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--dawn-dim);
+}
+.mylist__head {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.82rem;
+  color: var(--dawn-dim);
+}
+.mylist__pop select,
+.mylist__new input,
+.ml select,
+.ml input {
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--sf-line-strong);
+  border-radius: 8px;
+  background: var(--night-sunk);
+  color: var(--dawn);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.mylist__lists {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 13rem;
+  overflow-y: auto;
+}
+.mylist__lists label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.mylist__lists input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.mylist__empty {
+  color: var(--dawn-faint);
+  font-size: 0.85rem;
+  padding-block: 0.4rem;
+}
+.mylist__new {
+  margin-top: 0.8rem;
+}
+.mylist__row,
+.ml-form__row {
+  display: flex;
+  gap: 0.5rem;
+}
+.mylist__row input,
+.ml-form__row input {
+  flex: 1;
+  min-width: 0;
+}
+.mylist__row button,
+.ml-btn {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--rose);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--rose) 18%, transparent);
+  color: var(--dawn);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms var(--ease-dawn), border-color 150ms var(--ease-dawn);
+}
+.mylist__row button:hover,
+.ml-btn:hover {
+  background: color-mix(in srgb, var(--rose) 32%, transparent);
+}
+.ml-btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.ml-btn--ghost {
+  border-color: var(--sf-line-strong);
+  background: transparent;
+  font-weight: 600;
+}
+.ml-btn--ghost:hover {
+  border-color: var(--rose);
+  background: transparent;
+}
+.ml-btn[hidden] {
+  display: none;
+}
+.mylist__msg {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--rose-soft);
+}
+.mylist__msg:empty {
+  display: none;
+}
+.mylist__open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.3rem;
+  color: var(--rose);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.mylist__open:hover {
+  text-decoration: underline;
+}
+
+/* ---------- /my-list --------------------------------------------------------- */
+
+.ml h2 {
+  margin-bottom: 0.8rem;
+}
+.ml-blocked {
+  margin-bottom: 1.5rem;
+}
+.ml-blocked[hidden],
+.ml-alerts[hidden],
+.ml-week[hidden],
+.ml-form[hidden],
+.ml-empty[hidden] {
+  display: none;
+}
+.ml-alerts,
+.ml-week {
+  margin-bottom: 2rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--sf-line);
+  border-radius: var(--sf-r);
+  background: var(--sf);
+}
+.ml-alerts {
+  border-color: color-mix(in srgb, var(--rose) 60%, transparent);
+}
+.ml-alerts__list,
+.ml-week__list,
+.ml-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ml-alerts__list a,
+.ml-week__list a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.8rem;
+  min-height: 44px;
+  color: var(--dawn);
+  text-decoration: none;
+}
+.ml-alerts__list a:hover,
+.ml-week__list a:hover {
+  color: var(--day);
+  text-decoration: underline;
+}
+.ml-week__list span {
+  color: var(--rose-soft);
+  font-size: 0.88rem;
+}
+.ml-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--sf-line);
+}
+.ml-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.ml-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 0.95rem;
+  border: 1px solid var(--sf-line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dawn-dim);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: color 150ms var(--ease-dawn), border-color 150ms var(--ease-dawn), background 150ms var(--ease-dawn);
+}
+.ml-tab em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--dawn-faint);
+  font-size: 0.78rem;
+}
+.ml-tab:hover {
+  color: var(--day);
+  border-color: var(--rose);
+}
+.ml-tab[aria-selected='true'] {
+  background: var(--day);
+  border-color: var(--day);
+  color: var(--night);
+  font-weight: 700;
+}
+.ml-tab[aria-selected='true'] em {
+  color: var(--night);
+}
+.ml-form {
+  margin-top: 1rem;
+  max-width: 32rem;
+}
+.ml-form label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--dawn-dim);
+}
+.ml-msg,
+.ml-import__msg {
+  margin: 0.7rem 0 0;
+  color: var(--rose-soft);
+  font-size: 0.9rem;
+}
+.ml-msg:empty,
+.ml-import__msg:empty {
+  display: none;
+}
+.ml-panel {
+  margin-top: 1.2rem;
+}
+.ml-panel:focus {
+  outline: none;
+}
+.ml-listbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ml-listbar[hidden] {
+  display: none;
+}
+.ml-listbar__name {
+  margin: 0 auto 0 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.ml-count {
+  margin: 0.8rem 0 0.4rem;
+  color: var(--dawn-faint);
+  font-size: 0.85rem;
+}
+.ml-count:empty {
+  display: none;
+}
+.ml-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--sf-line);
+}
+.ml-item img,
+.ml-item__nocover {
+  display: block;
+  width: 46px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--night-raised);
+}
+.ml-item__title {
+  font-weight: 700;
+  color: var(--dawn);
+  text-decoration: none;
+}
+a.ml-item__title:hover {
+  color: var(--day);
+  text-decoration: underline;
+}
+.ml-item__facts,
+.ml-item__next {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--dawn-dim);
+}
+.ml-item__next {
+  color: var(--rose-soft);
+}
+.ml-item__controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.ml-item--gone .ml-item__title {
+  color: var(--dawn-dim);
+}
+.ml-badge {
+  display: inline-block;
+  margin-top: 0.3rem;
+  padding: 0.1rem 0.55rem;
+  border: 1px dashed var(--cobalt-line);
+  border-radius: 999px;
+  color: var(--dawn-faint);
+  font-size: 0.75rem;
+}
+.ml-empty {
+  margin-top: 1rem;
+}
+.ml-import {
+  margin-top: 3rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--sf-line);
+}
+.ml-import > p {
+  color: var(--dawn-dim);
+  font-size: 0.92rem;
+}
+.ml-danger {
+  margin-top: 2.5rem;
+}
+@media (max-width: 640px) {
+  .ml-item {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+  .ml-item__controls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* ---------- homepage: For you ---------------------------------------------- */
+
+.foryou[hidden],
+.foryou__week[hidden] {
+  display: none;
+}
+.foryou__week {
+  margin-bottom: 1.4rem;
+}
+.foryou__week h3 {
+  margin-bottom: 0.6rem;
+  color: var(--dawn-dim);
+  font-size: 0.95rem;
+}
+/* The reason line is the whole point of a pick, so it reads in the rose
+   light, under the quiet facts line. */
+.foryou__why {
+  margin: 0.2rem 0 0;
+  color: var(--rose-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mylist__add,
+  .mylist__more,
+  .ml-tab,
+  .ml-btn {
+    transition: none;
+  }
+}
+
+/* For you, before the picks arrive. A tiny inline script in index.astro marks
+   <html> when the reader has a list, so the section takes its full height at
+   once with grey placeholder cards, and the page below it never jumps. */
+html.mi-has-list .foryou[hidden] {
+  display: block;
+}
+.foryou__ghostart {
+  display: block;
+  aspect-ratio: 460 / 651;
+  border-radius: 6px;
+  background: var(--sf);
+  border: 1px solid var(--sf-line);
+}
+
+/* "Removed. Undo" under the My list button. */
+.mylist__notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.6rem;
+}
+.mylist__undo {
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--rose);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rose-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mylist__undo:hover {
+  color: var(--day);
+}
+.mylist__undo:focus-visible {
+  outline: 2px solid var(--day);
+  outline-offset: 2px;
+}
+.mylist__undo[hidden] {
+  display: none;
 }

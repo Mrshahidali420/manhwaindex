@@ -21,3 +21,14 @@ export const TITLE_SHARDS = 1024
 export const CHARACTER_SHARDS = 512
 
 export const titleKey = (kind, slug) => `${kind}/${slug}`
+
+// The "My list" rows, one small JSON file per bucket at /d/l/<n>.json. They
+// are keyed by AniList id, not by slug: an id never changes, and an AniList
+// import only knows ids. The id is already a number, so the bucket is a plain
+// remainder, which the browser can work out with no hash at all. Fixed for
+// the same reason as the counts above: changing it moves every row.
+// 512 files at ~110,000 titles is about 215 rows, a few KB gzipped, per file,
+// so a 100-title list downloads a few hundred KB, not megabytes. Total files
+// stay far under the free plan's 20,000.
+export const LIST_SHARDS = 512
+export const listBucket = (id) => Math.abs(Math.trunc(Number(id)) || 0) % LIST_SHARDS

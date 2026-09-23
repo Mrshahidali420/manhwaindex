@@ -4,7 +4,7 @@ import Base from '../layouts/Base.astro'
 // The same sentence the buy links carry, so the two can never say different things.
 import { AMAZON_DISCLOSURE } from '../lib/shop-links.js'
 
-const updated = 'September 22, 2026'
+const updated = 'September 23, 2026'
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -12,7 +12,7 @@ const jsonld = {
   name: 'Privacy policy',
   url: 'https://manhwaindex.com/privacy',
   description: 'What manhwaindex collects, what it does not collect, and the third parties involved.',
-  dateModified: '2026-09-22',
+  dateModified: '2026-09-23',
 }
 ---
 
@@ -26,7 +26,7 @@ const jsonld = {
     <section class="section">
       <div class="section__head">
         <h1>Privacy policy</h1>
-        <p>Short version: no accounts, no logins, and nothing you type is stored.</p>
+        <p>Short version: no accounts, no logins, and nothing you type is stored by us. Your saved list stays in your own browser.</p>
       </div>
 
       <div class="prose">
@@ -46,6 +46,32 @@ const jsonld = {
           <li>
             Search terms typed into the site search stay in your browser. The search runs
             on a static file inside your own device and is never sent to us.
+          </li>
+        </ul>
+
+        <h2 id="your-list">Your list</h2>
+        <p>
+          The titles you save with <strong>Add to my list</strong>, their statuses and any
+          lists you name are kept in your own browser storage, under the key
+          <code>mi_list_v1</code>. The "For you" picks on the homepage are worked out in
+          your browser from that same list.
+        </p>
+        <p>
+          Your list stays in your browser. We only get anonymous usage counts (like "a
+          title was saved", with the title's AniList number) through Google Analytics,
+          never your list names or your AniList username.
+        </p>
+        <ul>
+          <li>
+            <strong>AniList import</strong> sends the username you type straight from your
+            browser to AniList (graphql.anilist.co), never through us. Only public lists can
+            be read, and AniList's own
+            <a href="https://anilist.co/terms" rel="noopener nofollow">terms and privacy policy</a>
+            apply to that request. We do not keep the username anywhere but in your browser.
+          </li>
+          <li>
+            To delete it, use <strong>Clear my whole list</strong> on <a href="/my-list">My
+            list</a>, or delete site data for manhwaindex.com in your browser settings.
           </li>
         </ul>
 
