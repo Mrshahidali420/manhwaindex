@@ -13,12 +13,15 @@ import {
   askOne,
   clock,
   countryName,
+  dayKey,
+  RECENT,
   humanize,
   num,
   sectionName,
   sourceName,
   words,
 } from '../lib/admin.js'
+import { CLICK } from '../lib/action-sql.js'
 
 export const prerender = false
 
@@ -41,26 +44,26 @@ if (signedIn) {
       `SELECT COUNT(DISTINCT CASE WHEN visitor <> '' THEN visitor END) AS people,
               SUM(kind = 'view') AS views,
               COUNT(DISTINCT CASE WHEN session <> '' THEN session END) AS visits
-       FROM events WHERE ts > ?`,
+       FROM events WHERE ${RECENT} AND ts > ?`,
       now - 300000
     ),
     askOne(
       db,
       `SELECT SUM(kind = 'view') AS views,
               COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END) AS people,
-              SUM(kind IN ('buy','read','watch','other')) AS clicks
+              SUM(${CLICK}) AS clicks
        FROM events WHERE day = ?`,
       today
     ),
     ask(
       db,
       `SELECT ts, path, label, page_type, country, device, step, referrer, campaign, prev
-       FROM events WHERE kind = 'view' ORDER BY ts DESC LIMIT 20`
+       FROM events WHERE ${RECENT} AND kind = 'view' ORDER BY ts DESC LIMIT 20`
     ),
     ask(
       db,
       `SELECT ts, name, kind, path, label, page_type, platform, country, target
-       FROM events WHERE kind NOT IN ('view','leave','missing') ORDER BY ts DESC LIMIT 30`
+       FROM events WHERE ${RECENT} AND ${CLICK} ORDER BY ts DESC LIMIT 30`
     ),
     // Addresses people asked for that are not here. Grouped, because one bad
     // link on somebody else's site sends the same wrong address over and over,
@@ -72,9 +75,9 @@ if (signedIn) {
               MAX(ts) AS last,
               MAX(referrer) AS referrer,
               MAX(prev) AS prev
-       FROM events WHERE kind = 'missing' AND ts > ?
+       FROM events WHERE day >= ? AND kind = 'missing'
        GROUP BY path ORDER BY hits DESC, last DESC LIMIT 25`,
-      now - 604800000
+      dayKey(6, now)
     ),
   ])
   live = a

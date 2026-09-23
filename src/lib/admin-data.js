@@ -14,6 +14,7 @@
  * store answered, so a page never has to know where a number came from.
  */
 import { ask, askOne } from './admin.js'
+import { CLICK } from './action-sql.js'
 
 const SUMS = [
   'views',
@@ -63,17 +64,22 @@ const RAW_COUNTS = `
   SUM(kind = 'view') AS views,
   COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END) AS people,
   SUM(kind = 'view' AND step = 1) AS entries,
-  SUM(kind IN ('buy','read','watch','other')) AS clicks,
+  SUM(${CLICK}) AS clicks,
   SUM(kind = 'buy') AS buys,
   SUM(kind = 'read') AS reads,
   SUM(kind = 'watch') AS watches,
   SUM(CASE WHEN kind = 'leave' THEN dwell ELSE 0 END) AS dwell_sum,
   SUM(kind = 'leave') AS dwell_n`
 
-/** The filter for the raw table, for this range. */
-function rawWhere(range, todayOnly = false) {
+/**
+ * The filter for the raw table, for this range. It always names `day`, the
+ * one indexed column (see db/schema.sql), so a question about yesterday never
+ * reads the whole month. "Last 24 hours" is two days by index, then cut to
+ * the exact hour by the clock.
+ */
+export function rawWhere(range, todayOnly = false) {
   if (todayOnly) return { sql: 'day = ?', args: [range.toDay] }
-  if (range.sinceTs) return { sql: 'ts > ?', args: [range.sinceTs] }
+  if (range.sinceTs) return { sql: 'day >= ? AND ts > ?', args: [range.fromDay, range.sinceTs] }
   return { sql: 'day >= ?', args: [range.fromDay] }
 }
 
@@ -221,7 +227,7 @@ export async function clicksFor(db, range) {
   const raw = await ask(
     db,
     `SELECT kind, platform, shop_kind, page_type, COUNT(*) AS clicks
-     FROM events WHERE ${where.sql} AND kind NOT IN ('view','leave')
+     FROM events WHERE ${where.sql} AND ${CLICK}
      GROUP BY kind, platform, shop_kind, page_type ORDER BY clicks DESC LIMIT 400`,
     ...where.args
   )
@@ -238,7 +244,7 @@ export async function clicksFor(db, range) {
   const today = await ask(
     db,
     `SELECT kind, platform, shop_kind, page_type, COUNT(*) AS clicks
-     FROM events WHERE day = ? AND kind NOT IN ('view','leave')
+     FROM events WHERE day = ? AND ${CLICK}
      GROUP BY kind, platform, shop_kind, page_type`,
     range.toDay
   )

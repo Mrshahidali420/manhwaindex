@@ -17,6 +17,7 @@
  *
  * It runs from the `scheduled` handler in src/worker.js at 00:10 UTC.
  */
+import { CLICK, keptActionsSql, quickExitsSql } from './action-sql.js'
 
 // How long the one-by-one rows are kept. Journeys and "which page sent this
 // click" need them; after a month the daily tables carry the story instead.
@@ -50,7 +51,7 @@ async function rollOneDay(db, day) {
          COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          COUNT(DISTINCT CASE WHEN kind = 'view' AND session <> '' THEN session END),
          0,
-         SUM(kind IN ('buy','read','watch','other')),
+         SUM(${CLICK}),
          SUM(kind = 'buy'), SUM(kind = 'read'), SUM(kind = 'watch'),
          SUM(CASE WHEN kind = 'leave' THEN dwell ELSE 0 END),
          SUM(kind = 'leave')
@@ -80,7 +81,7 @@ async function rollOneDay(db, day) {
          SUM(kind = 'view'),
          COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          SUM(kind = 'view' AND step = 1),
-         SUM(kind IN ('buy','read','watch','other')),
+         SUM(${CLICK}),
          SUM(kind = 'buy'), SUM(kind = 'read'), SUM(kind = 'watch'),
          SUM(CASE WHEN kind = 'leave' THEN dwell ELSE 0 END),
          SUM(kind = 'leave')
@@ -99,7 +100,7 @@ async function rollOneDay(db, day) {
          SUM(kind = 'view'),
          COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
          SUM(kind = 'view' AND step = 1),
-         SUM(kind IN ('buy','read','watch','other')),
+         SUM(${CLICK}),
          SUM(kind = 'buy'), SUM(kind = 'read'), SUM(kind = 'watch'),
          SUM(CASE WHEN kind = 'leave' THEN dwell ELSE 0 END),
          SUM(kind = 'leave')
@@ -135,7 +136,7 @@ async function rollOneDay(db, day) {
        SELECT ?, country, page_type,
          SUM(kind = 'view'),
          COUNT(DISTINCT CASE WHEN kind = 'view' AND visitor <> '' THEN visitor END),
-         SUM(kind IN ('buy','read','watch','other'))
+         SUM(${CLICK})
        FROM events WHERE day = ? GROUP BY country, page_type`
     )
     .bind(D, D)
@@ -144,7 +145,7 @@ async function rollOneDay(db, day) {
     .prepare(
       `INSERT OR REPLACE INTO daily_clicks (day, kind, platform, shop_kind, page_type, clicks, people)
        SELECT ?, kind, platform, shop_kind, page_type, COUNT(*), COUNT(DISTINCT CASE WHEN visitor <> '' THEN visitor END)
-       FROM events WHERE day = ? AND kind NOT IN ('view','leave')
+       FROM events WHERE day = ? AND ${CLICK}
        GROUP BY kind, platform, shop_kind, page_type`
     )
     .bind(D, D)
@@ -174,6 +175,32 @@ async function rollOneDay(db, day) {
     )
     .bind(D, D)
 
+  // List, feed and search actions, and Amazon clicks by page and by where the
+  // link sat. See src/lib/action-sql.js for what is kept and why.
+  const actions = db
+    .prepare(
+      `INSERT OR REPLACE INTO daily_actions (day, name, item, detail, label, n, people)
+       ${keptActionsSql('day = ?')}`
+    )
+    .bind(D, D)
+
+  // Visits that saw one page, did nothing and left. Needs the day's pages to
+  // be written first, so it runs after them in the same batch.
+  const quickPages = db
+    .prepare(
+      `UPDATE daily_pages SET quick_exits = q.quick_exits
+       FROM (${quickExitsSql('day = ?')}) AS q
+       WHERE daily_pages.day = ? AND daily_pages.path = q.path`
+    )
+    .bind(D, D)
+  const quickTotal = db
+    .prepare(
+      `UPDATE daily_totals SET quick_exits = (
+         SELECT COALESCE(SUM(quick_exits), 0) FROM (${quickExitsSql('day = ?')}))
+       WHERE day = ?`
+    )
+    .bind(D, D)
+
   await db.batch([
     totals,
     bounces,
@@ -184,6 +211,9 @@ async function rollOneDay(db, day) {
     clicks,
     sources,
     edges,
+    actions,
+    quickPages,
+    quickTotal,
   ])
 
   const counted = await db
@@ -200,14 +230,16 @@ async function rollOneDay(db, day) {
 }
 
 /** Throw away raw rows older than KEEP_DAYS. Returns how many went. */
-async function prune(db) {
-  const cutoff = Date.now() - KEEP_DAYS * 86400000
+// By day, not by the clock: `day` is the only indexed column (see
+// db/schema.sql), so this finds the old rows without reading the new ones.
+async function prune(db, now = Date.now()) {
+  const cutoff = dayKey(KEEP_DAYS, now)
   let gone = 0
   for (let pass = 0; pass < 20; pass += 1) {
     const out = await db
       .prepare(
         `DELETE FROM events WHERE id IN (
-           SELECT id FROM events WHERE ts < ? ORDER BY id LIMIT ${PRUNE_BATCH})`
+           SELECT id FROM events WHERE day < ? ORDER BY id LIMIT ${PRUNE_BATCH})`
       )
       .bind(cutoff)
       .run()
@@ -248,7 +280,7 @@ export async function runRollup(db, now = Date.now()) {
 
   let pruned = 0
   try {
-    pruned = await prune(db)
+    pruned = await prune(db, now)
   } catch (e) {
     // A failed prune is not worth failing the night for. It retries tomorrow.
   }

@@ -264,7 +264,7 @@ const jsonld = {
         {
           starters.map((row) => (
             <li>
-              <a href={row.url} rel="noopener nofollow sponsored" target="_blank" data-aff={row.kind}>
+              <a href={row.url} rel="noopener nofollow sponsored" target="_blank" data-aff={row.kind} data-aff-src="shop">
                 {row.label} →
               </a>
             </li>
@@ -294,7 +294,7 @@ const jsonld = {
                 <ul>
                   {picks.map((pick) => (
                     <li>
-                      <a href={pickUrl(pick.a)} rel="noopener nofollow sponsored" target="_blank" data-aff={`pick_${pick.t}`}>
+                      <a href={pickUrl(pick.a)} rel="noopener nofollow sponsored" target="_blank" data-aff={`pick_${pick.t}`} data-aff-src="shop">
                         <b>{PICK_LABELS[pick.t]}</b>{pick.n}
                       </a>
                     </li>
@@ -314,7 +314,7 @@ const jsonld = {
                     <ul>
                       {picks.map((pick) => (
                         <li>
-                          <a href={pickUrl(pick.a)} rel="noopener nofollow sponsored" target="_blank" data-aff={`pick_${pick.t}`}>
+                          <a href={pickUrl(pick.a)} rel="noopener nofollow sponsored" target="_blank" data-aff={`pick_${pick.t}`} data-aff-src="shop">
                             <b>{PICK_LABELS[pick.t]}</b>{pick.n}
                           </a>
                         </li>
@@ -356,7 +356,7 @@ const jsonld = {
                       href={row.url}
                       rel="noopener nofollow sponsored"
                       target="_blank"
-                      data-aff={row.kind}
+                      data-aff={row.kind} data-aff-src="shop"
                       aria-label={`${row.label} for ${item.title} on Amazon`}
                     >
                       {row.label}
@@ -402,7 +402,7 @@ const jsonld = {
                     href={url}
                     rel="noopener nofollow sponsored"
                     target="_blank"
-                    data-aff="books"
+                    data-aff="books" data-aff-src="shop"
                     aria-label={`Buy the novel for ${item.title} on Amazon`}
                   >
                     Buy the novel
@@ -447,7 +447,7 @@ const jsonld = {
                   href={url}
                   rel="noopener nofollow sponsored"
                   target="_blank"
-                  data-aff="figures"
+                  data-aff="figures" data-aff-src="shop"
                   aria-label={`Buy figurines of ${name} on Amazon`}
                 >
                   Buy figurines
@@ -481,7 +481,7 @@ const jsonld = {
                 href={row.books}
                 rel="noopener nofollow sponsored"
                 target="_blank"
-                data-aff="books"
+                data-aff="books" data-aff-src="shop"
                 aria-label={`${row.name} books on Amazon`}
               >
                 Books
@@ -490,7 +490,7 @@ const jsonld = {
                 href={row.merch}
                 rel="noopener nofollow sponsored"
                 target="_blank"
-                data-aff="merch"
+                data-aff="merch" data-aff-src="shop"
                 aria-label={`${row.name} merch on Amazon`}
               >
                 Merch

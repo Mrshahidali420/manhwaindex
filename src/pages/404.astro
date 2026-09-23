@@ -131,4 +131,16 @@ const NEXT = [
       })
     })()
   </script>
+
+  <script>
+    // Which "where to go next" link a lost reader picked. It answers whether
+    // this list helps, and which section people wanted. Only our own address
+    // is counted, never the broken one they typed (that is already the page's
+    // own row).
+    import { missNextRow, sendOwn } from '../lib/own-count.js'
+    document.getElementById('miss-rows')?.addEventListener('click', (event) => {
+      const link = event.target.closest && event.target.closest('a[data-miss]')
+      if (link) sendOwn(missNextRow(link.getAttribute('href')))
+    })
+  </script>
 </Base>

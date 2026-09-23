@@ -14,6 +14,9 @@ import { RANGES, withRange } from '../lib/admin.js'
 const {
   title,
   here = '/my-admin',
+  // Which tab to light up. A page that hangs under a tab (Journeys under
+  // Pages) passes its tab here and keeps its own address in `here`.
+  tab = here,
   range,
   signedIn = false,
   secret = '',
@@ -22,12 +25,16 @@ const {
   note = '',
 } = Astro.props
 
+// Each tab answers one kind of question. Journeys and Sections hang under
+// Pages; Clicks became Money.
 const TABS = [
   { path: '/my-admin', label: 'Now' },
+  { path: '/my-admin/week', label: 'This week' },
   { path: '/my-admin/pages', label: 'Pages' },
-  { path: '/my-admin/clicks', label: 'Clicks' },
-  { path: '/my-admin/journeys', label: 'Journeys' },
-  { path: '/my-admin/sections', label: 'Sections' },
+  { path: '/my-admin/lists', label: 'Lists' },
+  { path: '/my-admin/search', label: 'Search' },
+  { path: '/my-admin/money', label: 'Money' },
+  { path: '/my-admin/health', label: 'Health' },
 ]
 ---
 
@@ -55,6 +62,7 @@ const TABS = [
         --blue: #6f7dff;
         --purple: #a66bff;
         --pink: #ff6fae;
+        --good: #4fd1a5;
       }
       * { box-sizing: border-box; }
       body {
@@ -217,6 +225,52 @@ const TABS = [
       .bad { color: var(--pink); font-size: 13px; }
       .empty { color: var(--dim); font-size: 13px; }
       footer { color: var(--dim); font-size: 12px; margin-top: 30px; }
+
+      /* A question card: the question as the heading, one number or a short
+         ranked list, then one line saying what to do about it. */
+      .panel h2 { font-size: 16px; line-height: 1.35; }
+      .big { font-size: 34px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; margin: 6px 0 2px; }
+      .big small { font-size: 14px; font-weight: 400; color: var(--dim); letter-spacing: 0; margin-left: 6px; }
+      .delta { font-size: 12.5px; color: var(--dim); }
+      .delta.up { color: var(--good); }
+      .delta.down { color: var(--pink); }
+      .hint {
+        margin: 12px 0 0;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        line-height: 1.5;
+        border-left: 3px solid var(--blue);
+        background: rgba(111, 125, 255, 0.08);
+      }
+      .hint.act { border-color: var(--pink); background: rgba(255, 111, 174, 0.08); }
+      .hint.good { border-color: var(--good); background: rgba(79, 209, 165, 0.07); }
+      .hint b {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-bottom: 2px;
+      }
+      .rank { list-style: none; margin: 4px 0 0; padding: 0; }
+      .rank li {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        padding: 8px 0;
+      }
+      .rank li + li { border-top: 1px solid var(--edge); }
+      .rank .name { min-width: 0; overflow-wrap: anywhere; }
+      .rank .name a { text-decoration: none; }
+      .rank .sub { display: block; color: var(--dim); font-size: 12px; }
+      .rank .val { white-space: nowrap; color: var(--text); font-variant-numeric: tabular-nums; }
+      .rank .val small { color: var(--dim); font-size: 12px; margin-left: 4px; }
+      .feed .what { overflow-wrap: anywhere; }
+      td.num, th.num { padding-left: 12px; }
+      .more { font-size: 13px; }
+      code { overflow-wrap: anywhere; }
     </style>
     <script is:inline>
       // From now on this browser is the owner's, and every page on the site
@@ -249,12 +303,12 @@ const TABS = [
       {signedIn && (
         <>
           <nav class="tabs">
-            {TABS.map((tab) => (
+            {TABS.map((item) => (
               <a
-                href={range ? withRange(tab.path, range) : tab.path}
-                aria-current={tab.path === here ? 'page' : undefined}
+                href={range ? withRange(item.path, range) : item.path}
+                aria-current={item.path === tab ? 'page' : undefined}
               >
-                {tab.label}
+                {item.label}
               </a>
             ))}
           </nav>
@@ -263,7 +317,7 @@ const TABS = [
             <div class="ranges">
               {RANGES.map((r) => (
                 <a
-                  href={r.key === 'today' ? here : `${here}?range=${r.key}`}
+                  href={`${here}?range=${r.key}`}
                   aria-current={r.key === range.key ? 'page' : undefined}
                 >
                   {r.label}
@@ -279,8 +333,9 @@ const TABS = [
 
           <footer>
             Times are UTC. Numbers before today are closed at 00:10 UTC each
-            night. Robots do not run scripts, so every number here is a real
-            person. Your own visits are not counted.
+            night. Nothing is counted until the visitor moves on the page and
+            Cloudflare Turnstile has checked the browser, so robots are kept
+            out. Your own visits are not counted.
           </footer>
         </>
       )}

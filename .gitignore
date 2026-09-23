@@ -45,3 +45,6 @@ data/*.r2
 # Opening and ending songs (scripts/sync-animethemes.mjs). Lives in the Actions
 # cache (animethemes-*) and in R2, like the walk files.
 data/themes.json
+
+# Local secrets for `wrangler dev`. Never committed.
+.dev.vars

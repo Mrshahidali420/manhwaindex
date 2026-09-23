@@ -65,6 +65,7 @@ const hasAmazon = rows.some((row) => searchTerms(row))
                         rel={link.rel}
                         target="_blank"
                         data-aff={link.aff}
+                        data-aff-src="themes"
                         aria-label={`Search ${link.label} for ${searchTerms(row)}`}
                       >
                         {link.label}

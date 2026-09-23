@@ -1,0 +1,15 @@
+---
+/**
+ * One "What to do" line under a question card. Nothing is drawn when the rule
+ * found nothing worth saying (see src/lib/admin-hints.js).
+ */
+const { hint } = Astro.props
+const HEAD = { act: 'What to do', watch: 'Keep an eye on it', good: 'Working' }
+---
+
+{hint && (
+  <p class={`hint ${hint.level}`}>
+    <b>{HEAD[hint.level] || 'What to do'}</b>
+    {hint.text}
+  </p>
+)}

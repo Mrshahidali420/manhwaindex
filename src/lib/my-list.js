@@ -1,7 +1,8 @@
 // "My list": the reader's saved titles and their own named lists, kept in
 // their own browser under one localStorage key. The list itself never leaves
-// the browser; GA4 only gets anonymous counts ("a title was saved", with its
-// AniList id), never list names or an AniList username. See /privacy. Pages are cached at the edge and served to everybody, so every personal
+// the browser; GA4 and our own counter only get anonymous counts ("a title was
+// saved", with its AniList id), never list names or an AniList username. See
+// /privacy. Pages are cached at the edge and served to everybody, so every personal
 // part of the site is drawn by this module in the reader's browser.
 //
 // The shape is chosen to map 1:1 onto AniList, so a later step can sync it to
@@ -22,6 +23,7 @@
 // tested in node. openStore() at the bottom is the browser side.
 
 import { SECTIONS } from './section.mjs'
+import { sendOwn, toOwnRow } from './own-count.js'
 
 export const STORE_KEY = 'mi_list_v1'
 export const BAD_KEY = 'mi_list_bad'
@@ -418,19 +420,27 @@ export function noteImport(state, info, now = Date.now()) {
 }
 
 // ---------------------------------------------------------------------------
-// GA4. gtag is set up inline on every page (src/layouts/Base.astro), but a
-// blocker can remove it, so every call is guarded. Nothing personal is sent:
-// an AniList id, a section and a status, never a list name or a username.
+// GA4 and our own counter. gtag is set up inline on every page
+// (src/layouts/Base.astro), but a blocker can remove it, so every call is
+// guarded. Nothing personal is sent: an AniList id, a section and a status,
+// never a list name or a username.
+//
+// `title` is the title's public name. It goes to our own counter only, so
+// the dashboard can say "Solo Leveling" instead of an id; GA4 gets exactly
+// what it got before. What reaches our counter is decided by the allow-list
+// in toOwnRow() (src/lib/own-count.js), never by what a caller passes.
 // ---------------------------------------------------------------------------
 
 export function track(name, params = {}) {
+  const { title, ...ga } = params || {}
   try {
     if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', name, { page_type: location.pathname.split('/')[1] || 'home', ...params })
+      window.gtag('event', name, { page_type: location.pathname.split('/')[1] || 'home', ...ga })
     }
   } catch (e) {
     // Analytics must never break the list.
   }
+  sendOwn(toOwnRow(name, params))
 }
 
 // ---------------------------------------------------------------------------

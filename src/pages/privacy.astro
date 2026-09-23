@@ -4,7 +4,7 @@ import Base from '../layouts/Base.astro'
 // The same sentence the buy links carry, so the two can never say different things.
 import { AMAZON_DISCLOSURE } from '../lib/shop-links.js'
 
-const updated = 'September 23, 2026'
+const updated = 'September 24, 2026'
 
 const jsonld = {
   '@context': 'https://schema.org',
@@ -12,7 +12,7 @@ const jsonld = {
   name: 'Privacy policy',
   url: 'https://manhwaindex.com/privacy',
   description: 'What manhwaindex collects, what it does not collect, and the third parties involved.',
-  dateModified: '2026-09-23',
+  dateModified: '2026-09-24',
 }
 ---
 
@@ -26,7 +26,7 @@ const jsonld = {
     <section class="section">
       <div class="section__head">
         <h1>Privacy policy</h1>
-        <p>Short version: no accounts, no logins, and nothing you type is stored by us. Your saved list stays in your own browser.</p>
+        <p>Short version: no accounts, no logins, and nothing you type is stored by us, except the words of a search that found nothing (see below). Your saved list stays in your own browser.</p>
       </div>
 
       <div class="prose">
@@ -44,8 +44,11 @@ const jsonld = {
           <li>No accounts, sign-ups, passwords or profiles exist on this site.</li>
           <li>We never ask for your name, address, phone number or payment details.</li>
           <li>
-            Search terms typed into the site search stay in your browser. The search runs
-            on a static file inside your own device and is never sent to us.
+            Search runs on a static file inside your own device. What you type is not sent to
+            us, with one exception: if a search finds nothing, the words are sent to our own
+            counter so we can add the missing title. Words that look like an e-mail address,
+            a link or a phone number are never sent. When you pick a result, we count which
+            result you picked, not what you typed.
           </li>
         </ul>
 
@@ -57,9 +60,9 @@ const jsonld = {
           your browser from that same list.
         </p>
         <p>
-          Your list stays in your browser. Your list names and your AniList username are
-          never sent to us. Using the list is counted like any other click on the site;
-          see Google Analytics below.
+          Your list stays in your browser. Using the list is counted: which title was added,
+          removed or given a status, and whether an AniList import worked. Your list names
+          and your AniList username are never sent to us or to Google Analytics.
         </p>
         <ul>
           <li>
@@ -93,7 +96,9 @@ const jsonld = {
           We also run a small counter of our own, so we can see which pages are useful
           without opening Google Analytics. It records the page address, the page title,
           your approximate country, whether you are on a phone or a computer, how long a
-          page was on screen, and which link you clicked to leave.
+          page was on screen, and which link you clicked to leave, which titles are added
+          to or removed from a list, which search result you picked, and the words of
+          searches that found nothing.
         </p>
         <ul>
           <li>
@@ -105,7 +110,11 @@ const jsonld = {
             We do not keep your IP address. Only the country that Cloudflare reports is
             stored.
           </li>
-          <li>Step-by-step records are deleted after 30 days. Only daily totals are kept.</li>
+          <li>
+            Step-by-step records are deleted after 30 days. Only daily totals are kept. The
+            words of a search that found nothing are kept past 30 days only if at least two
+            different people searched for them.
+          </li>
           <li>
             To clear it, delete site data for manhwaindex.com in your browser settings.
             A tracker blocker also stops it, and it never runs if your browser blocks

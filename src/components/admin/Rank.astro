@@ -1,0 +1,29 @@
+---
+/**
+ * A short ranked list: a name on the left, one number on the right. It stacks
+ * on a phone instead of scrolling sideways, which a table cannot do.
+ *
+ * rows: [{ name, href?, sub?, value, unit? }]
+ * empty: the sentence shown when there is nothing yet.
+ */
+import { num } from '../../lib/admin.js'
+const { rows = [], empty = 'Nothing yet.' } = Astro.props
+---
+
+{rows.length === 0 && <p class="empty">{empty}</p>}
+{rows.length > 0 && (
+  <ol class="rank">
+    {rows.map((row) => (
+      <li>
+        <span class="name">
+          {row.href ? <a href={row.href}>{row.name}</a> : row.name}
+          {row.sub && <span class="sub">{row.sub}</span>}
+        </span>
+        <span class="val">
+          {typeof row.value === 'number' ? num(row.value) : row.value}
+          {row.unit && <small>{row.unit}</small>}
+        </span>
+      </li>
+    ))}
+  </ol>
+)}

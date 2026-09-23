@@ -249,3 +249,30 @@ export async function runSearch(q) {
   // count is not the whole catalog's. The caller says so instead of a number.
   return { needle, matches: rankMatches(rows, needle), partial: splitPrefixes.has(prefix) }
 }
+
+// A search that found nothing is the one search whose words we keep: it names
+// a title people want and the index does not hold yet. The words pass through
+// here in the page AND again in the Worker (src/lib/beacon-rows.js), because a
+// page can be changed by anyone who opens the developer tools.
+//
+// People type odd things into a box. Anything that looks like an e-mail
+// address, a link or a phone number is thrown away whole, never trimmed and
+// kept: an empty answer means "send nothing".
+const WORDS_MIN = 2
+const WORDS_MAX = 40
+// A title can hold a year or a volume number. Five digits in a row, even with
+// spaces, dots or dashes between them, is a phone number or an order number.
+const LONG_NUMBER = /\d{5,}/
+const LINK_BITS = /@|https?:|www\.|\/|\\|[a-z0-9-]\.(com|net|org|io|co|me|ly|gg|tv|app|xyz|info|to|cc|uk|de|jp)\b/i
+
+/** The words of a search, cleaned for keeping, or '' when they must not be kept. */
+export function normalizeQuery(q) {
+  const raw = String(q == null ? '' : q).toLowerCase().trim()
+  if (!raw || raw.length > 200) return ''
+  if (LINK_BITS.test(raw)) return ''
+  const joined = raw.replace(/(\d)[\s\-.()+_/]+(?=\d)/g, '$1')
+  if (LONG_NUMBER.test(joined)) return ''
+  const words = fold(raw).replace(/\s+/g, ' ')
+  if (words.length < WORDS_MIN || words.length > WORDS_MAX) return ''
+  return words
+}

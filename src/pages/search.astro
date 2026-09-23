@@ -50,6 +50,7 @@ import Base from '../layouts/Base.astro'
   // script only owns how the full page is drawn: the query box, the states
   // (hint / loading / empty / error / results), and the grid.
   import { runSearch, escapeHtml, coverUrl } from '../lib/finder-core.js'
+  import { searchNoneRow, searchPickRow, sendOwn } from '../lib/own-count.js'
 
   const MAX_SHOWN = 200
 
@@ -142,9 +143,29 @@ import Base from '../layouts/Base.astro'
 
     const { needle, matches, partial } = outcome
     if (needle.length < 2) return showHint()
-    if (!matches.length) return showEmpty(query)
+    if (!matches.length) {
+      // This page only runs a search that was submitted, so a miss here is a
+      // settled one. The words are cleaned before they leave (see /privacy),
+      // and one query is counted once however often "Try again" is pressed.
+      if (!countedMiss.has(query)) {
+        countedMiss.add(query)
+        sendOwn(searchNoneRow(query, 'page'))
+      }
+      return showEmpty(query)
+    }
     showResults(matches, query, partial)
   }
+
+  const countedMiss = new Set()
+
+  // Which result was picked, and how far down the grid it sat.
+  results.addEventListener('click', (event) => {
+    const link = event.target.closest && event.target.closest('.search-card a')
+    if (!link) return
+    const cards = [...results.querySelectorAll('.search-card a')]
+    const name = link.querySelector('b')
+    sendOwn(searchPickRow(link.getAttribute('href'), 'page', cards.indexOf(link) + 1, name ? name.textContent : ''))
+  })
 
   const params = new URLSearchParams(location.search)
   const q = params.get('q') || ''

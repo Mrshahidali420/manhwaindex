@@ -4,12 +4,16 @@
  *
  * The job of a page here is the hand-off: the reader arrives, and leaves
  * through a read, watch or buy link. So the ranking is by hand-off rate, not
- * by views.
+ * by views. Journeys and Sections hang under this tab.
  */
 import Admin from '../../layouts/Admin.astro'
+import Hint from '../../components/admin/Hint.astro'
+import Rank from '../../components/admin/Rank.astro'
 import { envOf } from '../../lib/runtime.js'
-import { gate, rangeOf, fmtDwell, handOff, humanize, num, sectionName } from '../../lib/admin.js'
-import { pagesFor, totalsFor } from '../../lib/admin-data.js'
+import { gate, rangeOf, fmtDwell, handOff, humanize, num, sectionName, withRange } from '../../lib/admin.js'
+import { edgesFor, pagesFor, totalsFor } from '../../lib/admin-data.js'
+import { quickExitsFor } from '../../lib/admin-more.js'
+import { entryPageHint, quickExitHint, MIN_ENTRIES } from '../../lib/admin-hints.js'
 
 export const prerender = false
 
@@ -27,15 +31,23 @@ const FLOOR = 20
 
 let rows = []
 let totals = {}
+let quick = new Map()
+let edges = []
 
 if (signedIn) {
-  ;[rows, totals] = await Promise.all([pagesFor(db, range), totalsFor(db, range)])
+  ;[rows, totals, quick, edges] = await Promise.all([
+    pagesFor(db, range),
+    totalsFor(db, range),
+    quickExitsFor(db, range),
+    edgesFor(db, range, 8),
+  ])
 }
 
 const withRate = rows.map((row) => ({
   ...row,
   rate: handOff(row.clicks, row.views),
   avg: row.dwell_n ? row.dwell_sum / row.dwell_n : 0,
+  quick_exits: quick.get(row.path) || 0,
 }))
 
 const best = withRate
@@ -45,6 +57,71 @@ const best = withRate
 
 const most = withRate.slice(0, 25)
 const siteRate = handOff(totals.clicks, totals.views)
+
+// All time keeps no per-page arrivals (only the daily tables do), so the
+// entry questions are answered for the shorter ranges.
+const hasEntries = range.mode !== 'all'
+
+// --- Which pages bring people in
+const entries = [...withRate]
+  .filter((row) => (row.entries || 0) > 0)
+  .sort((a, b) => b.entries - a.entries)
+  .slice(0, 10)
+const entryRows = entries.map((row) => ({
+  name: humanize(row.path, row.label),
+  href: row.path,
+  sub: `${sectionName(row.page_type)} · ${row.rate}% click out`,
+  value: row.entries,
+  unit: 'arrived',
+}))
+const entryWorst = entries.find((row) => entryPageHint(row))
+
+// --- Which pages make people leave right away
+const leavers = withRate
+  .filter((row) => (row.entries || 0) >= MIN_ENTRIES)
+  .map((row) => ({ ...row, share: Math.round(((row.quick_exits || 0) / row.entries) * 100) }))
+  .sort((a, b) => b.share - a.share)
+  .slice(0, 10)
+const leaverRows = leavers.map((row) => ({
+  name: humanize(row.path, row.label),
+  href: row.path,
+  sub: `${num(row.quick_exits)} of ${num(row.entries)} arrivals`,
+  value: `${row.share}%`,
+}))
+const leaverWorst = leavers.find((row) => quickExitHint(row))
+
+// --- Which answer pages work: /manhwa/solo-leveling/free is a "free" page.
+const KINDS = { '': 'Title pages', free: 'Free to read', like: 'Similar titles', buy: 'Buy', characters: 'Characters' }
+const TITLE_SECTIONS = new Set(['manhwa', 'manga', 'manhua', 'novel', 'anime', 'character'])
+const byKind = new Map()
+for (const row of withRate) {
+  const parts = String(row.path || '').split('/').filter(Boolean)
+  if (!TITLE_SECTIONS.has(parts[0]) || parts.length < 2) continue
+  const kind = parts.length === 3 && KINDS[parts[2]] ? parts[2] : parts.length === 2 ? '' : null
+  if (kind === null) continue
+  const found = byKind.get(kind) || { views: 0, clicks: 0 }
+  found.views += row.views || 0
+  found.clicks += row.clicks || 0
+  byKind.set(kind, found)
+}
+const answerRows = Object.keys(KINDS)
+  .filter((kind) => byKind.has(kind))
+  .map((kind) => {
+    const row = byKind.get(kind)
+    return {
+      name: KINDS[kind],
+      sub: `${num(row.views)} views · ${num(row.clicks)} clicks out`,
+      value: `${handOff(row.clicks, row.views)}%`,
+    }
+  })
+
+const edgeRows = edges.map((row) => ({
+  name: `${sectionName(row.from_type)} → ${sectionName(row.to_type)}`,
+  value: row.moves,
+  unit: 'moves',
+}))
+
+const named = (row, hint) => hint && { ...hint, text: `${humanize(row.path, row.label)}: ${hint.text}` }
 ---
 
 <Admin
@@ -57,11 +134,45 @@ const siteRate = handOff(totals.clicks, totals.views)
   note={`${range.label}. Across the whole site, ${siteRate} of every 100 page views ended in a click out.`}
 >
   <div class="panel">
+    <h2>Which pages bring people in?</h2>
+    <p class="say">The pages visits start on, and how many of their views end in a click out.</p>
+    {hasEntries ? (
+      <Rank rows={entryRows} empty="No visits started in this window yet." />
+    ) : (
+      <p class="empty">All time keeps totals only. Pick 7 or 30 days to see where visits start.</p>
+    )}
+    <Hint hint={entryWorst && named(entryWorst, entryPageHint(entryWorst))} />
+  </div>
+
+  <div class="panel">
+    <h2>Which pages make people leave right away?</h2>
+    <p class="say">
+      Of the visits that started on a page, the share that opened nothing else and
+      clicked nothing. Pages with fewer than {MIN_ENTRIES} arrivals are left out.
+    </p>
+    {hasEntries ? (
+      <Rank rows={leaverRows} empty={`No page has ${MIN_ENTRIES} arrivals in this window yet.`} />
+    ) : (
+      <p class="empty">Pick 7 or 30 days: this needs the arrivals, which All time does not keep.</p>
+    )}
+    <Hint hint={leaverWorst && named(leaverWorst, quickExitHint(leaverWorst))} />
+  </div>
+
+  <div class="panel">
+    <h2>Which answer pages work?</h2>
+    <p class="say">
+      Every title has answer pages under it: free to read, similar titles, buy, characters.
+      The number is clicks out for every 100 views.
+    </p>
+    <Rank rows={answerRows} empty="No title page views in this window yet." />
+  </div>
+
+  <div class="panel">
     <h2>Best pages</h2>
     <p class="say">
       Ranked by hand-off rate: the share of views that ended in a read, watch
-      or buy click. That is the job of the page. Pages under {FLOOR} views are
-      left out, because a small number swings too much.
+      or buy click. Pages under {FLOOR} views are left out, because a small
+      number swings too much.
     </p>
     {best.length === 0 && <p class="empty">Not enough clicks yet.</p>}
     <div class="scroll">
@@ -113,7 +224,7 @@ const siteRate = handOff(totals.clicks, totals.views)
             <span class="tag">{sectionName(row.page_type)}</span>
           </td>
           <td class="num">{num(row.views)}</td>
-          <td class="num">{range.mode === 'all' ? '—' : num(row.entries)}</td>
+          <td class="num">{hasEntries ? num(row.entries) : '—'}</td>
           <td class="num">{num(row.clicks)}</td>
           <td class="num">{row.rate}%</td>
           <td class="num">{fmtDwell(row.avg)}</td>
@@ -121,6 +232,16 @@ const siteRate = handOff(totals.clicks, totals.views)
       ))}
     </table>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>How do people move around the site?</h2>
+    <p class="say">"Arrived from outside" means the visit started there.</p>
+    <Rank rows={edgeRows} empty="No moves yet." />
+    <p class="more">
+      <a href={withRange('/my-admin/journeys', range)}>Recent visits, step by step →</a><br />
+      <a href={withRange('/my-admin/sections', range)}>Sections, countries and sources side by side →</a>
+    </p>
   </div>
 
   <p class="say">

@@ -19,7 +19,7 @@ import {
   sectionName,
   words,
 } from '../../lib/admin.js'
-import { edgesFor } from '../../lib/admin-data.js'
+import { edgesFor, rawWhere } from '../../lib/admin-data.js'
 
 export const prerender = false
 
@@ -35,8 +35,7 @@ let range = rangeOf(Astro.url, '24h')
 if (range.mode === 'all') range = rangeOf(new URL('?range=30d', Astro.url), '30d')
 
 const HOW_MANY = 25
-const where = range.sinceTs ? 'ts > ?' : 'day >= ?'
-const bound = range.sinceTs || range.fromDay
+const { sql: where, args: bound } = rawWhere(range)
 
 let visits = []
 let edges = []
@@ -45,13 +44,13 @@ if (signedIn) {
   const [heads, moves] = await Promise.all([
     ask(
       db,
-      `SELECT session, COUNT(*) AS steps, MIN(ts) AS started,
+      `SELECT session, SUM(kind = 'view') AS steps, MIN(ts) AS started,
               MAX(country) AS country, MAX(device) AS device
        FROM events
        WHERE ${where} AND session <> '' AND kind <> 'leave'
        GROUP BY session HAVING steps >= 2
        ORDER BY started DESC LIMIT ${HOW_MANY}`,
-      bound
+      ...bound
     ),
     edgesFor(db, range),
   ])
@@ -62,9 +61,13 @@ if (signedIn) {
     const holes = ids.map(() => '?').join(',')
     const rows = await ask(
       db,
+      // Bounded by day as well: there is no index on session (each index is
+      // paid for on every event written; see db/schema.sql), and the day
+      // index keeps this to the chosen window instead of the whole month.
       `SELECT session, ts, kind, name, path, label, page_type, platform, dwell
-       FROM events WHERE session IN (${holes})
+       FROM events WHERE day >= ? AND session IN (${holes})
        ORDER BY session, ts`,
+      range.fromDay,
       ...ids
     )
 
@@ -81,7 +84,7 @@ if (signedIn) {
         const last = steps[steps.length - 1]
         if (!last) continue
         if (row.kind === 'leave') last.stayed = Math.max(last.stayed, row.dwell || 0)
-        else last.did.push(row.platform || words(row.name))
+        else if (row.kind !== 'missing') last.did.push(row.platform || words(row.name))
       }
       return { ...head, steps }
     })
@@ -94,6 +97,7 @@ const edgeTop = edges[0]?.moves || 1
 <Admin
   title="Journeys"
   here="/my-admin/journeys"
+  tab="/my-admin/pages"
   range={range}
   signedIn={signedIn}
   secret={secret}

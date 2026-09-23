@@ -227,7 +227,7 @@ const tinyCover = (url) =>
               { class: 'card' },
               el(
                 'a',
-                { href: `/${item.ns}/${item.slug}`, 'data-pos': i + 1, 'data-id': item.id, 'data-ns': item.ns, 'data-rel': item.related ? '1' : '0' },
+                { href: `/${item.ns}/${item.slug}`, 'data-pos': i + 1, 'data-id': item.id, 'data-ns': item.ns, 'data-rel': item.related ? '1' : '0', 'data-title': item.title },
                 el(
                   'span',
                   { class: 'card__art' },
@@ -249,6 +249,7 @@ const tinyCover = (url) =>
             title_id: Number(link.dataset.id),
             section: link.dataset.ns,
             related: Number(link.dataset.rel),
+            title: link.dataset.title,
           })
         })
         section.hidden = false

@@ -114,7 +114,7 @@ const rel = [
       rel: parse(box.dataset.rel),
     }
     const media = meta.ns === 'anime' ? 'ANIME' : 'MANGA'
-    const ga = { title_id: meta.id, section: meta.ns }
+    const ga = { title_id: meta.id, section: meta.ns, title: meta.title }
 
     const addBtn = box.querySelector('.mylist__add')
     const label = box.querySelector('.mylist__label')

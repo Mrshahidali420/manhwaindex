@@ -1,0 +1,256 @@
+---
+/**
+ * Money. Every link that hands a reader to an official platform or a shop,
+ * and where the Amazon clicks come from.
+ *
+ * Only clicks live here. Sales are in the Amazon Associates dashboard; this
+ * page says which pages and which boxes send the people who buy.
+ */
+import Admin from '../../layouts/Admin.astro'
+import Hint from '../../components/admin/Hint.astro'
+import Rank from '../../components/admin/Rank.astro'
+import { envOf } from '../../lib/runtime.js'
+import { gate, ask, rangeOf, countryName, humanize, num, sectionName, words } from '../../lib/admin.js'
+import { clicksFor, rawWhere, totalsFor } from '../../lib/admin-data.js'
+import { actionsFor, tally, weekPlatforms } from '../../lib/admin-more.js'
+import { changeWords, platformHint } from '../../lib/admin-hints.js'
+
+export const prerender = false
+
+const env = envOf(Astro)
+const { db, secret, signedIn, wrongWord } = await gate(Astro, env)
+if (secret && !signedIn && Astro.request.method !== 'POST') {
+  return Astro.redirect('/my-admin')
+}
+
+const range = rangeOf(Astro.url)
+
+/** A shop kind, said as a word. Top picks carry a pick_ prefix. */
+const SHOPS = {
+  books: 'Books and volumes',
+  figures: 'Figures and statues',
+  discs: 'Blu-ray and DVD',
+  prints: 'Art prints',
+  apparel: 'Clothes',
+  merch: 'Other merchandise',
+}
+const shopName = (kind) => {
+  const bare = String(kind || 'merch').replace(/^pick_/, '')
+  return SHOPS[bare] || words(bare)
+}
+/** Where an Amazon link sat on the page. */
+const SPOTS = {
+  pick: 'Top picks (hand-picked)',
+  buybox: 'BuyBox on a title page',
+  shop: 'The /shop page',
+  themes: 'Theme songs box',
+  '': 'Not marked (clicks before 24 Sep 2026)',
+}
+
+let rows = []
+let totals = {}
+let buys = []
+let fromPages = []
+let stores = []
+let week = { now: [], before: [] }
+
+if (signedIn) {
+  ;[rows, totals, buys, week] = await Promise.all([
+    clicksFor(db, range),
+    totalsFor(db, range),
+    actionsFor(db, range, ['buy'], 1000),
+    weekPlatforms(db),
+  ])
+
+  // The raw table only keeps 30 days, so these exact lists are only offered
+  // for the short ranges.
+  if (range.mode !== 'all') {
+    const where = rawWhere(range)
+    ;[fromPages, stores] = await Promise.all([
+      // `label` is the word on the button that was clicked, not the page, so
+      // it is not asked for here. `page_type` says which section it was.
+      ask(
+        db,
+        `SELECT path, page_type, platform, kind, COUNT(*) AS clicks
+         FROM events
+         WHERE ${where.sql} AND kind IN ('read','watch','buy')
+         GROUP BY path, page_type, platform, kind
+         ORDER BY clicks DESC LIMIT 40`,
+        ...where.args
+      ),
+      // A buy link opens the reader's own Amazon store, picked by country.
+      ask(
+        db,
+        `SELECT country, COUNT(*) AS clicks FROM events
+         WHERE ${where.sql} AND kind = 'buy'
+         GROUP BY country ORDER BY clicks DESC LIMIT 10`,
+        ...where.args
+      ),
+    ])
+  }
+}
+
+const sum = (list, pick) => list.reduce((n, row) => n + (pick(row) ? row.clicks || 0 : 0), 0)
+const reads = sum(rows, (r) => r.kind === 'read')
+const watches = sum(rows, (r) => r.kind === 'watch')
+const buyClicks = sum(rows, (r) => r.kind === 'buy')
+
+// --- Amazon: which box, which kind, which page.
+const spotRows = tally(buys, (row) => row.detail || '').map((row) => ({ name: SPOTS[row.key] || row.key, value: row.n, unit: 'clicks' }))
+const kindMap = new Map()
+for (const row of rows) {
+  if (row.kind !== 'buy') continue
+  const name = shopName(row.shop_kind)
+  kindMap.set(name, (kindMap.get(name) || 0) + (row.clicks || 0))
+}
+const kindRows = [...kindMap.entries()]
+  .sort((a, b) => b[1] - a[1])
+  .map(([name, clicks]) => ({ name, value: clicks, unit: 'clicks' }))
+const buyPages = tally(buys, (row) => row.item)
+  .slice(0, 10)
+  .map((row) => ({ name: humanize(row.key, ''), href: row.key, value: row.n, unit: 'clicks' }))
+const storeRows = stores.map((row) => ({ name: countryName(row.country), value: row.clicks, unit: 'clicks' }))
+
+// --- Platforms, split into read and watch.
+const platformMap = new Map()
+for (const row of rows) {
+  if (row.kind !== 'read' && row.kind !== 'watch') continue
+  const name = row.platform || 'unknown'
+  const found = platformMap.get(name) || { name, read: 0, watch: 0, total: 0 }
+  found[row.kind] += row.clicks || 0
+  found.total += row.clicks || 0
+  platformMap.set(name, found)
+}
+const platforms = [...platformMap.values()].sort((a, b) => b.total - a.total).slice(0, 20)
+const platformTop = platforms[0]?.total || 1
+const beforeBy = new Map(week.before.map((row) => [row.platform, row.clicks || 0]))
+const nowBy = new Map(week.now.map((row) => [row.platform, row.clicks || 0]))
+
+// --- Which section sends the clicks.
+const typeMap = new Map()
+for (const row of rows) {
+  const name = row.page_type || 'other'
+  const found = typeMap.get(name) || { name, read: 0, watch: 0, buy: 0, total: 0 }
+  if (found[row.kind] != null) found[row.kind] += row.clicks || 0
+  found.total += row.clicks || 0
+  typeMap.set(name, found)
+}
+const byType = [...typeMap.values()].sort((a, b) => b.total - a.total)
+---
+
+<Admin
+  title="Money"
+  here="/my-admin/money"
+  range={range}
+  signedIn={signedIn}
+  secret={secret}
+  wrongWord={wrongWord}
+  note={`${range.label}. Every link that hands a reader over to an official platform or a shop.`}
+>
+  <div class="cards">
+    <div class="card"><div class="n">{num(reads)}</div><div class="t">read clicks</div></div>
+    <div class="card"><div class="n">{num(watches)}</div><div class="t">watch clicks</div></div>
+    <div class="card"><div class="n">{num(buyClicks)}</div><div class="t">Amazon clicks</div></div>
+    <div class="card"><div class="n">{num(totals.views)}</div><div class="t">page views</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Where do the Amazon clicks come from?</h2>
+    <p class="say">Which box on the page the click came from.</p>
+    <Rank rows={spotRows} empty="No Amazon clicks yet." />
+    <h2 style="margin-top:14px">What kind of thing?</h2>
+    <Rank rows={kindRows} empty="No Amazon clicks yet." />
+    <h2 style="margin-top:14px">From which pages?</h2>
+    <Rank rows={buyPages} empty="No Amazon clicks yet." />
+    {range.mode !== 'all' && (
+      <>
+        <h2 style="margin-top:14px">Which country's Amazon store?</h2>
+        <Rank rows={storeRows} empty="No Amazon clicks yet." />
+      </>
+    )}
+    <p class="hint">
+      <b>What to do</b>
+      Sales are only in the
+      <a href="https://affiliate-program.amazon.com/home/reports" rel="noopener" target="_blank">Associates reports</a>.
+      Compare them with these clicks: a box with many clicks and no sales needs other products.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>Which platforms do people pick?</h2>
+    <p class="say">
+      Blue is read, purple is watch. The line under each is the last 7 full days
+      against the 7 before.
+    </p>
+    {platforms.length === 0 && <p class="empty">No read or watch clicks yet.</p>}
+    <div class="scroll">
+    <table>
+      {platforms.map((row) => (
+        <tr>
+          <td style="width:38%">
+            {row.name}
+            <div class="delta">{changeWords(nowBy.get(row.name), beforeBy.get(row.name), 'last week')}</div>
+          </td>
+          <td>
+            {row.read > 0 && (
+              <div class="bar read" style={`width:${Math.max(2, (row.read / platformTop) * 100)}%`}></div>
+            )}
+            {row.watch > 0 && (
+              <div class="bar watch" style={`width:${Math.max(2, (row.watch / platformTop) * 100)}%`}></div>
+            )}
+          </td>
+          <td class="num" style="width:90px">
+            {row.read > 0 && <div>{num(row.read)} read</div>}
+            {row.watch > 0 && <div>{num(row.watch)} watch</div>}
+          </td>
+        </tr>
+      ))}
+    </table>
+    </div>
+    <Hint hint={platforms[0] && platformHint(platforms[0])} />
+  </div>
+
+  <div class="panel">
+    <h2>Which part of the site sends the clicks?</h2>
+    <p class="say">A section with many views but few clicks needs better links.</p>
+    <div class="scroll">
+    <table>
+      <tr>
+        <th>Section</th>
+        <th class="num">Read</th>
+        <th class="num">Watch</th>
+        <th class="num">Buy</th>
+        <th class="num">All</th>
+      </tr>
+      {byType.map((row) => (
+        <tr>
+          <td>{sectionName(row.name)}</td>
+          <td class="num">{num(row.read)}</td>
+          <td class="num">{num(row.watch)}</td>
+          <td class="num">{num(row.buy)}</td>
+          <td class="num">{num(row.total)}</td>
+        </tr>
+      ))}
+    </table>
+    </div>
+  </div>
+
+  {range.mode !== 'all' && (
+    <div class="panel">
+      <h2>Which titles send the most clicks out?</h2>
+      <p class="say">
+        The exact page, and where it sent them. Only the last 30 days, because
+        that is how long the step-by-step record is kept.
+      </p>
+      <Rank
+        rows={fromPages.map((row) => ({
+          name: humanize(row.path, ''),
+          href: row.path,
+          sub: `${sectionName(row.page_type)} · ${row.platform || 'shop'} · ${row.kind}`,
+          value: row.clicks,
+        }))}
+        empty="No clicks yet."
+      />
+    </div>
+  )}
+</Admin>

@@ -265,7 +265,7 @@ import Base from '../layouts/Base.astro'
       }
       status.addEventListener('change', () => {
         warnIfUnsaved(store.setStatus(entry.id, status.value))
-        track('list_status', { title_id: entry.id, section: entry.ns, status: status.value })
+        track('list_status', { title_id: entry.id, section: entry.ns, status: status.value, title: entry.title })
       })
       const statusBox = el(
         'div',
@@ -287,13 +287,13 @@ import Base from '../layouts/Base.astro'
           const result = store.toggleInList(current, entry)
           if (result && !result.error) {
             warnIfUnsaved(result)
-            track('list_toggle', { title_id: entry.id, section: entry.ns, in_list: 0 })
+            track('list_toggle', { title_id: entry.id, section: entry.ns, in_list: 0, title: entry.title })
             say(msg, `Took ${entry.title} out of this list. It is still on My list.`)
           }
           return
         }
         warnIfUnsaved(store.remove(entry.id))
-        track('list_remove', { title_id: entry.id, section: entry.ns })
+        track('list_remove', { title_id: entry.id, section: entry.ns, title: entry.title })
         say(msg, `Removed ${entry.title}.`)
       })
       statusBox.append(remove)

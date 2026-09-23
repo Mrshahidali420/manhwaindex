@@ -24,10 +24,12 @@
   "observability": {
     "enabled": true
   },
-  // Our own visitor counter. A small script on every page posts one row here,
-  // and /my-admin reads it back. Bots do not run scripts, so only real people
-  // are counted, and the free allowance of 100,000 writes a day is far more
-  // than this site can use.
+  // Our own visitor counter. A small script on every page queues rows and
+  // posts them in one request per visit, and /my-admin reads them back. Some
+  // robots do run scripts, so nothing is written without a Turnstile pass
+  // (see src/worker.js). The limit that bites first is D1's 100,000 written
+  // rows a day: each event costs about 3 (the row, one index, the id
+  // counter). See db/schema.sql.
   "d1_databases": [
     {
       "binding": "ANALYTICS",

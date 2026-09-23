@@ -163,9 +163,11 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       // last few minutes in plain words. It is also ours: no sampling, no
       // consent wall, no account to lose.
       //
-      // It costs one extra request per page. Robots do not run scripts, so a
-      // row here is always a real person, which is exactly why the counts are
-      // worth reading.
+      // A whole visit costs one request: rows wait in the tab and leave
+      // together (see miFlush below). Some robots DO run scripts and even
+      // scroll, so nothing is written until the visitor moves and Cloudflare
+      // Turnstile has vouched for the browser (see miAskForPass). That is why
+      // the counts are worth reading.
       var MI_PATH = '/_a'
       // Where the page trades one Turnstile ticket for a half hour pass, and
       // the public key of our Turnstile widget. The key is meant to be public:
@@ -625,6 +627,9 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           shop_kind: kind || '',
           target: url.href,
           dwell: miVisible(),
+          // Where an Amazon link sat: pick, buybox, shop or themes. It says
+          // which of the four places earns, which the kind alone cannot.
+          detail: kind ? link.getAttribute('data-aff-src') || '' : '',
         })
       })
     </script>
@@ -840,12 +845,24 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         slicePathFor,
         rankMatches,
       } from '../lib/finder-core.js'
+      import { noneWatcher, searchPickRow, sendOwn } from '../lib/own-count.js'
 
       const input = document.getElementById('finder-input')
       const list = document.getElementById('finder-results')
       const status = document.getElementById('finder-status')
 
       let active = -1
+
+      // Our own counter hears which result was picked, and the words of a
+      // search that found nothing (cleaned first; see normalizeQuery in
+      // src/lib/finder-core.js and /privacy). Nothing else typed here leaves
+      // the browser.
+      const misses = noneWatcher('dropdown')
+      function countPick(link) {
+        const rows = [...list.querySelectorAll('li[role="option"] a')]
+        const name = link.querySelector('b')
+        sendOwn(searchPickRow(link.getAttribute('href'), 'dropdown', rows.indexOf(link) + 1, name ? name.textContent : ''))
+      }
 
       const optionId = (i) => `finder-option-${i}`
 
@@ -978,6 +995,7 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
         if (mine !== turn) return
 
         const matched = rankMatches(rows, needle)
+        misses.saw(q, matched.length > 0)
         if (!matched.length) renderEmpty(q)
         else renderResults(matched.slice(0, 8), q, matched.length)
       }
@@ -1014,12 +1032,18 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
           const pick = active >= 0 ? rows[active] : null
           if (pick) {
             e.preventDefault()
+            countPick(pick)
             location.href = pick.href
             return
           }
           if (fold(input.value.trim()).length < 2) e.preventDefault()
         }
         if (e.key === 'Escape') clearResults()
+      })
+      input.addEventListener('blur', () => misses.flush())
+      list.addEventListener('click', (e) => {
+        const link = e.target.closest && e.target.closest('li[role="option"] a')
+        if (link) countPick(link)
       })
       document.addEventListener('click', (e) => {
         if (!document.getElementById('finder').contains(e.target)) clearResults()

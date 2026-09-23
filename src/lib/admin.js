@@ -75,6 +75,18 @@ export async function ask(db, sql, ...args) {
   }
 }
 
+/**
+ * "The newest rows", without an index on time. The id only ever grows, and a
+ * row can only be written AFTER it happened (the page sends a visit's rows
+ * when it ends), so anything from the last few minutes always sits inside the
+ * last few thousand ids. Reading by id costs
+ * nothing to find and never more than this many rows, however big the table.
+ * 3000 rows is several days of traffic today and well over an hour even at
+ * 50,000 page views a day.
+ */
+export const RECENT_ROWS = 3000
+export const RECENT = `id > (SELECT COALESCE(MAX(id), 0) FROM events) - ${RECENT_ROWS}`
+
 /** The same, for a question with one answer. */
 export async function askOne(db, sql, ...args) {
   const rows = await ask(db, sql, ...args)
@@ -133,9 +145,10 @@ export function rangeOf(url, fallback = 'today') {
   }
 }
 
-/** Keep the chosen range when moving between tabs. */
+/** Keep the chosen range when moving between tabs. Always spelled out, even
+ * for Today, because some tabs open on a longer range when none is given. */
 export function withRange(path, range) {
-  return range.key === 'today' ? path : `${path}?range=${range.key}`
+  return `${path}?range=${range.key}`
 }
 
 // -------------------------------------------------------------- plain English
@@ -150,7 +163,7 @@ const titleCase = (part) =>
 // its last piece alone gives every one of them the same name, "Free", and the
 // report cannot say which story earned the click. The story name goes first,
 // because the story is the thing being reported on.
-const ANSWER_PAGES = { free: 'Free', like: 'Similar', buy: 'Buy' }
+const ANSWER_PAGES = { free: 'Free', like: 'Similar', buy: 'Buy', characters: 'Characters' }
 
 /** A page address, said as a name. */
 export function humanize(path, label) {
@@ -164,7 +177,9 @@ export function humanize(path, label) {
   return titleCase(last) || path
 }
 
-/** The section a page belongs to, said as a word. */
+/** The section a page belongs to, said as a word. The key is the first part
+ * of the address, so every top-level page on the site needs one here, or the
+ * report shows the raw address part instead. */
 export const SECTIONS = {
   home: 'Home',
   manhwa: 'Manhwa',
@@ -175,6 +190,18 @@ export const SECTIONS = {
   character: 'Characters',
   shop: 'Shop',
   browse: 'Browse',
+  genre: 'Genres',
+  mood: 'What to read next',
+  schedule: 'Airing this week',
+  platform: 'Platforms',
+  'where-to-read': 'Where to read',
+  'where-to-watch': 'Where to watch',
+  search: 'Search',
+  'my-list': 'My list',
+  about: 'About',
+  contact: 'Contact',
+  privacy: 'Privacy',
+  dmca: 'Copyright',
   entry: 'Arrived from outside',
 }
 

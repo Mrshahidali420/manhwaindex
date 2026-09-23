@@ -89,6 +89,7 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
 <Admin
   title="Sections"
   here="/my-admin/sections"
+  tab="/my-admin/pages"
   range={range}
   signedIn={signedIn}
   secret={secret}
@@ -173,13 +174,11 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
   <div class="panel">
     <h2>Search words</h2>
     <p class="say">
-      Google does not tell a website which words a person typed. No counter can
-      show that, not this one and not Google Analytics. The real list is in
-      Google Search Console:
-      <a href="https://search.google.com/search-console" rel="noopener" target="_blank">
-        open Search Console
-      </a>. Use the page list on the Pages tab to see which titles bring people
-      in.
+      What people search for on this site, and what they could not find, is on
+      the <a href="/my-admin/search">Search tab</a>. The words people typed into
+      Google are only in
+      <a href="https://search.google.com/search-console" rel="noopener" target="_blank">Search Console</a>:
+      Google never tells a website.
     </p>
     <h2 style="margin-top:14px">Your own tagged links</h2>
     <p class="say">

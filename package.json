@@ -8,6 +8,7 @@
     "dev": "astro dev",
     "build": "node scripts/make-redirects.mjs && node --max-old-space-size=6000 scripts/make-shards.mjs && astro build && node scripts/after-build.mjs",
     "preview": "astro preview",
+    "test": "node --test \"tests/*.test.js\"",
     "deploy": "wrangler deploy",
     "ingest:full": "node --max-old-space-size=6000 scripts/ingest-full.mjs",
     "ingest:daily": "node --max-old-space-size=6000 scripts/ingest-daily.mjs",
