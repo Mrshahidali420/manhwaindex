@@ -692,7 +692,7 @@ const updatedLong = checkedLong
         )
       }
 
-      {!isComic && <Themes themes={item.themes} title={item.title} />}
+      {!isComic && <Themes themes={item.themes} title={item.title} country={countryOf(Astro)} />}
 
       {
         faq.length > 0 && (
