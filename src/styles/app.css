@@ -2891,6 +2891,18 @@ main:has(.title-page) {
     width: 100%;
     padding-block: 0.85rem 0.35rem;
     border-top: 1px solid rgb(36 65 143 / 0.45);
+    /* Room for the bottom bar (.dock), so the last rows can scroll clear of it. */
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+  /* The open menu is taller than a phone screen. The header is sticky, so a
+     tall header never scrolls and its last rows (Characters, My list) were
+     out of reach. It scrolls inside itself instead, on a solid background so
+     the page does not show through. */
+  body.menu-open .masthead {
+    max-height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--night-sunk);
   }
   body.menu-open .menu-btn__bars {
     display: none;
