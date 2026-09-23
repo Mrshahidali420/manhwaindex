@@ -460,6 +460,11 @@ const updatedLong = checkedLong
           </div>
         )
       }
+      {/* On a computer it sits under the cover and scores, and stays in view
+          with the sticky rail. On a phone the rail flattens (display:
+          contents), so it takes its own full-width row under the cover.
+          Drawn from the reader's own browser; Full Bloom keeps its old shape. */}
+      {!isProtected && <MyListButton item={item} ns={kind} />}
     </div>
 
     <header class="title-head">
@@ -483,8 +488,6 @@ const updatedLong = checkedLong
           </li>
         ))}
       </ul>
-      {/* Drawn from the reader's own browser; Full Bloom keeps its old shape. */}
-      {!isProtected && <MyListButton item={item} ns={kind} />}
     </header>
 
     <div class="title-body">

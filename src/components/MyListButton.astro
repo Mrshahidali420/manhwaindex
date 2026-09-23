@@ -221,7 +221,17 @@ const rel = [
       const entry = state.titles[meta.id] || null
       addBtn.setAttribute('aria-pressed', entry ? 'true' : 'false')
       box.classList.toggle('mylist--on', Boolean(entry))
-      label.textContent = entry ? `On my list · ${statusLabel(entry.status, media)}` : 'Add to my list'
+      // Saved: the tick and the lit button say "on my list", so the visible
+      // text is only the status and the pair still fits one row in the rail.
+      // Screen readers still hear the whole phrase.
+      if (entry) {
+        const hidden = document.createElement('span')
+        hidden.className = 'sr-only'
+        hidden.textContent = 'On my list: '
+        label.replaceChildren(hidden, statusLabel(entry.status, media))
+      } else {
+        label.textContent = 'Add to my list'
+      }
       drawStatus(entry)
       drawLists(state)
     }
