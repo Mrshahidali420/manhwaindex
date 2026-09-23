@@ -4659,7 +4659,9 @@ main:has(.title-page) {
 
 .mylist {
   position: relative;
-  margin: -0.4rem 0 1.4rem;
+  /* A real gap under the genre chips; a negative margin here made the button
+     sit on top of them on a phone. */
+  margin: 0.9rem 0 1.4rem;
 }
 .mylist__bar {
   display: inline-flex;
@@ -4735,12 +4737,18 @@ main:has(.title-page) {
 .mylist__note:empty {
   margin: 0;
 }
+/* The panel opens in the page flow, under the buttons, and is never wider than
+   the column it sits in. It used to float at the button's left edge with a
+   width taken from the whole screen, and on a phone, where the column starts
+   beside the cover, that pushed it past the right edge and made the whole
+   page slide sideways. */
 .mylist__pop {
-  position: absolute;
+  position: relative;
   z-index: 30;
-  top: calc(44px + 0.5rem);
-  left: 0;
-  width: min(22rem, calc(100vw - 2.5rem));
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 24rem;
+  margin-top: 0.6rem;
   padding: 1rem;
   border: 1px solid var(--sf-line-strong);
   border-radius: var(--sf-r);
@@ -4782,13 +4790,35 @@ main:has(.title-page) {
   max-height: 13rem;
   overflow-y: auto;
 }
+.mylist__lists li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
 .mylist__lists label {
   display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 0.6rem;
   min-height: 44px;
   cursor: pointer;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.mylist__edit {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.4rem;
+  color: var(--rose);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.mylist__edit:hover,
+.mylist__edit:focus-visible {
+  text-decoration: underline;
 }
 .mylist__lists input {
   width: 20px;
@@ -4808,9 +4838,15 @@ main:has(.title-page) {
   display: flex;
   gap: 0.5rem;
 }
+.mylist__row,
+.ml-form__row {
+  /* On a narrow phone the Create button drops under the box instead of
+     squeezing it or running off the screen. */
+  flex-wrap: wrap;
+}
 .mylist__row input,
 .ml-form__row input {
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
 }
 .mylist__row button,

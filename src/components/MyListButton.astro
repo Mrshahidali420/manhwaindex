@@ -81,7 +81,7 @@ const rel = [
       </div>
     </form>
     <p class="mylist__msg" role="status" aria-live="polite"></p>
-    <a class="mylist__open" href="/my-list">Open my list →</a>
+    <a class="mylist__open" href="/my-list">Open my list, rename or delete lists →</a>
   </div>
 </div>
 
@@ -91,7 +91,7 @@ const rel = [
   // How long "Removed. Undo" stays up after one tap takes a title off.
   const UNDO_MS = 6000
   const SAVED_NOTE =
-    'Saved. Your list stays in your browser. We only get anonymous usage counts (like "a title was saved", with the title\'s AniList number) through Google Analytics, never your list names or your AniList username.'
+    'Saved. Your list stays in your browser. We are checking how many people make lists. If enough people do, we will add accounts, so your list can sync between devices.'
 
   const parse = (text) => {
     try {
@@ -204,7 +204,14 @@ const rel = [
         const name = document.createElement('span')
         name.textContent = `${list.name} (${list.ids.length})`
         lab.append(check, name)
-        li.append(lab)
+        // Rename and delete live on the list's own tab on /my-list, where the
+        // reader can see what is in it first. This link opens that tab.
+        const edit = document.createElement('a')
+        edit.className = 'mylist__edit'
+        edit.href = `/my-list?list=${encodeURIComponent(list.id)}`
+        edit.textContent = 'Edit'
+        edit.setAttribute('aria-label', `Rename or delete "${list.name}"`)
+        li.append(lab, edit)
         listsEl.append(li)
       }
       if (focusKey) listsEl.querySelector(`input[data-key="${CSS.escape(focusKey)}"]`)?.focus()
