@@ -9,6 +9,8 @@
  */
 import Base from '../../../layouts/Base.astro'
 import BuyBox from '../../../components/BuyBox.astro'
+import TopPicks from '../../../components/TopPicks.astro'
+import { picksForPerson, picksShowFor } from '../../../lib/picks.js'
 import { loadCharacter, loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { faqJsonld } from '../../../lib/answers.mjs'
 import { kindOfAppearance } from '../../../lib/format.js'
@@ -48,6 +50,8 @@ try {
   return unavailable(Astro, e)
 }
 const buys = characterShopLinks(person, series || lead, countryOf(Astro))
+// Hand-picked products, for readers on amazon.com only (see src/lib/picks.js).
+const picked = picksShowFor(countryOf(Astro)) ? picksForPerson(person, series || lead) : null
 if (buys.length === 0) return notFound(Astro)
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 
@@ -141,6 +145,15 @@ const jsonld = [
         sub="Amazon, in your own country's store."
         rows={buys}
       />
+
+      {picked && (
+        <TopPicks
+          heading={`Top picks for ${picked.from || primary}`}
+          sub="Real products on Amazon, picked by hand."
+          picks={picked.picks}
+          max={8}
+        />
+      )}
 
       {
         answer.paragraphs.map((block) => (

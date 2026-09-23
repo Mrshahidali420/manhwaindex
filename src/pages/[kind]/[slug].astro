@@ -19,6 +19,8 @@ import { coverage, adaptationAnswer, readingOrder, upcoming } from '../../lib/co
 import { shopLinks } from '../../lib/shop-links.js'
 import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage } from '../../lib/gates.mjs'
 import BuyBox from '../../components/BuyBox.astro'
+import TopPicks from '../../components/TopPicks.astro'
+import { picksForTitle, picksShowFor } from '../../lib/picks.js'
 import Themes from '../../components/Themes.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { sectionOf, SECTIONS } from '../../lib/section.mjs'
@@ -187,6 +189,11 @@ const alsoKnown = [...new Set((item.synonyms || []).filter((n) => /^[ -~À-ɏ'�
 // stock nothing, so these open a search on Amazon and let the reader see what
 // is really in print.
 const buys = shopLinks(item, countryOf(Astro))
+
+// Real products picked by hand for the biggest series, shown only to readers on
+// amazon.com (see src/lib/picks.js). A sequel or an adaptation borrows the
+// picks of its own story, and the heading then names that story.
+const picked = !isProtected && picksShowFor(countryOf(Astro)) ? picksForTitle(item) : null
 
 // An anime's key credits (director, writer, designer, composer), from AniList.
 // Grouped by role so two composers share one row. Empty on a comic and on any
@@ -565,6 +572,16 @@ const updatedLong = checkedLong
           </p>
         </Fragment>
       </Platforms>
+
+      {
+        picked && (
+          <TopPicks
+            heading={`Top picks for ${picked.from || item.title}`}
+            sub="Real products on Amazon, picked by hand."
+            picks={picked.picks}
+          />
+        )
+      }
 
       {
         reach && (

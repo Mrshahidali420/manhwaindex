@@ -12,21 +12,13 @@
  * "Shop" because the reader knows what is behind it before they spend a tap.
  */
 import { AMAZON_DISCLOSURE } from '../lib/shop-links.js'
+import { BUY_ICONS } from '../lib/buy-icons.js'
 
 // `id` is optional. The character page sets it so the Merch door on the
 // character wall can jump straight to this box.
 const { heading, sub, rows = [], id } = Astro.props
 
-// Line art, 24x24, one stroke weight. An emoji would render differently on
-// every phone and would read as a comment rather than a label.
-const ICONS = {
-  book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
-  disc: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
-  figure:
-    'M7.5 8.5 12 3l4.5 5.5M12 3v7m-6 0h12l1 11H5zM9.5 14h5',
-  poster: 'M3 4h18v16H3zM3 15l5-5 4 4 3-3 6 6',
-  shirt: 'M9 3 3 6l2 4 2-1v12h10V9l2 1 2-4-6-3a3 3 0 0 1-6 0z',
-}
+const ICONS = BUY_ICONS
 ---
 
 <section class="buybox" id={id}>

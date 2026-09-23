@@ -11,6 +11,8 @@
  */
 import Base from '../../../layouts/Base.astro'
 import BuyBox from '../../../components/BuyBox.astro'
+import TopPicks from '../../../components/TopPicks.astro'
+import { picksForTitle, picksShowFor } from '../../../lib/picks.js'
 import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { faqJsonld } from '../../../lib/answers.mjs'
@@ -43,6 +45,8 @@ if ((item.popularity || 0) < BUY_POPULARITY) return notFound(Astro)
 const answer = buyAnswer(item, kind)
 const buys = shopLinks(item, countryOf(Astro))
 if (buys.length === 0) return notFound(Astro)
+// Hand-picked products, for readers on amazon.com only (see src/lib/picks.js).
+const picked = picksShowFor(countryOf(Astro)) ? picksForTitle(item) : null
 // The sitemap's own gate, so the two can never disagree about this page.
 if (!hasBuyPage(item)) return notFound(Astro)
 
@@ -123,6 +127,15 @@ const jsonld = [
 
       {/* The reader came here to buy. The shops go first. */}
       <BuyBox heading={`Own ${item.title}`} sub="Amazon, in your own country's store." rows={buys} />
+
+      {picked && (
+        <TopPicks
+          heading={`Top picks for ${picked.from || item.title}`}
+          sub="Real products on Amazon, picked by hand."
+          picks={picked.picks}
+          max={8}
+        />
+      )}
 
       {
         answer.paragraphs.map((block) => (

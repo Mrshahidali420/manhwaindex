@@ -23,7 +23,17 @@ import {
   genres,
   novelsByPopularity,
   charactersWithPages,
+  inIndex,
 } from '../lib/catalog.js'
+import { pathOfTitle } from '../lib/section.mjs'
+import {
+  picksForTitle,
+  picksForCharacter,
+  pickedTitleIds,
+  pickedCharacterIds,
+  pickUrl,
+  PICK_LABELS,
+} from '../lib/picks.js'
 import { shelfLinks, characterShopLinks, shopUrl, AMAZON_DISCLOSURE, BOOKS, TOYS, ALL } from '../lib/shop-links.js'
 import { hasCharacterBuyPage } from '../lib/gates.mjs'
 import { displayName } from '../lib/names.mjs'
@@ -105,6 +115,33 @@ const characterItems = charactersWithPages
     url: characterShopLinks(person).find((row) => row.kind === 'figures')?.url,
   }))
   .filter((row) => row.url)
+
+// Top picks: real products picked by hand for the biggest series and faces
+// (see src/lib/picks.js). This page is built ahead of time with no reader
+// country, like the rest of it, so it stays on the US store. A card shows our
+// own cover and the first few picks; the title page holds the rest.
+const PICK_SERIES = 24
+const PICK_FACES = 12
+const PICKS_PER_CARD = 3
+const pickedSeries = pickedTitleIds()
+  .map((id) => inIndex(id)?.item)
+  .filter(Boolean)
+  .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+  .slice(0, PICK_SERIES)
+  .map((item) => ({
+    item,
+    href: pathOfTitle(item),
+    picks: picksForTitle(item).picks.slice(0, PICKS_PER_CARD),
+  }))
+const pickedIds = new Set(pickedCharacterIds())
+const pickedFaces = charactersWithPages
+  .filter((person) => pickedIds.has(person.id))
+  .slice(0, PICK_FACES)
+  .map((person) => ({
+    person,
+    name: displayName(person).primary,
+    picks: picksForCharacter(person).slice(0, PICKS_PER_CARD),
+  }))
 
 // Genre doors. The catalog decides which genres are big enough to show, so
 // this row keeps itself honest without anybody editing a list. The genre name
@@ -211,6 +248,7 @@ const jsonld = {
     </header>
 
     <nav class="shop-jump" aria-label="Jump to a shelf">
+      {pickedSeries.length > 0 && <a href="#picks">Top picks</a>}
       {shelves.map((shelf) => <a href={`#${shelf.id}`}>{shelf.short}</a>)}
       <a href="#novels">Novels</a>
       <a href="#characters">Characters</a>
@@ -234,6 +272,62 @@ const jsonld = {
         }
       </ul>
     </section>
+
+    {
+      pickedSeries.length > 0 && (
+        <section class="section" id="picks">
+          <div class="section__head">
+            <h2>Top picks</h2>
+            <p>
+              Real products for the most-read series and the best-loved faces, picked
+              by hand on Amazon: the first volume, a box set, a figure. Tap a series
+              for the rest. {AMAZON_DISCLOSURE}
+            </p>
+          </div>
+          <h3 class="picks-sub">Series</h3>
+          <ul class="pick-shelf">
+            {pickedSeries.map(({ item, href, picks }) => (
+              <li>
+                {/* A 72 px thumbnail: AniList's medium cover (230 px) is plenty. */}
+                <img src={item.cover.replace('/cover/large/', '/cover/medium/')} alt={`Cover of ${item.title}`} width="72" height="102" loading="lazy" decoding="async" />
+                <p class="pick-shelf__name"><a href={href}>{item.title}</a></p>
+                <ul>
+                  {picks.map((pick) => (
+                    <li>
+                      <a href={pickUrl(pick.a)} rel="noopener nofollow sponsored" target="_blank" data-aff={`pick_${pick.t}`}>
+                        <b>{PICK_LABELS[pick.t]}</b>{pick.n}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          {pickedFaces.length > 0 && (
+            <Fragment>
+              <h3 class="picks-sub">Characters</h3>
+              <ul class="pick-shelf">
+                {pickedFaces.map(({ person, name, picks }) => (
+                  <li>
+                    <img src={person.image} alt={`${name} portrait`} width="72" height="102" loading="lazy" decoding="async" />
+                    <p class="pick-shelf__name"><a href={`/character/${person.slug}`}>{name}</a></p>
+                    <ul>
+                      {picks.map((pick) => (
+                        <li>
+                          <a href={pickUrl(pick.a)} rel="noopener nofollow sponsored" target="_blank" data-aff={`pick_${pick.t}`}>
+                            <b>{PICK_LABELS[pick.t]}</b>{pick.n}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
+          )}
+        </section>
+      )
+    }
 
     {
       shelves.map((shelf) => (

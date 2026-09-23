@@ -4502,3 +4502,98 @@ main:has(.title-page) {
 .buybox[id] {
   scroll-margin-top: 5.5rem;
 }
+
+/* ---------- top picks: hand-picked Amazon products ------------------------ */
+/* Same surface as the buy box, so the two read as one offer. The cards are
+   narrower than buy rows because a product name is longer than "Shop books"
+   and wraps better in a column than across the page. */
+.picks__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.6rem;
+}
+.picks__list a {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.2rem 0.8rem;
+  height: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--sf-line, var(--cobalt-line));
+  border-radius: 10px;
+  background: rgb(5 5 8 / 0.55);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms var(--ease-dawn);
+}
+.picks__list a:hover,
+.picks__list a:focus-visible { border-color: var(--rose-soft); }
+.picks__list .buy__icon { grid-row: 1 / span 3; width: 38px; height: 38px; border-radius: 10px; }
+.picks__type {
+  color: var(--rose-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.picks__list .buy__label { font-size: 0.92rem; line-height: 1.35; }
+.picks__go {
+  color: var(--rose);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.picks__list a:hover .picks__go { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .picks__list a { transition: none; }
+}
+
+/* The shop page lists many series, each with its own cover and a few picks. */
+.pick-shelf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.9rem;
+}
+.pick-shelf > li {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 0.4rem 0.9rem;
+  padding: 0.85rem;
+  border: 1px solid var(--sf-line, var(--cobalt-line));
+  border-radius: 12px;
+  background: var(--sf, var(--night-raised));
+}
+.pick-shelf img {
+  grid-row: 1 / span 2;
+  width: 72px;
+  height: auto;
+  aspect-ratio: 460 / 651;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.pick-shelf__name { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.3; }
+.pick-shelf__name a { color: inherit; text-decoration: none; }
+.pick-shelf__name a:hover { text-decoration: underline; }
+.picks-sub { margin: 1.25rem 0 0.75rem; font-size: 1.05rem; }
+.pick-shelf ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.pick-shelf ul a {
+  display: block;
+  color: var(--dawn-dim);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.pick-shelf ul a:hover,
+.pick-shelf ul a:focus-visible { color: var(--rose); }
+.pick-shelf ul b {
+  color: var(--rose-soft);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-right: 0.35rem;
+}

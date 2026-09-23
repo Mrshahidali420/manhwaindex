@@ -16,6 +16,8 @@ import { characterShopLinks } from '../../lib/shop-links.js'
 // The merch page answers 404 when this gate says no, so the link obeys it too.
 import { hasCharacterBuyPage } from '../../lib/gates.mjs'
 import BuyBox from '../../components/BuyBox.astro'
+import TopPicks from '../../components/TopPicks.astro'
+import { picksForPerson, picksShowFor } from '../../lib/picks.js'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { displayName } from '../../lib/names.mjs'
 
@@ -183,6 +185,8 @@ const facts = [
 // small for figures, gets only the books and one series merch row. The rules
 // live in characterShopLinks. `buys` says which of them it gave us.
 const buys = characterShopLinks(person, series || lead, countryOf(Astro))
+// Hand-picked products, for readers on amazon.com only (see src/lib/picks.js).
+const picked = picksShowFor(countryOf(Astro)) ? picksForPerson(person, series || lead) : null
 const merchIsCharacter = buys.some((row) => row.kind === 'figures')
 const merchFirst = buys[0]?.kind === 'figures'
 // The heading names whatever the first row sells, so the box never promises
@@ -384,6 +388,14 @@ const jsonld = {
 
     {buys.length > 0 && (
       <BuyBox id="buy" heading={buyHeading} sub={buySub} rows={buys} />
+    )}
+
+    {picked && (
+      <TopPicks
+        heading={`Top picks for ${picked.from || primary}`}
+        sub="Real products on Amazon, picked by hand."
+        picks={picked.picks}
+      />
     )}
 
     {merchIsCharacter && hasCharacterBuyPage(person) && (
