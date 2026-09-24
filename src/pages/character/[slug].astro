@@ -47,8 +47,11 @@ const { primary, formal, alternates } = displayName(person)
 // scrolling. Worked out at build time (src/lib/namesakes.mjs).
 const namesakesHigh = !!person.namesakesHigh && person.namesakes?.length > 0
 
-// Character pages that are being TESTED with the newer wording. Every branch
-// below that reads this Set is a change with no evidence behind it yet.
+// Character pages that are being TESTED with the newer title tag order. Every
+// branch below that reads this Set is a change with no evidence behind it yet.
+// The lead title and the platform names in the description left the test on
+// 24 Sep 2026 and run on every page: neither one touches the words Google
+// ranks the page on.
 //
 // Why a list and not a default. Google has indexed a small share of this site,
 // so a page with no impressions is a page Google has not looked at, NOT a page
@@ -71,11 +74,10 @@ const testing = TITLE_TEST.has(person.slug)
 // anime: the comic is where the character was made, and a reader searching a
 // character's name nearly always types the comic word with it.
 //
-// Under test only: a comic nobody carries answers nothing, so when the
-// preferred title has no official link and a sibling title has one, the
-// sibling leads instead. Three tries at most, because a character with many
-// appearances must not cost many shard reads. Off test, the first title leads
-// exactly as it always has and the page reads one shard, as before.
+// A comic nobody carries answers nothing, so when the preferred title has no
+// official link and a sibling title has one, the sibling leads instead. Three
+// tries at most, because a character with many appearances must not cost many
+// shard reads. A first title with links still leads after one read, as before.
 const ranked = (rows) => [
   ...rows.filter((a) => a.kind !== 'anime'),
   ...rows.filter((a) => a.kind === 'anime'),
@@ -87,7 +89,7 @@ let lead = order[0]
 let series = null
 let links = []
 try {
-  for (const row of testing ? order.slice(0, 3) : order.slice(0, 1)) {
+  for (const row of order.slice(0, 3)) {
     const found = await loadTitle(envOf(Astro), kindOfAppearance(row), row.slug)
     const rows = found ? uniqueBySite(linksOf(found)) : []
     // The first title that reads at all is the fallback; the first title that
@@ -239,12 +241,10 @@ const said = (bits) => bits.filter(Boolean).join(', ')
 // brackets, so a search for either name finds both in the snippet.
 const namedAs = formal ? `${primary} (${formal})` : primary
 const opening = `${namedAs} is a ${lead.role === 'MAIN' ? 'main character' : 'character'} in the ${word} ${unquote(lead.title)}.`
-// Under test only: "where to read it legally" is a promise, while a platform
-// name is proof, and a reader decides on proof. Three names at most, because
-// the line has 165 letters to live in.
-//
-// Off test this stays the sentence that earns clicks from position 3 today.
-const sites = testing ? links.slice(0, 3).map((l) => l.site).filter(Boolean) : []
+// "Where to read it legally" is a promise, while a platform name is proof,
+// and a reader decides on proof. Three names at most, because the line has
+// 165 letters to live in. With no platform the old promise stays.
+const sites = links.slice(0, 3).map((l) => l.site).filter(Boolean)
 const listed =
   sites.length > 1 ? `${sites.slice(0, -1).join(', ')} and ${sites[sites.length - 1]}` : sites[0]
 const promise = sites.length
