@@ -12,6 +12,16 @@
 import { RANGES, withRange } from '../lib/admin.js'
 // The whole look lives in its own file. Only this layout imports it.
 import '../styles/admin.css'
+// Self-hosted Saira, matching the weights admin.css actually asks for
+// (500/600/700 — see the font: shorthand rules in that file). Was Google
+// Fonts; self-hosting removes the round trip everywhere, not just the
+// public pages.
+import '@fontsource/saira/latin-500.css'
+import '@fontsource/saira/latin-ext-500.css'
+import '@fontsource/saira/latin-600.css'
+import '@fontsource/saira/latin-ext-600.css'
+import '@fontsource/saira/latin-700.css'
+import '@fontsource/saira/latin-ext-700.css'
 
 const {
   title,
@@ -54,12 +64,8 @@ const SHORT = { today: 'Today', '24h': '24h', '7d': '7 days', '30d': '30 days', 
     {signedIn && refresh > 0 && (
       <meta http-equiv="refresh" content={String(refresh)} />
     )}
-    <!-- The site's own heading face. Allowed by the CSP (fonts.googleapis.com). -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700&display=swap"
-    />
+    <!-- The site's own heading face, self-hosted (see the @fontsource
+         imports above) — no request to Google. -->
     <script is:inline>
       // From now on this browser is the owner's, and every page on the site
       // will skip it. It is one flag in this browser only.

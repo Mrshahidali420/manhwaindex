@@ -1,5 +1,25 @@
 ---
 import '../styles/app.css'
+// Self-hosted fonts (was Google Fonts — the owner saw the default fallback
+// face show up when his connection to Google was slow). @fontsource bundles
+// the woff2 files through Vite into /_astro/ with hashed, long-cached names.
+// Only the weights actually used in app.css are imported (see the font-weight
+// grep behind this change), latin + latin-ext subsets only.
+import '@fontsource/saira/latin-400.css'
+import '@fontsource/saira/latin-ext-400.css'
+import '@fontsource/saira/latin-600.css'
+import '@fontsource/saira/latin-ext-600.css'
+import '@fontsource/saira/latin-700.css'
+import '@fontsource/saira/latin-ext-700.css'
+import '@fontsource/saira/latin-800.css'
+import '@fontsource/saira/latin-ext-800.css'
+import '@fontsource/saira-stencil-one/latin-400.css'
+import '@fontsource/saira-stencil-one/latin-ext-400.css'
+// Resolved, hashed URLs for the two faces the first screen actually paints:
+// body copy (Saira 400) and the wordmark in the header (Saira Stencil One
+// 400). Used only to preload — the CSS above still owns the @font-face rules.
+import sairaLatin400Url from '@fontsource/saira/files/saira-latin-400-normal.woff2?url'
+import sairaStencilLatin400Url from '@fontsource/saira-stencil-one/files/saira-stencil-one-latin-400-normal.woff2?url'
 // The shell shows only three numbers and eight genre names, so it reads a
 // tiny file instead of the catalog. That keeps the Worker bundle small.
 import stats from '../../data/site-stats.json'
@@ -126,19 +146,12 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Saira:wght@400;600;700;800&family=Saira+Stencil+One&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript
-      ><link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Saira:wght@400;600;700;800&family=Saira+Stencil+One&display=swap"
-    /></noscript>
+    <!-- Self-hosted fonts (see the @fontsource imports above). Preload only
+         the two faces the first screen paints: body copy and the header
+         wordmark. Every other weight loads from the same-origin CSS above
+         with font-display: swap, no round trip to Google. -->
+    <link rel="preload" href={sairaLatin400Url} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={sairaStencilLatin400Url} as="font" type="font/woff2" crossorigin />
     <link rel="preconnect" href="https://s4.anilist.co" />
     {preloadImage && <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />}
 
