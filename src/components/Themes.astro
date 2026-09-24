@@ -11,7 +11,7 @@
  * what it will find, so none of them is called "official".
  */
 import { themeLabel, songWords, episodesWords } from '../lib/answers.mjs'
-import { shopUrl, ALL, AMAZON_DISCLOSURE } from '../lib/shop-links.js'
+import { shopUrl, ALL } from '../lib/shop-links.js'
 
 const { themes = [], title, country } = Astro.props
 const rows = Array.isArray(themes) ? themes : []
@@ -32,7 +32,6 @@ const listenLinks = (row) => {
     { label: 'Amazon', url: shopUrl(terms, ALL, country), rel: 'nofollow sponsored noopener', aff: 'music' },
   ]
 }
-const hasAmazon = rows.some((row) => searchTerms(row))
 ---
 
 {
@@ -44,7 +43,6 @@ const hasAmazon = rows.some((row) => searchTerms(row))
           Every opening (OP) and ending (ED) of {title} we have on record. Each
           song opens a search on YouTube, Spotify or Amazon.
         </p>
-        {hasAmazon && <p class="songs__note">{AMAZON_DISCLOSURE}</p>}
       </div>
       <dl class="facts">
         {rows.map((row) => {
@@ -83,10 +81,6 @@ const hasAmazon = rows.some((row) => searchTerms(row))
 }
 
 <style>
-  .songs__note {
-    font-size: 0.8rem;
-    color: var(--dawn-faint);
-  }
   .songs__listen {
     display: flex;
     flex-wrap: wrap;

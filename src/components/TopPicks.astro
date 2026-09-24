@@ -10,7 +10,6 @@
  * The caller decides whether the reader should see picks at all (US store
  * only) and passes nothing when not, so this box never has to know.
  */
-import { AMAZON_DISCLOSURE } from '../lib/shop-links.js'
 import { BUY_ICONS } from '../lib/buy-icons.js'
 import { PICK_LABELS, pickUrl } from '../lib/picks.js'
 
@@ -28,7 +27,7 @@ const shown = picks.slice(0, max)
         {sub && <p>{sub}</p>}
       </div>
       <p class="buys__note">
-        Chosen by hand on Amazon. {AMAZON_DISCLOSURE} The price and the stock are
+        Chosen by hand on Amazon. The price and the stock are
         Amazon's, and are right at the moment you look.
       </p>
       <ul class="picks__list">

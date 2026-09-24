@@ -449,7 +449,7 @@ function ownMerch(who, both, country) {
   ]
 }
 
-// Amazon requires this sentence wherever their links appear. It is kept beside
-// the links so the two can never be shipped apart.
+// Amazon requires this sentence on the site. It shows in the footer of every
+// page (src/layouts/Base.astro) and on the privacy page, not beside each box.
 export const AMAZON_DISCLOSURE =
   'As an Amazon Associate we earn from qualifying purchases.'
