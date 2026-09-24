@@ -56,7 +56,9 @@ const siteCount = new Set((links || []).map((l) => l.site)).size
 
 // Full Bloom already ranks near the top of Google, so that one page keeps
 // the shape it had. Everything new here is switched off for it.
-const isProtected = kind === 'manhwa' && slug === 'full-bloom'
+// Google ranks it at /manga/full-bloom; until 24 Sep this checked /manhwa/,
+// a page that does not exist, so the freeze never applied.
+const isProtected = kind === 'manga' && slug === 'full-bloom'
 const related = isComic ? item.animeInIndex : item.comicInIndex
 
 // The page title is written the way people actually type the search.
