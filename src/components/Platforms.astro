@@ -30,9 +30,14 @@ const verdict = withVerdict ? bestValue(rows, verb === 'watch' ? 'anime' : 'comi
 
 // checkedText and checkedISO come from src/lib/checked.js: the build stamp,
 // rewritten by every nightly build.
+
+// The anime page's table is the one the /where-to-watch lists link into
+// (/anime/<slug>#watch). Only there: withVerdict marks the title page, and
+// the comic pages keep their markup exactly as it was (Full Bloom included).
+const anchor = withVerdict && verb === 'watch' ? 'watch' : undefined
 ---
 
-<section class="answer">
+<section class="answer" id={anchor}>
   <div class="answer__head">
     <h2>{heading}</h2>
     {rows.length > 0 && <p class="answer__count">{count}</p>}

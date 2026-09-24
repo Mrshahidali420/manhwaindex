@@ -360,6 +360,91 @@ export function choosePairs(candidates, rules = RULES) {
   return { links, kept }
 }
 
+/* ------------------------------------------------------ the home page block */
+
+// "Popular characters right now" on the home page (data/home-boost.json).
+// Most targets have no page ranking near the top that could link to them
+// (266 of 318 in September 2026, Anos Voldigoad the biggest). The home page
+// is the strongest page on the site, so one plain link from it is the push
+// those pages cannot get anywhere else. Same script, same monthly refresh.
+export const HOME_MAX = 20
+
+/** How near page one a position is: 1 at the top of the target range, 1/13 at its bottom. */
+export function closeness(pos, rules = RULES) {
+  const span = rules.targetMaxPos + 1 - rules.targetMinPos
+  return Math.min(1, Math.max(0, (rules.targetMaxPos + 1 - pos) / span))
+}
+
+/** Impressions times closeness: the most searched first, and of two alike the one nearer page one. */
+export const homeScore = (page, rules = RULES) => page.impr * closeness(page.pos, rules)
+
+/**
+ * The targets the home block links, best first. The block is headed "Popular
+ * characters", so only a character's own page gets in: a cast list or a title
+ * page read as "Alya ... characters / Anime" there. A target that got a
+ * "Readers also look for" link this month already has its push, so it gives
+ * its place to one that has none. `linked` is a Set of those target paths.
+ */
+export function rankHomeTargets(targets, linked = new Set(), rules = RULES) {
+  return targets
+    .filter((t) => /^\/character\/[^/]+$/.test(t.path) && !linked.has(t.path))
+    .map((t) => ({ ...t, score: homeScore(t, rules) }))
+    .sort((a, b) => b.score - a.score || b.impr - a.impr || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+}
+
+/**
+ * AniList's smaller copy of a portrait or a cover. Only the folder changes,
+ * never the file name. AniList's grey placeholder is no face at all, so it
+ * gives an empty string and the row goes without a picture.
+ */
+export function smallImage(url) {
+  const text = String(url || '')
+  if (!text || /\/default\.[a-z]+$/i.test(text)) return ''
+  return text.replace('/character/large/', '/character/medium/').replace('/cover/large/', '/cover/medium/')
+}
+
+// The small text under a name on the home page wraps to two lines at most.
+const HOME_STORY_MAX = 40
+
+/**
+ * A story's name for the home block: the full name when it fits ("Cyberpunk:
+ * Edgerunners", which the anchor rule would cut to "Cyberpunk"), else the name
+ * up to its subtitle ("The Misfit of Demon King Academy"), else its first
+ * whole words and an ellipsis. Never a cut mid-word.
+ */
+export function storyLabel(title) {
+  const full = unshout(String(title || '').trim())
+  if (full.length <= HOME_STORY_MAX) return full
+  const main = storyName(full)
+  if (main.length <= HOME_STORY_MAX) return main
+  return `${main.slice(0, HOME_STORY_MAX + 1).replace(/\s+\S*$/, '').replace(/[\s,.;:!?-]+$/, '')}…`
+}
+
+/**
+ * One row of the home block, in the words people search, split in two: the
+ * name, and the story in small text. A character's story is the one its top
+ * query names, else the one it is best known from ("Anos Voldigoad", "The
+ * Misfit of Demon King Academy"). A title page is its link text, with the
+ * section word under it ("Banana Fish characters", "Anime").
+ */
+export function homeItemFor({ path, page, name, names = [], seriesTitles = [], query = '', word = '', verb = '', image = '' }) {
+  const small = smallImage(image)
+  const withImage = (item) => (small ? { ...item, image: small } : item)
+  if (page.type === 'character') {
+    const story = seriesNamed(leftoverWords(query, [name, ...names]), seriesTitles) || seriesTitles[0] || ''
+    return withImage({
+      path,
+      name: page.sub === 'buy' ? `${name} merch` : name,
+      story: storyLabel(story),
+    })
+  }
+  return withImage({
+    path,
+    name: page.sub ? anchorFor({ page, name, query, word, verb }) : shortTitle(name, query),
+    story: word ? word[0].toUpperCase() + word.slice(1) : '',
+  })
+}
+
 /**
  * The page's HTML without its own "Readers also look for" block (marked
  * `data-boost`), so this month's links never count as links the page had.

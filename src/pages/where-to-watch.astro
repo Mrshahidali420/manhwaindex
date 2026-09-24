@@ -20,6 +20,7 @@ import Base from '../layouts/Base.astro'
 import { anime, platform, hubSlugOf, genres } from '../lib/catalog.js'
 import { factsFor, PAY, FREE } from '../lib/platform-facts.js'
 import Mark from '../components/Mark.astro'
+import { watchListPath } from '../lib/watch-lists.mjs'
 
 // One row per service we link to, with how many anime it carries here.
 const FACES = 3
@@ -217,6 +218,12 @@ const jsonld = {
           <span>The link goes straight to the show, not to a home page.</span>
         </li>
       </ol>
+
+      <p class="ledger__rest">
+        Came from the comic? Here is every <a href={watchListPath('manhwa')}>manhwa with an anime</a>,
+        every <a href={watchListPath('manhua')}>manhua with an anime</a> and every
+        {' '}<a href={watchListPath('novel')}>light novel with an anime</a>, with where each one streams.
+      </p>
     </section>
 
     {

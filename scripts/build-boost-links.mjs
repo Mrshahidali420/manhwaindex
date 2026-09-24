@@ -1,10 +1,17 @@
 /**
- * Builds data/boost-links.json: the "Readers also look for" links.
+ * Builds data/boost-links.json: the "Readers also look for" links, and
+ * data/home-boost.json: the home page's "Popular characters right now".
  *
  * A page Google already ranks near the top (a source) gets up to three plain
  * links to related pages Google nearly ranks, at position 8 to 20 (targets).
  * The rules, and what "related" means, are in src/lib/boost-core.mjs. The
  * page side is src/lib/boost-links.js and src/components/AlsoLookFor.astro.
+ *
+ * Most targets have no such source. The home page links the best twenty of
+ * those instead: ranked by impressions times closeness to page one, only
+ * targets that got no pair this month, never one whose top search names
+ * another story, and only pages that answer 200 on the live site today. The
+ * page side is src/components/PopularNow.astro.
  *
  * WHERE THE DATA COMES FROM
  *
@@ -31,17 +38,18 @@
  *
  *   1. Pull the two Search Console files into tasks/gsc-data/.
  *   2. node scripts/build-boost-links.mjs
- *   3. Read the printed pairs. Commit data/boost-links.json and the
- *      baseline file, then deploy as usual.
+ *   3. Read the printed pairs and the home list. Commit data/boost-links.json,
+ *      data/home-boost.json and the baseline file, then deploy as usual.
  *   4. Three to four weeks later, pull again and compare each target's
  *      position with tasks/gsc-data/boost-baseline-<date>.json.
  *
- * Options: --in <dir>  --out <file>  --site <origin>  --dry (print, write nothing)
+ * Options: --in <dir>  --out <file>  --home <file>  --site <origin>
+ *          --dry (print, write nothing)
  *
  * Reads only. It never writes to the site.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { bucket, titleKey, TITLE_SHARDS, CHARACTER_SHARDS } from '../src/lib/shard-key.js'
@@ -61,6 +69,9 @@ import {
   anchorFor,
   choosePairs,
   linksTo,
+  HOME_MAX,
+  rankHomeTargets,
+  homeItemFor,
 } from '../src/lib/boost-core.mjs'
 import { writeFileAtomic } from '../src/lib/write-atomic.mjs'
 
@@ -70,8 +81,10 @@ function option(name, fallback) {
   const at = process.argv.indexOf(`--${name}`)
   return at > 0 && process.argv[at + 1] ? process.argv[at + 1] : fallback
 }
-const IN = join(ROOT, option('in', 'tasks/gsc-data'))
-const OUT = join(ROOT, option('out', 'data/boost-links.json'))
+// resolve, not join: a full path given on the command line stays as it is.
+const IN = resolve(ROOT, option('in', 'tasks/gsc-data'))
+const OUT = resolve(ROOT, option('out', 'data/boost-links.json'))
+const HOME_OUT = resolve(ROOT, option('home', 'data/home-boost.json'))
 const SITE = option('site', 'https://manhwaindex.com').replace(/\/+$/, '')
 const DRY = process.argv.includes('--dry')
 
@@ -161,6 +174,7 @@ async function describeTarget(target, shards) {
       names: [person.name, person.native, ...(person.aliases || [])].filter(Boolean),
       seriesTitles: rows.map((r) => r.title),
       ownText: person.description || '',
+      image: person.image || '',
       related: relatedToCharacter({ ...person, appearsIn: rows }, titles),
     }
   }
@@ -175,6 +189,7 @@ async function describeTarget(target, shards) {
     ownText: title.description || '',
     word: wordOf(page.section),
     verb: verbOf(page.section),
+    image: title.cover || '',
     related: relatedToTitle(title, page.base),
   }
 }
@@ -200,6 +215,8 @@ async function main() {
   const shards = shardReader(manifest.builtAt)
 
   const candidates = []
+  // Every target that passed the checks below, for the home block.
+  const described = new Map()
   const skipped = { unreadable: 0, mismatch: 0 }
   await eachLimited(targets, async (target) => {
     const facts = await describeTarget(target, shards).catch((e) => {
@@ -216,6 +233,7 @@ async function main() {
       console.log(`  ${target.path}: top query "${query}" names another story, skipped`)
       return
     }
+    described.set(target.path, { ...facts, query, target })
     const anchor = anchorFor({ ...facts, query })
     for (const [base, why] of facts.related) {
       for (const source of sourcesByBase.get(base) || []) {
@@ -243,10 +261,15 @@ async function main() {
     console.log(`  ${pair.source.path} (${pair.source.pos.toFixed(1)}) -> ${pair.target.path} (${pair.target.pos.toFixed(1)}, ${pair.target.impr} impr) "${pair.anchor}"  [${pair.why}]`)
   }
   console.log(`${kept.length} links on ${Object.keys(links).length} source pages`)
+
+  const home = await homeItems(described, kept)
+  console.log(`home page, "Popular characters right now": ${home.length} links`)
+  for (const item of home) console.log(`  ${item.path}  "${item.name}" · ${item.story}${item.image ? '' : '  (no face)'}`)
   if (DRY) return
 
   const updated = new Date().toISOString().slice(0, 10)
   writeFileAtomic(OUT, JSON.stringify({ updated, links }, null, 2) + '\n')
+  writeFileAtomic(HOME_OUT, JSON.stringify({ updated, items: home }, null, 2) + '\n')
   // What each target looked like the day it got its link: the thing to beat.
   const baseline = kept.map((p) => ({
     target: p.target.path,
@@ -257,7 +280,48 @@ async function main() {
     clicks: p.target.clicks,
   }))
   writeFileAtomic(join(IN, `boost-baseline-${updated}.json`), JSON.stringify({ updated, baseline }, null, 2) + '\n')
-  console.log(`wrote ${OUT} and the baseline`)
+  console.log(`wrote ${OUT}, ${HOME_OUT} and the baseline`)
+}
+
+/** The status a URL answers with, redirects not followed. 0 when it cannot be read. */
+async function statusOf(url) {
+  try {
+    const res = await fetch(url, { headers: HEADERS, redirect: 'manual', signal: AbortSignal.timeout(30000) })
+    await res.body?.cancel()
+    return res.status
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * The home block's rows: the best targets that got no pair this month, in
+ * rank order, each page checked live. A page that moved (301) or went away is
+ * skipped rather than linked from the home page. A face that does not load is
+ * dropped and the row keeps its name.
+ */
+async function homeItems(described, kept) {
+  const linked = new Set(kept.map((pair) => pair.target.path))
+  const ranked = rankHomeTargets([...described.values()].map((d) => d.target), linked)
+  // A few spares, so a page that fails the check still leaves twenty.
+  const shortlist = ranked.slice(0, HOME_MAX + 10)
+  const rows = new Map()
+  await eachLimited(shortlist, async (target) => {
+    const item = homeItemFor({ ...described.get(target.path), path: target.path })
+    const status = await statusOf(`${SITE}${target.path}`)
+    if (status !== 200) {
+      console.log(`  home: ${target.path} answers ${status}, skipped`)
+      return
+    }
+    if (item.image && (await statusOf(item.image)) !== 200) {
+      console.log(`  home: face for ${target.path} did not load, dropped`)
+      const { image, ...bare } = item
+      rows.set(target.path, bare)
+      return
+    }
+    rows.set(target.path, item)
+  })
+  return shortlist.filter((t) => rows.has(t.path)).slice(0, HOME_MAX).map((t) => rows.get(t.path))
 }
 
 main().catch((e) => {

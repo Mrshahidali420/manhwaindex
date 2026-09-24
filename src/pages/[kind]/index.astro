@@ -17,6 +17,7 @@ import Pager from '../../components/Pager.astro'
 import FilterChips from '../../components/FilterChips.astro'
 import { animeByPopularity, novelsByPopularity, comicsOfCountry, genres } from '../../lib/catalog.js'
 import { listingJsonld } from '../../lib/listing-jsonld.js'
+import { WATCH_LISTS, watchListPath } from '../../lib/watch-lists.mjs'
 
 export const PER_PAGE = 60
 // Every page of every listing is built. There used to be a cap of 100 pages
@@ -209,6 +210,10 @@ const genreRows = genres.slice(0, 12)
 // The other three kinds, as plain doors out of this page.
 const others = Object.entries(KINDS).filter(([key]) => key !== kind)
 
+// Manhwa, manhua and novels each have a "with an anime" list under
+// /where-to-watch. Manga and anime do not (see src/lib/watch-lists.mjs).
+const watchList = WATCH_LISTS[kind]
+
 const site = 'https://manhwaindex.com'
 const collection = listingJsonld({
   name: config.title,
@@ -272,6 +277,11 @@ const jsonld = {
       </div>
       <div class="genre-intro">
         {config.about.map((line) => <p>{line}</p>)}
+        {watchList && (
+          <p>
+            Looking for the anime instead? Here is <a href={watchListPath(kind)}>every {watchList.one} with an anime, and where to watch it</a>.
+          </p>
+        )}
       </div>
     </section>
 

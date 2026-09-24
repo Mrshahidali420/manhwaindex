@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro'
 import Countdown from '../components/Countdown.astro'
 import CoverGrid from '../components/CoverGrid.astro'
 import UpcomingList from '../components/UpcomingList.astro'
+import PopularNow from '../components/PopularNow.astro'
 import { animeByPopularity, novelsByPopularity, comics, comicsOfCountry, anime, genres, platform, airingThisWeek } from '../lib/catalog.js'
 import { upcomingAnime, upcomingRow } from '../lib/schedule.mjs'
 
@@ -308,6 +309,8 @@ const tinyCover = (url) =>
         update()
       }
     </script>
+
+    <PopularNow />
 
     {
       airing.length > 0 && (
