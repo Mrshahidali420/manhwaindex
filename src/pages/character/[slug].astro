@@ -23,6 +23,7 @@ import { displayName } from '../../lib/names.mjs'
 import Namesakes from '../../components/Namesakes.astro'
 import { storyName } from '../../lib/namesakes.mjs'
 import AlsoLookFor from '../../components/AlsoLookFor.astro'
+import { ageOf } from '../../lib/age.mjs'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
 let person
@@ -157,8 +158,11 @@ const voiced = person.appearsIn.find((a) => a.voice) || null
 // The English dub, from the same kind of row. Absent until the anime carries it.
 const voicedEn = person.appearsIn.find((a) => a.voiceEn) || null
 
+// AniList's age as a person would say it: "17-" becomes "17 or older".
+const age = ageOf(person.age)?.text || ''
+
 const personal = [
-  person.age ? ['Age', person.age] : null,
+  age ? ['Age', age] : null,
   height ? ['Height', height] : null,
   person.gender ? ['Gender', person.gender] : null,
   person.bloodType ? ['Blood type', person.bloodType] : null,
@@ -171,7 +175,9 @@ const personal = [
 // The record's own rows win the table; a bio line for the same thing stays in
 // the bio unless it says exactly the same (see parseFacts).
 const { facts: bioFacts, bio } = parseFacts(person.description, {
-  own: Object.fromEntries(personal.map(([term, value]) => [term.toLowerCase(), value])),
+  // The bio repeats AniList's own wording ("17-"), not the cleaned one, so the
+  // match is made on the raw age.
+  own: Object.fromEntries(personal.map(([term, value]) => [term.toLowerCase(), term === 'Age' ? person.age : value])),
 })
 const fromBio = bioFacts.map((f) => [f.label, f.value])
 
@@ -251,10 +257,10 @@ const promise = sites.length
 // sits at the front where the reader reads it.
 const description =
   [
-    `${opening} ${said([person.age && `Age ${person.age}`, height && `height ${height}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
-    `${opening} ${said([person.age && `Age ${person.age}`, height && `height ${height}`, person.gender])}.${promise}`,
-    `${opening} ${said([person.age && `Age ${person.age}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
-    `${opening} ${said([person.age && `Age ${person.age}`, person.gender])}.${promise}`,
+    `${opening} ${said([age && `Age ${age}`, height && `height ${height}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
+    `${opening} ${said([age && `Age ${age}`, height && `height ${height}`, person.gender])}.${promise}`,
+    `${opening} ${said([age && `Age ${age}`, person.gender, alias && `also called ${alias}`])}.${promise}`,
+    `${opening} ${said([age && `Age ${age}`, person.gender])}.${promise}`,
     `${opening}${promise}`,
     `${opening} Where to ${verb} it legally.`,
   ].find((line) => line.length <= 165) || `${opening} Where to ${verb} it legally.`
@@ -270,7 +276,7 @@ const description =
 // promised that the page cannot show, and the tail is chosen from what the
 // record gave us, longest true one first.
 const promised = [
-  person.age && 'Age',
+  age && 'Age',
   height && 'Height',
   voiced && 'Voice Actor',
 ].filter(Boolean)

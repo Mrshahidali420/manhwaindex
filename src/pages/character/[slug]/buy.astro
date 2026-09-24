@@ -19,6 +19,7 @@ import { characterShopLinks } from '../../../lib/shop-links.js'
 import { characterBuyAnswer } from '../../../lib/buy.mjs'
 import { displayName } from '../../../lib/names.mjs'
 import { hasCharacterBuyPage, hasBuyPage } from '../../../lib/gates.mjs'
+import { ageOf } from '../../../lib/age.mjs'
 
 let person
 try {
@@ -76,7 +77,7 @@ const siblings = (series?.characters || [])
 const facts = [
   ['From', lead.title],
   ['Role', lead.role === 'MAIN' ? 'Main character' : 'Supporting character'],
-  ...(person.age ? [['Age', person.age]] : []),
+  ...(ageOf(person.age) ? [['Age', ageOf(person.age).text]] : []),
   ...(person.gender ? [['Gender', person.gender]] : []),
   ...(series?.startYear ? [['Story started', String(series.startYear)]] : []),
   [

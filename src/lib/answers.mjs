@@ -18,6 +18,7 @@
  */
 import { factsFor, FREE, PAY } from './platform-facts.js'
 import { displayName } from './names.mjs'
+import { ageOf } from './age.mjs'
 
 /* -------------------------------------------------------------- tiny words */
 
@@ -550,11 +551,15 @@ export function characterFaq(person, lead, leadKind, series, bio = '', height = 
   // "how old is X" is the second heaviest search that reaches this page, after
   // the bare name. The number is already printed in the facts table above, so
   // this only puts it in the words a person actually types.
-  if (person.age) {
+  // AniList's free-text age, cleaned (src/lib/age.mjs). Words that are not an
+  // age in numbers ("Same as Mia") are quoted as AniList's own wording.
+  const age = ageOf(person.age)
+  if (age) {
     faq.push({
       q: `How old is ${who}?`,
-      a: `${who} is ${person.age}. This is the age listed in ${who}'s ` +
-        `AniList profile.`,
+      a: age.plain
+        ? `${who} is ${age.text}. This is the age listed in ${who}'s AniList profile.`
+        : `${who}'s AniList profile gives the age as "${age.text}".`,
     })
   }
 
