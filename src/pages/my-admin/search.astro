@@ -9,7 +9,9 @@
  */
 import Admin from '../../layouts/Admin.astro'
 import Hint from '../../components/admin/Hint.astro'
-import Rank from '../../components/admin/Rank.astro'
+import BarList from '../../components/admin/BarList.astro'
+import Kpi from '../../components/admin/Kpi.astro'
+import Split from '../../components/admin/Split.astro'
 import { envOf } from '../../lib/runtime.js'
 import { gate, rangeOf, humanize, num } from '../../lib/admin.js'
 import { actionsFor, tally } from '../../lib/admin-more.js'
@@ -37,10 +39,12 @@ const total = counted.reduce((n, row) => n + (row.n || 0), 0)
 const noneTotal = noneAll.reduce((n, row) => n + (row.n || 0), 0)
 
 const surfaces = tally(counted, (row) => row.detail)
-const surfaceRows = [
-  { name: 'The box at the top of every page', value: surfaces.find((row) => row.key === 'dropdown')?.n || 0 },
-  { name: 'The full search page', value: surfaces.find((row) => row.key === 'page')?.n || 0 },
+const surfaceParts = [
+  { name: 'Box at the top', value: surfaces.find((row) => row.key === 'dropdown')?.n || 0, tone: 'blue' },
+  { name: 'Full search page', value: surfaces.find((row) => row.key === 'page')?.n || 0, tone: 'violet' },
 ]
+const pickTotal = picks.reduce((n, row) => n + (row.n || 0), 0)
+const noneShare = total ? Math.round((noneTotal / total) * 100) : 0
 
 const found = tally(picks, (row) => row.item).slice(0, 15)
 const foundRows = found.map((row) => ({
@@ -57,8 +61,10 @@ const missingRows = missing.map((row) => ({
   sub: `${num(row.people)} people`,
   value: row.n,
   unit: 'searches',
+  tone: 'bad',
 }))
 ---
+
 
 <Admin
   title="Search"
@@ -69,31 +75,35 @@ const missingRows = missing.map((row) => ({
   wrongWord={wrongWord}
   note={`${range.label}. The site's own search box. What people type into Google is only in Search Console.`}
 >
-  <div class="panel">
-    <h2>How much do people search?</h2>
+  <section class="kpis" aria-label="Searches at a glance">
+    <Kpi label="Searches" value={total} hero />
+    <Kpi label="Found a result" value={pickTotal} />
+    <Kpi label="Found nothing" value={noneTotal} unit={total ? `${noneShare}%` : ''} />
+  </section>
+
+  <div class="panel wide">
+    <h2>How much do people search, and where?</h2>
     <p class="say">A search is counted when a result is picked, or when it finds nothing.</p>
-    {total === 0 && <p class="empty">No searches counted in this window yet.</p>}
-    {total > 0 && (
-      <>
-        <div class="big">{num(total)}<small>searches</small></div>
-        <Rank rows={[...surfaceRows, { name: 'Found nothing', value: noneTotal }]} />
-      </>
+    {total === 0 ? (
+      <p class="empty">No searches counted in this window yet.</p>
+    ) : (
+      <Split parts={surfaceParts} label="Which search box" />
     )}
   </div>
 
   <div class="panel">
     <h2>What do they find?</h2>
     <p class="say">The results people picked most.</p>
-    <Rank rows={foundRows} empty="Nobody picked a search result yet." />
+    <BarList rows={foundRows} empty="Nobody picked a search result yet." />
   </div>
 
   <div class="panel">
     <h2>What did they look for and not find?</h2>
     <p class="say">
-      Only words that two or more different people searched for are shown. A title
-      here is one people want and the index does not hold.
+      Only words that two or more different people searched for are shown. A
+      title here is one people want and the index does not hold.
     </p>
-    <Rank rows={missingRows} empty="Nothing yet. Words show here once two different people search for the same missing title." />
+    <BarList rows={missingRows} empty="Nothing yet. Words show here once two different people search for the same missing title." />
     <Hint hint={missingTitleHint(missing.length)} />
   </div>
 

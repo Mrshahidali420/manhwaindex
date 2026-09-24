@@ -8,11 +8,14 @@
  */
 import Admin from '../../layouts/Admin.astro'
 import Hint from '../../components/admin/Hint.astro'
-import Rank from '../../components/admin/Rank.astro'
+import BarList from '../../components/admin/BarList.astro'
+import Kpi from '../../components/admin/Kpi.astro'
+import Trend from '../../components/admin/Trend.astro'
 import { envOf } from '../../lib/runtime.js'
 import { gate, rangeOf, fmtDwell, handOff, humanize, num, sectionName, withRange } from '../../lib/admin.js'
 import { edgesFor, pagesFor, totalsFor } from '../../lib/admin-data.js'
-import { quickExitsFor } from '../../lib/admin-more.js'
+import { closedDaysFor, quickExitsFor } from '../../lib/admin-more.js'
+import { withToday } from '../../lib/admin-chart.js'
 import { entryPageHint, quickExitHint, MIN_ENTRIES } from '../../lib/admin-hints.js'
 
 export const prerender = false
@@ -33,15 +36,21 @@ let rows = []
 let totals = {}
 let quick = new Map()
 let edges = []
+let closedDays = []
 
 if (signedIn) {
-  ;[rows, totals, quick, edges] = await Promise.all([
+  ;[rows, totals, quick, edges, closedDays] = await Promise.all([
     pagesFor(db, range),
     totalsFor(db, range),
     quickExitsFor(db, range),
     edgesFor(db, range, 8),
+    closedDaysFor(db, range),
   ])
 }
+
+// The day-by-day line. A 7 or 30 day range ends with today, worked out from
+// the totals this page already has; All time shows the last closed days.
+const trend = range.mode === 'mixed' ? withToday(closedDays, totals, range.toDay, ['views', 'clicks']) : closedDays
 
 const withRate = rows.map((row) => ({
   ...row,
@@ -73,6 +82,7 @@ const entryRows = entries.map((row) => ({
   sub: `${sectionName(row.page_type)} · ${row.rate}% click out`,
   value: row.entries,
   unit: 'arrived',
+  tone: entryPageHint(row) ? 'bad' : 'blue',
 }))
 const entryWorst = entries.find((row) => entryPageHint(row))
 
@@ -85,8 +95,9 @@ const leavers = withRate
 const leaverRows = leavers.map((row) => ({
   name: humanize(row.path, row.label),
   href: row.path,
-  sub: `${num(row.quick_exits)} of ${num(row.entries)} arrivals`,
+  sub: `${num(row.quick_exits)} of ${num(row.entries)} arrivals left at once`,
   value: `${row.share}%`,
+  bar: row.share,
 }))
 const leaverWorst = leavers.find((row) => quickExitHint(row))
 
@@ -104,7 +115,7 @@ for (const row of withRate) {
   found.clicks += row.clicks || 0
   byKind.set(kind, found)
 }
-const answerRows = Object.keys(KINDS)
+const answerBase = Object.keys(KINDS)
   .filter((kind) => byKind.has(kind))
   .map((kind) => {
     const row = byKind.get(kind)
@@ -112,8 +123,34 @@ const answerRows = Object.keys(KINDS)
       name: KINDS[kind],
       sub: `${num(row.views)} views · ${num(row.clicks)} clicks out`,
       value: `${handOff(row.clicks, row.views)}%`,
+      rate: handOff(row.clicks, row.views),
     }
   })
+const answerTop = Math.max(0, ...answerBase.map((row) => row.rate))
+const answerRows = answerBase.map((row) => ({ ...row, bar: answerTop ? (row.rate / answerTop) * 100 : 0 }))
+
+const bestTop = best[0]?.rate || 0
+const bestRows = best.map((row) => ({
+  name: humanize(row.path, row.label),
+  href: row.path,
+  sub: `${sectionName(row.page_type)} · ${num(row.views)} views · ${num(row.clicks)} clicks · ${fmtDwell(row.avg)}`,
+  value: `${row.rate}%`,
+  bar: bestTop ? (row.rate / bestTop) * 100 : 0,
+  tone: 'good',
+}))
+const mostRows = most.map((row) => ({
+  name: humanize(row.path, row.label),
+  href: row.path,
+  sub: [
+    sectionName(row.page_type),
+    hasEntries ? `${num(row.entries)} arrived first` : '',
+    `${num(row.clicks)} clicks · ${row.rate}%`,
+    fmtDwell(row.avg),
+  ].filter(Boolean).join(' · '),
+  value: row.views || 0,
+  unit: 'views',
+}))
+const avgDwell = totals.dwell_n ? totals.dwell_sum / totals.dwell_n : 0
 
 const edgeRows = edges.map((row) => ({
   name: `${sectionName(row.from_type)} → ${sectionName(row.to_type)}`,
@@ -124,6 +161,7 @@ const edgeRows = edges.map((row) => ({
 const named = (row, hint) => hint && { ...hint, text: `${humanize(row.path, row.label)}: ${hint.text}` }
 ---
 
+
 <Admin
   title="Pages"
   here="/my-admin/pages"
@@ -131,13 +169,35 @@ const named = (row, hint) => hint && { ...hint, text: `${humanize(row.path, row.
   signedIn={signedIn}
   secret={secret}
   wrongWord={wrongWord}
-  note={`${range.label}. Across the whole site, ${siteRate} of every 100 page views ended in a click out.`}
+  note={`${range.label}. Which page hands readers on, and which only collects them.`}
 >
+  <section class="kpis" aria-label="All pages together">
+    <Kpi label="Page views" value={totals.views || 0} spark={trend.map((d) => d.views)} hero />
+    <Kpi label="Clicks out" value={totals.clicks || 0} spark={trend.map((d) => d.clicks)} tone="amber" />
+    <Kpi label="Hand-off rate" value={`${siteRate}%`} />
+    <Kpi label="Time on a page" value={fmtDwell(avgDwell)} />
+  </section>
+
+  {trend.length > 1 && (
+    <div class="panel wide">
+      <h2>Views and clicks out, day by day</h2>
+      <p class="say">{range.mode === 'all' ? 'The last 60 closed days.' : 'Today is counted so far, so it looks low until tonight.'}</p>
+      <Trend
+        series={trend}
+        lines={[
+          { field: 'views', name: 'Page views', tone: 'blue' },
+          { field: 'clicks', name: 'Clicks out', tone: 'amber' },
+        ]}
+        label="Page views and clicks out by day"
+      />
+    </div>
+  )}
+
   <div class="panel">
     <h2>Which pages bring people in?</h2>
-    <p class="say">The pages visits start on, and how many of their views end in a click out.</p>
+    <p class="say">The pages visits start on, and how many of their views end in a click out. A rose bar needs a better link.</p>
     {hasEntries ? (
-      <Rank rows={entryRows} empty="No visits started in this window yet." />
+      <BarList rows={entryRows} empty="No visits started in this window yet." />
     ) : (
       <p class="empty">All time keeps totals only. Pick 7 or 30 days to see where visits start.</p>
     )}
@@ -147,11 +207,11 @@ const named = (row, hint) => hint && { ...hint, text: `${humanize(row.path, row.
   <div class="panel">
     <h2>Which pages make people leave right away?</h2>
     <p class="say">
-      Of the visits that started on a page, the share that opened nothing else and
-      clicked nothing. Pages with fewer than {MIN_ENTRIES} arrivals are left out.
+      Of the visits that started on a page, the share that opened nothing else
+      and clicked nothing. Pages with fewer than {MIN_ENTRIES} arrivals are left out.
     </p>
     {hasEntries ? (
-      <Rank rows={leaverRows} empty={`No page has ${MIN_ENTRIES} arrivals in this window yet.`} />
+      <BarList rows={leaverRows} tone="bad" empty={`No page has ${MIN_ENTRIES} arrivals in this window yet.`} />
     ) : (
       <p class="empty">Pick 7 or 30 days: this needs the arrivals, which All time does not keep.</p>
     )}
@@ -161,87 +221,36 @@ const named = (row, hint) => hint && { ...hint, text: `${humanize(row.path, row.
   <div class="panel">
     <h2>Which answer pages work?</h2>
     <p class="say">
-      Every title has answer pages under it: free to read, similar titles, buy, characters.
-      The number is clicks out for every 100 views.
+      Every title has answer pages under it: free to read, similar titles, buy,
+      characters. The number is clicks out for every 100 views.
     </p>
-    <Rank rows={answerRows} empty="No title page views in this window yet." />
-  </div>
-
-  <div class="panel">
-    <h2>Best pages</h2>
-    <p class="say">
-      Ranked by hand-off rate: the share of views that ended in a read, watch
-      or buy click. Pages under {FLOOR} views are left out, because a small
-      number swings too much.
-    </p>
-    {best.length === 0 && <p class="empty">Not enough clicks yet.</p>}
-    <div class="scroll">
-    <table>
-      <tr>
-        <th>Page</th>
-        <th class="num">Hand-off</th>
-        <th class="num">Views</th>
-        <th class="num">Clicks</th>
-        <th class="num">Time on page</th>
-      </tr>
-      {best.map((row) => (
-        <tr>
-          <td>
-            <a href={row.path}>{humanize(row.path, row.label)}</a>
-            <span class="tag">{sectionName(row.page_type)}</span>
-          </td>
-          <td class="num">{row.rate}%</td>
-          <td class="num">{num(row.views)}</td>
-          <td class="num">{num(row.clicks)}</td>
-          <td class="num">{fmtDwell(row.avg)}</td>
-        </tr>
-      ))}
-    </table>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Most viewed</h2>
-    <p class="say">
-      The busiest pages. A busy page with a low hand-off is the best place to
-      add a better link.
-    </p>
-    {most.length === 0 && <p class="empty">Nothing yet.</p>}
-    <div class="scroll">
-    <table>
-      <tr>
-        <th>Page</th>
-        <th class="num">Views</th>
-        <th class="num">Arrived here first</th>
-        <th class="num">Clicks</th>
-        <th class="num">Hand-off</th>
-        <th class="num">Time on page</th>
-      </tr>
-      {most.map((row) => (
-        <tr>
-          <td>
-            <a href={row.path}>{humanize(row.path, row.label)}</a>
-            <span class="tag">{sectionName(row.page_type)}</span>
-          </td>
-          <td class="num">{num(row.views)}</td>
-          <td class="num">{hasEntries ? num(row.entries) : '—'}</td>
-          <td class="num">{num(row.clicks)}</td>
-          <td class="num">{row.rate}%</td>
-          <td class="num">{fmtDwell(row.avg)}</td>
-        </tr>
-      ))}
-    </table>
-    </div>
+    <BarList rows={answerRows} tone="violet" empty="No title page views in this window yet." />
   </div>
 
   <div class="panel">
     <h2>How do people move around the site?</h2>
     <p class="say">"Arrived from outside" means the visit started there.</p>
-    <Rank rows={edgeRows} empty="No moves yet." />
+    <BarList rows={edgeRows} empty="No moves yet." />
     <p class="more">
-      <a href={withRange('/my-admin/journeys', range)}>Recent visits, step by step →</a><br />
-      <a href={withRange('/my-admin/sections', range)}>Sections, countries and sources side by side →</a>
+      <a href={withRange('/my-admin/journeys', range)}>Recent visits, step by step →</a>
+      <a href={withRange('/my-admin/sections', range)}>Sections, countries and sources →</a>
     </p>
+  </div>
+
+  <div class="panel">
+    <h2>Best pages</h2>
+    <p class="say">
+      Ranked by hand-off: the share of views that ended in a read, watch or buy
+      click. Pages under {FLOOR} views are left out, because a small number
+      swings too much.
+    </p>
+    <BarList rows={bestRows} empty="Not enough clicks yet." />
+  </div>
+
+  <div class="panel">
+    <h2>Most viewed</h2>
+    <p class="say">The busiest pages. A busy page with a low hand-off is the best place to add a better link.</p>
+    <BarList rows={mostRows} empty="Nothing yet." />
   </div>
 
   <p class="say">

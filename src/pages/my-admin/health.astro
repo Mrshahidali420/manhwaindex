@@ -6,9 +6,12 @@
  */
 import Admin from '../../layouts/Admin.astro'
 import Hint from '../../components/admin/Hint.astro'
-import Rank from '../../components/admin/Rank.astro'
+import BarList from '../../components/admin/BarList.astro'
+import Columns from '../../components/admin/Columns.astro'
+import Kpi from '../../components/admin/Kpi.astro'
 import { envOf } from '../../lib/runtime.js'
 import { gate, rangeOf, clock, dayKey, humanize, num, sourceName } from '../../lib/admin.js'
+import { shortDay } from '../../lib/admin-chart.js'
 import { pagesFor } from '../../lib/admin-data.js'
 import { actionsFor, counterHealth, missingFor, tally } from '../../lib/admin-more.js'
 import {
@@ -54,6 +57,7 @@ const missingRows = missing.map((row) => ({
       : `typed or a bookmark · last ${clock(row.last)}`,
   value: row.hits,
   unit: 'hits',
+  tone: 'bad',
 }))
 const nextRows = tally(nexts, (row) => row.item).map((row) => ({ name: humanize(row.key, ''), sub: row.key, value: row.n, unit: 'picks' }))
 
@@ -74,7 +78,19 @@ const logRows = health.log.map((row) => ({
   value: row.rows || 0,
   unit: 'events',
 }))
+// Events per closed day, oldest first, with today so far at the end.
+const logColumns = [...health.log].reverse().map((row) => ({
+  label: shortDay(row.day),
+  parts: [row.rows || 0],
+  title: `${row.day}: ${num(row.rows)} events`,
+}))
+const eventColumns = [...logColumns, { label: 'Today', parts: [health.today], title: `Today so far: ${num(health.today)} events` }]
+const writeShare = Math.min(100, Math.round((writes / D1_WRITE_LIMIT) * 1000) / 10)
+const writeTone = writeShare >= 80 ? 'bad' : writeShare >= 50 ? 'amber' : 'good'
+const jobLate = Boolean(rollupHint(lastRun?.day, yesterday))
+const brokenHits = missing.reduce((n, row) => n + (row.hits || 0), 0)
 ---
+
 
 <Admin
   title="Health"
@@ -84,13 +100,41 @@ const logRows = health.log.map((row) => ({
   wrongWord={wrongWord}
   note="The last 7 days. What is broken, and whether the counter itself is fine."
 >
+  <section class="kpis" aria-label="Health at a glance">
+    <Kpi label="Night job" value={jobLate ? 'Late' : 'On time'} unit={lastRun ? `last ${shortDay(lastRun.day)}` : ''} mood={jobLate ? 'bad' : 'good'} hero />
+    <Kpi label="Events today so far" value={health.today} />
+    <Kpi label="Free D1 writes used" value={`${writeShare}%`} unit="busiest day" />
+    <Kpi label="Broken link hits" value={brokenHits} unit="7 days" />
+  </section>
+
+  <div class="panel wide">
+    <h2>Is the counter healthy?</h2>
+    <Hint hint={rollupHint(lastRun?.day, yesterday)} />
+    <p class="say" style="margin-top:10px">
+      About {num(writes)} of the {num(D1_WRITE_LIMIT)} rows D1 lets us write a
+      day, on the busiest recent day ({WRITES_PER_EVENT} per event, plus the night job).
+    </p>
+    <div class="meter" role="img" aria-label={`${writeShare}% of the free daily D1 writes`}>
+      <span class={`bg-${writeTone}`} style={`width:${Math.max(1, writeShare)}%`}></span>
+    </div>
+    <Hint hint={writeLoadHint(busiest)} />
+    {eventColumns.length > 1 && (
+      <>
+        <h3>Events counted per day</h3>
+        <Columns columns={eventColumns} tones={['blue']} height={56} peakWord="busiest" label="Events counted per day" />
+      </>
+    )}
+    <h3>The night job</h3>
+    <BarList rows={logRows} tone="good" empty="The night job has not run yet." />
+  </div>
+
   <div class="panel">
     <h2>Which broken links do people hit?</h2>
     <p class="say">
-      Addresses asked for that are not on this site. "Sent from" is where the bad
-      link lives. Our own page there means the bad link is ours to fix.
+      Addresses asked for that are not on this site. "Sent from" is where the
+      bad link lives. Our own page there means the bad link is ours to fix.
     </p>
-    <Rank rows={missingRows} empty="Nothing broken. Good." />
+    <BarList rows={missingRows} empty="Nothing broken. Good." />
     <Hint hint={missing[0] && brokenLinkHint(missing[0].hits) && {
       ...brokenLinkHint(missing[0].hits),
       text: `${missing[0].path}: ${brokenLinkHint(missing[0].hits).text}`,
@@ -100,26 +144,13 @@ const logRows = health.log.map((row) => ({
   <div class="panel">
     <h2>Do lost readers use the "where to go next" list?</h2>
     <p class="say">Clicks on the list of sections shown on the not-found page.</p>
-    <Rank rows={nextRows} empty={missing.length ? 'Nobody used it yet.' : 'No one got lost this week.'} />
+    <BarList rows={nextRows} empty={missing.length ? 'Nobody used it yet.' : 'No one got lost this week.'} />
   </div>
 
   <div class="panel">
     <h2>Which busy pages never get a click?</h2>
     <p class="say">20 views or more in 7 days, and not one click out.</p>
-    <Rank rows={silentRows} empty="Every busy page gets clicks. Good." />
+    <BarList rows={silentRows} tone="amber" empty="Every busy page gets clicks. Good." />
     <Hint hint={silent[0] && noClickHint(silent[0])} />
-  </div>
-
-  <div class="panel">
-    <h2>Is the counter healthy?</h2>
-    <Hint hint={rollupHint(lastRun?.day, yesterday)} />
-    <div class="big">{num(health.today)}<small>events counted today so far</small></div>
-    <p class="say">
-      About {num(writes)} of the {num(D1_WRITE_LIMIT)} rows D1 lets us write a day, on
-      the busiest recent day ({WRITES_PER_EVENT} per event, plus the night job).
-    </p>
-    <Hint hint={writeLoadHint(busiest)} />
-    <h2 style="margin-top:14px">The night job</h2>
-    <Rank rows={logRows} empty="The night job has not run yet." />
   </div>
 </Admin>

@@ -469,3 +469,15 @@ a 404.
 - "People" over 7 or 30 days is people per day added up, as on the old tabs.
 - Clicks from before the deploy have no `data-aff-src`, so they show as "Not marked".
 - `.dev.vars` exists locally for testing (gitignored). Delete it if you don't want it.
+
+## 8. Visual redesign (24 Sep 2026)
+
+Presentation only. Every query and every number means what it meant before.
+
+- **Look:** `src/styles/admin.css` (imported only by `Admin.astro`), in the site's night palette. One colour per meaning: blue read, violet watch, amber Amazon, green up, rose down. Every change also says "up 12%" in words.
+- **Frame:** sticky tab bar that scrolls sideways inside itself on a phone (the open tab is scrolled into view), a compact date switch (Today, 24h, 7 days, 30 days, All), and a board that is one column on a phone and two from 1000 px.
+- **New components** in `src/components/admin/`: `Kpi` (big number, change arrow, small trend line), `Spark`, `Trend` (day-by-day area chart), `Columns` (stacked column chart), `BarList` (ranked rows with a bar behind each, platform logo, "…" for long names; replaces `Rank`), `Split` (one bar in parts with a legend), `ClickFeed` (one line per click, repeats folded into "×2"), `PageFeed`, `PlatformIcon` (the site's own `/brand/` logos, letter badge fallback).
+- **Charts** are inline SVG drawn on the server by `src/lib/admin-chart.js`. No chart library, no outside request, CSP unchanged.
+- **Data added:** `dailySeries()` and `closedDaysFor()` in `admin-more.js` read at most one small row per day from `daily_totals` and `daily_actions`; today's point is worked out from totals the page already has (`withToday`), so the raw table is not read again. The Now page's "whole of today" question was split in two index-bounded ones (people from views; views and clicks per hour for the chart).
+- **Tests:** `tests/admin-chart.test.js`, 12 new (48 pass).
+- **Screenshots:** `tasks/admin-shots/` (390 px and 1366 px, local fake data).

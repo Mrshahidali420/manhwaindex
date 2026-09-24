@@ -11,6 +11,7 @@
 import { ask, askOne, dayKey } from './admin.js'
 import { actionRowsSql, quickExitsSql } from './action-sql.js'
 import { rawWhere } from './admin-data.js'
+import { fillDays } from './admin-chart.js'
 
 const holes = (list) => list.map(() => '?').join(',')
 
@@ -174,6 +175,54 @@ export async function weekPlatforms(db, w = weeks()) {
     ask(db, WEEK_PLATFORMS, w.before.from, w.before.to),
   ])
   return { now: a, before: b }
+}
+
+// ------------------------------------------------------------ day by day
+
+// The fields a trend chart can draw. `saves` is list_add from daily_actions.
+export const SERIES_FIELDS = ['views', 'visits', 'clicks', 'reads', 'watches', 'buys', 'quick_exits', 'saves']
+
+/**
+ * One row per CLOSED day from `from` to `to`, for the trend charts. Only the
+ * nightly tables are read: at most one small row per day from each, so a
+ * 30-day chart costs about 60 rows read. Quiet days come back as zeros.
+ * Today is added by the page with withToday() in src/lib/admin-chart.js,
+ * from totals it already has, so the raw table is not read again.
+ */
+export async function dailySeries(db, from, to) {
+  const [totals, saves] = await Promise.all([
+    ask(
+      db,
+      `SELECT day, views, sessions AS visits, clicks, reads, watches, buys, quick_exits
+       FROM daily_totals WHERE day >= ? AND day <= ? ORDER BY day`,
+      from,
+      to
+    ),
+    ask(
+      db,
+      `SELECT day, SUM(n) AS saves FROM daily_actions
+       WHERE day >= ? AND day <= ? AND name = 'list_add' GROUP BY day`,
+      from,
+      to
+    ),
+  ])
+  const savesBy = new Map(saves.map((row) => [row.day, row.saves || 0]))
+  return totals.map((row) => ({ ...row, saves: savesBy.get(row.day) || 0 }))
+}
+
+// How far back "All time" draws its trend. Older days stay in the totals.
+export const ALL_TIME_DAYS = 60
+
+/**
+ * The closed days of a range, one row each, zeros for quiet days. Today and
+ * "last 24 hours" have no closed days worth a line, so they get [].
+ * A page adds today's point itself: withToday() in src/lib/admin-chart.js.
+ */
+export async function closedDaysFor(db, range, now = Date.now()) {
+  if (range.mode === 'raw') return []
+  const from = range.mode === 'all' ? dayKey(ALL_TIME_DAYS, now) : range.fromDay
+  const to = dayKey(1, now)
+  return fillDays(await dailySeries(db, from, to), from, to, SERIES_FIELDS)
 }
 
 // ------------------------------------------------------------------ health

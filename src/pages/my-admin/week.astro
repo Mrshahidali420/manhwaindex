@@ -9,14 +9,25 @@
  */
 import Admin from '../../layouts/Admin.astro'
 import Hint from '../../components/admin/Hint.astro'
-import Rank from '../../components/admin/Rank.astro'
+import BarList from '../../components/admin/BarList.astro'
+import Kpi from '../../components/admin/Kpi.astro'
+import Trend from '../../components/admin/Trend.astro'
 import { envOf } from '../../lib/runtime.js'
 import { gate, rangeOf, countryName, dayKey, humanize, num, sourceName } from '../../lib/admin.js'
 import { countriesFor, pagesFor } from '../../lib/admin-data.js'
-import { actionsFor, counterHealth, quickExitsFor, weekPlatforms, weekSources, weekTotals, weeks } from '../../lib/admin-more.js'
 import {
-  changeWords,
-  change,
+  actionsFor,
+  counterHealth,
+  dailySeries,
+  quickExitsFor,
+  weekPlatforms,
+  weekSources,
+  weekTotals,
+  weeks,
+  SERIES_FIELDS,
+} from '../../lib/admin-more.js'
+import { deltaOf, fillDays, flagOf } from '../../lib/admin-chart.js'
+import {
   entryPageHint,
   missingTitleHint,
   newSourceHint,
@@ -46,9 +57,10 @@ let pages = []
 let quick = new Map()
 let misses = []
 let health = { log: [], today: 0 }
+let series = []
 
 if (signedIn) {
-  ;[totals, sources, platforms, countries, pages, quick, misses, health] = await Promise.all([
+  ;[totals, sources, platforms, countries, pages, quick, misses, health, series] = await Promise.all([
     weekTotals(db, w),
     weekSources(db, w),
     weekPlatforms(db, w),
@@ -57,8 +69,16 @@ if (signedIn) {
     quickExitsFor(db, week),
     actionsFor(db, week, ['search_none']),
     counterHealth(db),
+    // 14 small rows: the two weeks, day by day, for the trend lines.
+    dailySeries(db, w.before.from, w.now.to),
   ])
 }
+const days = fillDays(series, w.before.from, w.now.to, SERIES_FIELDS)
+const thisWeek = days.slice(-7)
+const sumOf = (list, field) => list.reduce((n, row) => n + (row[field] || 0), 0)
+const savesNow = sumOf(thisWeek, 'saves')
+const savesBefore = sumOf(days.slice(0, 7), 'saves')
+const line = (field) => days.map((row) => row[field] || 0)
 
 const a = totals.now
 const b = totals.before
@@ -67,12 +87,16 @@ const closedDays = a.days || 0
 // Senders, by visits that started from them.
 const top5 = sources.now.slice(0, 5)
 const beforeBy = new Map(sources.before.map((row) => [row.source, row]))
-const sourceRows = top5.map((row) => ({
-  name: sourceName(row.source),
-  sub: changeWords(row.entries, beforeBy.get(row.source)?.entries) || 'new this week',
-  value: row.entries || 0,
-  unit: 'visits',
-}))
+const sourceRows = top5.map((row) => {
+  const was = beforeBy.get(row.source)?.entries
+  return {
+    name: sourceName(row.source),
+    delta: deltaOf(row.entries, was),
+    sub: was ? '' : 'new this week',
+    value: row.entries || 0,
+    unit: 'visits',
+  }
+})
 
 // The platform readers pick most, this week.
 const platformTop = [...platforms.now].sort((x, y) => (y.clicks || 0) - (x.clicks || 0))[0]
@@ -96,8 +120,24 @@ const hints = topHints([
   platformTop && platformHint({ name: platformTop.platform, total: platformTop.clicks }),
 ])
 
-const pct = change(a.visits, b.visits)
-const countryTop = countries[0]?.views || 1
+const countryRows = countries.map((row) => ({
+  name: `${flagOf(row.country) ? `${flagOf(row.country)}  ` : ''}${countryName(row.country)}`,
+  value: row.views || 0,
+  unit: 'views',
+}))
+
+// Read and watch clicks per platform, this week against last week.
+const platformBefore = new Map(platforms.before.map((row) => [row.platform, row.clicks || 0]))
+const platformRows = [...platforms.now]
+  .sort((x, y) => (y.clicks || 0) - (x.clicks || 0))
+  .slice(0, 8)
+  .map((row) => ({
+    name: row.platform || 'Unknown',
+    icon: row.platform || '?',
+    delta: deltaOf(row.clicks, platformBefore.get(row.platform)),
+    value: row.clicks || 0,
+    unit: 'clicks',
+  }))
 ---
 
 <Admin
@@ -106,60 +146,58 @@ const countryTop = countries[0]?.views || 1
   signedIn={signedIn}
   secret={secret}
   wrongWord={wrongWord}
-  note={`${w.now.from} to ${w.now.to}, the last seven full days, against ${w.before.from} to ${w.before.to}.`}
+  note={`${w.now.from} to ${w.now.to}, the last seven full days, against the seven before.`}
 >
-  <div class="panel">
+  <div class="panel todo">
     <h2>What should I do today?</h2>
     {hints.length === 0 && <p class="empty">Nothing needs you today. The numbers are steady.</p>}
     {hints.map((h) => <Hint hint={h} />)}
   </div>
 
-  <div class="panel">
-    <h2>How many people came this week, and is that more than last week?</h2>
-    {closedDays === 0 && (
-      <p class="empty">No closed days yet. The night job fills this after 00:10 UTC.</p>
-    )}
-    {closedDays > 0 && (
-      <>
-        <div class="big">{num(a.visits)}<small>visits</small></div>
-        <p class={`delta ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}`}>
-          {changeWords(a.visits, b.visits) || 'Nothing to compare with yet.'}
-        </p>
-        <Rank
-          rows={[
-            { name: 'Pages opened', sub: changeWords(a.views, b.views), value: a.views || 0 },
-            { name: 'Clicks out to read, watch or buy', sub: changeWords(a.clicks, b.clicks), value: a.clicks || 0 },
-            { name: 'Left at once without a click', sub: changeWords(a.quick_exits, b.quick_exits), value: a.quick_exits || 0 },
-          ]}
-        />
-        {closedDays < 7 && <p class="say">Only {closedDays} of the 7 days are closed so far.</p>}
-      </>
-    )}
-    <Hint hint={trafficHint(a.visits, b.visits)} />
+  {closedDays === 0 ? (
+    <p class="empty wide">No closed days yet. The night job fills this after 00:10 UTC.</p>
+  ) : (
+    <section class="kpis" aria-label="This week against last week">
+      <Kpi label="Visits" value={a.visits || 0} now={a.visits} before={b.visits} spark={line('visits')} hero />
+      <Kpi label="Page views" value={a.views || 0} now={a.views} before={b.views} spark={line('views')} />
+      <Kpi label="Clicks out" value={a.clicks || 0} now={a.clicks} before={b.clicks} spark={line('clicks')} tone="amber" />
+      <Kpi label="Titles saved to lists" value={savesNow} now={savesNow} before={savesBefore} spark={line('saves')} tone="violet" />
+      <Kpi label="Left at once" value={a.quick_exits || 0} now={a.quick_exits} before={b.quick_exits} spark={line('quick_exits')} tone="bad" lowerIsBetter />
+    </section>
+  )}
+
+  <div class="panel wide">
+    <h2>How many people came, day by day?</h2>
+    <p class="say">The last 14 full days. The line is visits; the dashed line is clicks out, on its own scale.</p>
+    {closedDays > 0 && closedDays < 7 && <p class="say">Only {closedDays} of the 7 days are closed so far.</p>}
+    <Trend
+      series={days}
+      lines={[
+        { field: 'visits', name: 'Visits', tone: 'blue' },
+        { field: 'clicks', name: 'Clicks out', tone: 'amber' },
+      ]}
+      height={110}
+      label="Visits and clicks out, last 14 days"
+    />
   </div>
 
   <div class="panel">
     <h2>Where did they come from?</h2>
-    <p class="say">The five senders that started the most visits.</p>
-    <Rank rows={sourceRows} empty="No visits recorded this week yet." />
+    <p class="say">The five senders that started the most visits, against last week.</p>
+    <BarList rows={sourceRows} empty="No visits recorded this week yet." />
     <Hint hint={newSourceHint(top5, sources.before, sourceName)} />
+  </div>
+
+  <div class="panel">
+    <h2>Which platforms got the clicks?</h2>
+    <p class="say">Read and watch clicks this week, against last week.</p>
+    <BarList rows={platformRows} tone="violet" empty="No read or watch clicks this week yet." />
   </div>
 
   <div class="panel">
     <h2>Which countries?</h2>
     <p class="say">Page views, last 7 days including today. This decides which Amazon store matters.</p>
-    {countries.length === 0 && <p class="empty">Nothing yet.</p>}
-    <div class="scroll">
-      <table>
-        {countries.map((row) => (
-          <tr>
-            <td style="width:40%">{countryName(row.country)}</td>
-            <td><div class="bar" style={`width:${Math.max(2, (row.views / countryTop) * 100)}%`}></div></td>
-            <td class="num" style="width:70px">{num(row.views)}</td>
-          </tr>
-        ))}
-      </table>
-    </div>
+    <BarList rows={countryRows} empty="No page views yet." />
     <p class="more"><a href="/my-admin/sections?range=7d">Every section, source and country →</a></p>
   </div>
 </Admin>

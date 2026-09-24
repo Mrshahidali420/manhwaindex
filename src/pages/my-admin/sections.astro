@@ -4,6 +4,8 @@
  * side, so it is clear which part of the site earns its keep.
  */
 import Admin from '../../layouts/Admin.astro'
+import BarList from '../../components/admin/BarList.astro'
+import { flagOf } from '../../lib/admin-chart.js'
 import { envOf } from '../../lib/runtime.js'
 import { gate, rangeOf, countryName, fmtDwell, handOff, num, sectionName, sourceName } from '../../lib/admin.js'
 import { typesFor, countriesFor, sourcesFor, clicksFor } from '../../lib/admin-data.js'
@@ -82,9 +84,39 @@ if (bestSeen) {
   }
 }
 
-const countryTop = countries[0]?.views || 1
 const utms = sources.filter((row) => String(row.source || '').startsWith('utm:'))
+
+const sectionRows = main.concat(extra).map((card) => ({
+  name: sectionName(card.type),
+  sub: [
+    `${num(card.clicks)} clicks · ${card.rate}% hand-off`,
+    range.mode === 'all' ? '' : `${num(card.entries)} arrived first`,
+    fmtDwell(card.avg),
+    card.platforms.join(', '),
+  ].filter((part) => part && part !== '—').join(' · '),
+  value: card.views,
+  unit: 'views',
+}))
+const countryRows = countries.map((row) => ({
+  name: `${flagOf(row.country) ? `${flagOf(row.country)}  ` : ''}${countryName(row.country)}`,
+  value: row.views || 0,
+  unit: 'views',
+}))
+const sourceRows = sources.map((row) => ({
+  name: sourceName(row.source),
+  sub: `${num(row.entries)} visits started here`,
+  value: row.views || 0,
+  unit: 'views',
+}))
+const utmRows = utms.map((row) => ({
+  name: sourceName(row.source),
+  sub: `${num(row.entries)} visits started here`,
+  value: row.views || 0,
+  unit: 'views',
+  tone: 'violet',
+}))
 ---
+
 
 <Admin
   title="Sections"
@@ -96,82 +128,29 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
   wrongWord={wrongWord}
   note={`${range.label}. ${headline}`}
 >
-  <div class="panel">
-    <h2>The four libraries</h2>
+  <div class="panel wide">
+    <h2>The libraries, side by side</h2>
     <p class="say">
-      Hand-off is clicks for every 100 views. "Arrived here first" is how many
-      visits started in this part of the site.
+      Hand-off is clicks for every 100 views. "Arrived first" is how many
+      visits started in this part of the site. The names at the end are its
+      top platforms.
     </p>
-    <div class="scroll">
-    <table>
-      <tr>
-        <th>Section</th>
-        <th class="num">Views</th>
-        <th class="num">Arrived here first</th>
-        <th class="num">Clicks</th>
-        <th class="num">Hand-off</th>
-        <th class="num">Time on page</th>
-        <th>Top platforms</th>
-      </tr>
-      {main.concat(extra).map((card) => (
-        <tr>
-          <td>{sectionName(card.type)}</td>
-          <td class="num">{num(card.views)}</td>
-          <td class="num">{range.mode === 'all' ? '—' : num(card.entries)}</td>
-          <td class="num">{num(card.clicks)}</td>
-          <td class="num">{card.rate}%</td>
-          <td class="num">{fmtDwell(card.avg)}</td>
-          <td>{card.platforms.join(' · ') || '—'}</td>
-        </tr>
-      ))}
-    </table>
-    </div>
-  </div>
-
-  <div class="two">
-    <div class="panel">
-      <h2>Countries</h2>
-      <p class="say">Where your readers are. This decides which Amazon shop to show.</p>
-      {countries.length === 0 && <p class="empty">Nothing yet.</p>}
-      <div class="scroll">
-      <table>
-        {countries.map((row) => (
-          <tr>
-            <td style="width:130px">{countryName(row.country)}</td>
-            <td>
-              <div class="bar" style={`width:${Math.max(2, (row.views / countryTop) * 100)}%`}></div>
-            </td>
-            <td class="num" style="width:90px">{num(row.views)}</td>
-          </tr>
-        ))}
-      </table>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Where visitors come from</h2>
-      <p class="say">The site that sent them, or your own tagged link.</p>
-      {sources.length === 0 && <p class="empty">Nothing yet.</p>}
-      <div class="scroll">
-      <table>
-        <tr>
-          <th>Source</th>
-          <th class="num">Views</th>
-          <th class="num">Started here</th>
-        </tr>
-        {sources.map((row) => (
-          <tr>
-            <td>{sourceName(row.source)}</td>
-            <td class="num">{num(row.views)}</td>
-            <td class="num">{num(row.entries)}</td>
-          </tr>
-        ))}
-      </table>
-      </div>
-    </div>
+    <BarList rows={sectionRows} empty="Nothing yet." />
   </div>
 
   <div class="panel">
+    <h2>Countries</h2>
+    <p class="say">Where your readers are. This decides which Amazon shop to show.</p>
+    <BarList rows={countryRows} empty="Nothing yet." />
+  </div>
+
+  <div class="panel">
+    <h2>Where visitors come from</h2>
+    <p class="say">The site that sent them, or your own tagged link.</p>
+    <BarList rows={sourceRows} empty="Nothing yet." />
+  </div>
+
+  <div class="panel wide">
     <h2>Search words</h2>
     <p class="say">
       What people search for on this site, and what they could not find, is on
@@ -180,23 +159,12 @@ const utms = sources.filter((row) => String(row.source || '').startsWith('utm:')
       <a href="https://search.google.com/search-console" rel="noopener" target="_blank">Search Console</a>:
       Google never tells a website.
     </p>
-    <h2 style="margin-top:14px">Your own tagged links</h2>
+    <h3>Your own tagged links</h3>
     <p class="say">
       You can label any link you post yourself. Add
       <code>?utm_source=reddit&amp;utm_campaign=sololeveling</code> to the end of
       the address. Every visit from that link then shows below.
     </p>
-    {utms.length === 0 && <p class="empty">No tagged links used yet.</p>}
-    <div class="scroll">
-    <table>
-      {utms.map((row) => (
-        <tr>
-          <td>{sourceName(row.source)}</td>
-          <td class="num">{num(row.views)} views</td>
-          <td class="num">{num(row.entries)} started here</td>
-        </tr>
-      ))}
-    </table>
-    </div>
+    <BarList rows={utmRows} empty="No tagged links used yet." />
   </div>
 </Admin>
