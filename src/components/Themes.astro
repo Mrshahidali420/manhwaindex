@@ -9,6 +9,10 @@
  * instead opens a SEARCH for the song on YouTube, Spotify and Amazon, where
  * the official uploads and releases live. A search link claims nothing about
  * what it will find, so none of them is called "official".
+ *
+ * Each link carries data-go="song" and its own data-platform (see the click
+ * tracker in src/layouts/Base.astro), so a click reads as "song_youtube" and
+ * the like on /my-admin instead of an unlabelled "outbound_other".
  */
 import { themeLabel, songWords, episodesWords } from '../lib/answers.mjs'
 import { shopUrl, ALL } from '../lib/shop-links.js'
@@ -30,7 +34,7 @@ const listenLinks = (row) => {
     // The whole store, not a department: each store files music under its
     // own id, and a guessed one would hide the CD or download asked for.
     { label: 'Amazon', url: shopUrl(terms, ALL, country), rel: 'nofollow sponsored noopener', aff: 'music' },
-  ]
+  ].map((link) => ({ ...link, go: 'song' }))
 }
 ---
 
@@ -64,6 +68,8 @@ const listenLinks = (row) => {
                         target="_blank"
                         data-aff={link.aff}
                         data-aff-src="themes"
+                        data-go={link.go}
+                        data-platform={link.label}
                         aria-label={`Search ${link.label} for ${searchTerms(row)}`}
                       >
                         {link.label}
