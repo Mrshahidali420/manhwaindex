@@ -10,6 +10,7 @@
  * in src/lib/buy.mjs for why.
  */
 import Base from '../../../layouts/Base.astro'
+import AlsoLookFor from '../../../components/AlsoLookFor.astro'
 import BuyBox from '../../../components/BuyBox.astro'
 import TopPicks from '../../../components/TopPicks.astro'
 import { picksForTitle, picksShowFor } from '../../../lib/picks.js'
@@ -185,6 +186,8 @@ const jsonld = [
           </section>
         )
       }
+
+      <AlsoLookFor path={Astro.url.pathname} frame="answer" />
 
       <section class="answer">
         <div class="answer__head">

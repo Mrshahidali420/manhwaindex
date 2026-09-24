@@ -8,6 +8,7 @@
  * shop-links.js and hasCharacterBuyPage in gates.mjs.
  */
 import Base from '../../../layouts/Base.astro'
+import AlsoLookFor from '../../../components/AlsoLookFor.astro'
 import BuyBox from '../../../components/BuyBox.astro'
 import TopPicks from '../../../components/TopPicks.astro'
 import { picksForPerson, picksShowFor } from '../../../lib/picks.js'
@@ -203,6 +204,8 @@ const jsonld = [
           </section>
         )
       }
+
+      <AlsoLookFor path={Astro.url.pathname} frame="answer" />
 
       <section class="answer">
         <div class="answer__head">

@@ -20,6 +20,9 @@ import TopPicks from '../../components/TopPicks.astro'
 import { picksForPerson, picksShowFor } from '../../lib/picks.js'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { displayName } from '../../lib/names.mjs'
+import Namesakes from '../../components/Namesakes.astro'
+import { storyName } from '../../lib/namesakes.mjs'
+import AlsoLookFor from '../../components/AlsoLookFor.astro'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
 let person
@@ -37,6 +40,11 @@ if (!person || !person.image || !person.appearsIn?.length) return notFound(Astro
 // `formal` is the AniList name when it differs, `alternates` every other name.
 // See names.mjs for the exact rule. For most characters nothing changes.
 const { primary, formal, alternates } = displayName(person)
+
+// A better-known character owns this name, so the namesake list moves up under
+// the title: a reader who searched for the famous one finds it before
+// scrolling. Worked out at build time (src/lib/namesakes.mjs).
+const namesakesHigh = !!person.namesakesHigh && person.namesakes?.length > 0
 
 // Character pages that are being TESTED with the newer wording. Every branch
 // below that reads this Set is a change with no evidence behind it yet.
@@ -364,6 +372,9 @@ const jsonld = {
         {alternates.length > 0 && (
           <p class="person__alias">Also known as {alternates.join(' · ')}</p>
         )}
+        {namesakesHigh && (
+          <Namesakes name={primary} people={person.namesakes} high here={storyName(lead.title)} />
+        )}
         <p>
           {primary} is a {lead.role === 'MAIN' ? 'main character' : 'character'} in the {word}{' '}
           <a href={`/${leadKind}/${lead.slug}`}>{lead.title}</a>
@@ -468,25 +479,12 @@ const jsonld = {
 
     {/* Other pages that share this name, worked out at build time by
         make-shards.mjs (the Worker never holds the whole cast). A reader who
-        searched "Luna" may want a different Luna; this is the way across. */}
-    {person.namesakes?.length > 0 && (
-      <section class="section">
-        <div class="section__head">
-          <h2>Other characters named {primary}</h2>
-          <p>Same name, a different story. Open one to see where they turn up.</p>
-        </div>
-        <ul class="appears">
-          {person.namesakes.map((other) => (
-            <li>
-              <a href={`/character/${other.slug}`}>
-                <img src={other.image} alt={`${other.name} portrait`} width="46" height="64" loading="lazy" decoding="async" />
-                <span><b>{other.name}</b>{other.series && <span>{other.series}</span>}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
-    )}
+        searched "Luna" may want a different Luna; this is the way across.
+        On the famous one's page it waits down here; on a lesser one's page
+        it sits under the title instead (see namesakesHigh above). */}
+    {!namesakesHigh && <Namesakes name={primary} people={person.namesakes} />}
+
+    <AlsoLookFor path={Astro.url.pathname} />
 
     {faq.length > 0 && (
       <section class="section">

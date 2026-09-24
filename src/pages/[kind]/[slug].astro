@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro'
+import AlsoLookFor from '../../components/AlsoLookFor.astro'
 import Platforms from '../../components/Platforms.astro'
 import Countdown from '../../components/Countdown.astro'
 import CoverGrid from '../../components/CoverGrid.astro'
@@ -716,6 +717,8 @@ const updatedLong = checkedLong
       }
 
       {!isComic && <Themes themes={item.themes} title={item.title} country={countryOf(Astro)} />}
+
+      <AlsoLookFor path={Astro.url.pathname} frame="answer" />
 
       {
         faq.length > 0 && (

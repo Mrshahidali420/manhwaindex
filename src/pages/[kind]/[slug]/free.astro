@@ -8,6 +8,7 @@
  * disagree with it. See src/lib/answers.mjs.
  */
 import Base from '../../../layouts/Base.astro'
+import AlsoLookFor from '../../../components/AlsoLookFor.astro'
 import Platforms from '../../../components/Platforms.astro'
 import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
@@ -261,6 +262,8 @@ const jsonld = [
           </section>
         )
       }
+
+      <AlsoLookFor path={Astro.url.pathname} frame="answer" />
 
       <section class="answer">
         <div class="answer__head">

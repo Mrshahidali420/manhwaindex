@@ -7,6 +7,7 @@
  * page writes itself for a title added tomorrow. See src/lib/answers.mjs.
  */
 import Base from '../../../layouts/Base.astro'
+import AlsoLookFor from '../../../components/AlsoLookFor.astro'
 import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { likeAnswer, verbOf, wordOf, listWords } from '../../../lib/answers.mjs'
@@ -153,6 +154,8 @@ const jsonld = [
           </section>
         ))
       }
+
+      <AlsoLookFor path={Astro.url.pathname} frame="answer" />
 
       {
         buys.length > 0 && (

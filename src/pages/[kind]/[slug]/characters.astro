@@ -10,6 +10,7 @@
  * the same page for free.
  */
 import Base from '../../../layouts/Base.astro'
+import AlsoLookFor from '../../../components/AlsoLookFor.astro'
 import { loadTitle, envOf, notFound, unavailable } from '../../../lib/runtime.js'
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { verbOf, wordOf } from '../../../lib/answers.mjs'
@@ -164,6 +165,8 @@ const jsonld = [
           </section>
         )
       }
+
+      <AlsoLookFor path={Astro.url.pathname} frame="answer" />
 
       <a class="crosslink" href={home}>
         <div>

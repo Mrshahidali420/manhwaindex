@@ -1,0 +1,333 @@
+{
+  "updated": "2026-09-24",
+  "baseline": [
+    {
+      "target": "/character/roswaal-mathers",
+      "source": "/character/ram",
+      "query": "roswaal",
+      "pos": 10.31,
+      "impr": 445,
+      "clicks": 1
+    },
+    {
+      "target": "/character/falco-grice",
+      "source": "/character/ilse-langnar/buy",
+      "query": "falco grice",
+      "pos": 9.88,
+      "impr": 358,
+      "clicks": 0
+    },
+    {
+      "target": "/character/eiji-date",
+      "source": "/character/hiroko-makunouchi",
+      "query": "eiji date",
+      "pos": 8.43,
+      "impr": 245,
+      "clicks": 0
+    },
+    {
+      "target": "/character/eiji-date",
+      "source": "/character/keigo-okita/buy",
+      "query": "eiji date",
+      "pos": 8.43,
+      "impr": 245,
+      "clicks": 0
+    },
+    {
+      "target": "/character/frederica-baumann",
+      "source": "/character/ram",
+      "query": "frederica re zero",
+      "pos": 10.34,
+      "impr": 199,
+      "clicks": 0
+    },
+    {
+      "target": "/character/ricardo-welkin",
+      "source": "/character/ram",
+      "query": ".. . . .. . ricardo re",
+      "pos": 8.19,
+      "impr": 126,
+      "clicks": 0
+    },
+    {
+      "target": "/character/gabi-braun",
+      "source": "/character/ilse-langnar/buy",
+      "query": "gabi braun",
+      "pos": 11.63,
+      "impr": 124,
+      "clicks": 0
+    },
+    {
+      "target": "/character/majikaja",
+      "source": "/character/shiggy/buy",
+      "query": "majikaja",
+      "pos": 8.73,
+      "impr": 123,
+      "clicks": 0
+    },
+    {
+      "target": "/anime/call-of-the-night/characters",
+      "source": "/character/akira-asai/buy",
+      "query": "call of the night characters",
+      "pos": 8.41,
+      "impr": 105,
+      "clicks": 0
+    },
+    {
+      "target": "/character/shallow-vernal",
+      "source": "/manga/i-got-caught-up-in-a-hero-summons-but-the-other-world-was-at-peace/like",
+      "query": "shallow vernal",
+      "pos": 8.83,
+      "impr": 101,
+      "clicks": 0
+    },
+    {
+      "target": "/character/jiruo",
+      "source": "/character/shiggy/buy",
+      "query": "jiruo",
+      "pos": 9.29,
+      "impr": 98,
+      "clicks": 0
+    },
+    {
+      "target": "/character/tear",
+      "source": "/character/suphia/buy",
+      "query": "tear slime",
+      "pos": 9.09,
+      "impr": 88,
+      "clicks": 0
+    },
+    {
+      "target": "/character/dadan-curly",
+      "source": "/character/marguerite",
+      "query": "dadan one piece",
+      "pos": 15.99,
+      "impr": 73,
+      "clicks": 0
+    },
+    {
+      "target": "/character/zeke",
+      "source": "/character/ilse-langnar/buy",
+      "query": "zeke manhwa character",
+      "pos": 8,
+      "impr": 69,
+      "clicks": 0
+    },
+    {
+      "target": "/anime/banana-fish/characters",
+      "source": "/character/shorter-wong",
+      "query": "banana fish characters",
+      "pos": 9.96,
+      "impr": 47,
+      "clicks": 0
+    },
+    {
+      "target": "/character/misa-ilioroagu",
+      "source": "/character/anos-voldigoad",
+      "query": "misa misfit of demon king academy",
+      "pos": 8.5,
+      "impr": 46,
+      "clicks": 0
+    },
+    {
+      "target": "/character/misa-ilioroagu",
+      "source": "/character/eldora-zaia",
+      "query": "misa misfit of demon king academy",
+      "pos": 8.5,
+      "impr": 46,
+      "clicks": 0
+    },
+    {
+      "target": "/character/misa-ilioroagu",
+      "source": "/character/revest-aynie",
+      "query": "misa misfit of demon king academy",
+      "pos": 8.5,
+      "impr": 46,
+      "clicks": 0
+    },
+    {
+      "target": "/character/galand",
+      "source": "/character/gilthunder",
+      "query": "galand seven deadly sins",
+      "pos": 9.98,
+      "impr": 44,
+      "clicks": 0
+    },
+    {
+      "target": "/character/chianti",
+      "source": "/character/josei-kyaku",
+      "query": "chianti detective conan",
+      "pos": 10.39,
+      "impr": 44,
+      "clicks": 0
+    },
+    {
+      "target": "/character/fuji-kiseki",
+      "source": "/anime/umamusume-pretty-derby/free",
+      "query": "fuji kiseki star blossom",
+      "pos": 12.62,
+      "impr": 42,
+      "clicks": 0
+    },
+    {
+      "target": "/character/vesta",
+      "source": "/character/suphia/buy",
+      "query": "vesta slime",
+      "pos": 9.29,
+      "impr": 38,
+      "clicks": 0
+    },
+    {
+      "target": "/manga/romantic-killer/characters",
+      "source": "/anime/romantic-killer/buy",
+      "query": "romantic killer characters",
+      "pos": 8.11,
+      "impr": 36,
+      "clicks": 0
+    },
+    {
+      "target": "/character/drakon",
+      "source": "/character/judar/buy",
+      "query": "dragul magi",
+      "pos": 9.23,
+      "impr": 35,
+      "clicks": 0
+    },
+    {
+      "target": "/character/asuka-connell",
+      "source": "/character/lyra",
+      "query": "asuka fairy tail",
+      "pos": 9.07,
+      "impr": 30,
+      "clicks": 0
+    },
+    {
+      "target": "/character/haruka-ogasawara",
+      "source": "/anime/sound-euphonium-the-movie-our-promise-a-brand-new-day/free",
+      "query": "haruka ogasawara",
+      "pos": 8.41,
+      "impr": 29,
+      "clicks": 0
+    },
+    {
+      "target": "/character/captain-harlock",
+      "source": "/anime/galaxy-express-999/like",
+      "query": "captain harlock",
+      "pos": 11.07,
+      "impr": 29,
+      "clicks": 0
+    },
+    {
+      "target": "/character/nokkers",
+      "source": "/character/nand",
+      "query": "nokkers",
+      "pos": 8.73,
+      "impr": 26,
+      "clicks": 0
+    },
+    {
+      "target": "/manga/mob-psycho-100/characters",
+      "source": "/character/rei-kurosaki",
+      "query": "mob psycho characters",
+      "pos": 11.71,
+      "impr": 24,
+      "clicks": 0
+    },
+    {
+      "target": "/anime/made-in-abyss/characters",
+      "source": "/character/shiggy/buy",
+      "query": "made in abyss characters",
+      "pos": 9.61,
+      "impr": 23,
+      "clicks": 0
+    },
+    {
+      "target": "/character/rebecca",
+      "source": "/character/marguerite",
+      "query": "rebecca manga cyberpunk",
+      "pos": 8.82,
+      "impr": 22,
+      "clicks": 1
+    },
+    {
+      "target": "/anime/gangsta/free",
+      "source": "/character/theo",
+      "query": "gangsta where to watch anime",
+      "pos": 11.55,
+      "impr": 22,
+      "clicks": 2
+    },
+    {
+      "target": "/character/kumara",
+      "source": "/character/suphia/buy",
+      "query": "kumara fox",
+      "pos": 8.4,
+      "impr": 20,
+      "clicks": 0
+    },
+    {
+      "target": "/character/frances-midford",
+      "source": "/character/lau/buy",
+      "query": "black butler francis",
+      "pos": 9.25,
+      "impr": 20,
+      "clicks": 0
+    },
+    {
+      "target": "/character/alma",
+      "source": "/anime/alma-chan-wants-to-be-a-family/like",
+      "query": "alma gokurakugai",
+      "pos": 8.17,
+      "impr": 18,
+      "clicks": 0
+    },
+    {
+      "target": "/character/alicia-rue",
+      "source": "/character/verdandi",
+      "query": "sao alicia rue",
+      "pos": 9.72,
+      "impr": 18,
+      "clicks": 0
+    },
+    {
+      "target": "/character/exusiai",
+      "source": "/character/ethan",
+      "query": "exusiai",
+      "pos": 9,
+      "impr": 17,
+      "clicks": 0
+    },
+    {
+      "target": "/character/serpo-seijin",
+      "source": "/character/kinta-sakata/buy",
+      "query": "serpo anime",
+      "pos": 9.06,
+      "impr": 16,
+      "clicks": 0
+    },
+    {
+      "target": "/manga/the-angel-next-door-spoils-me-rotten/characters",
+      "source": "/manga/the-angel-next-door-spoils-me-rotten/free",
+      "query": "the angel next door spoils me rotten characters",
+      "pos": 9.38,
+      "impr": 16,
+      "clicks": 0
+    },
+    {
+      "target": "/anime/the-100-girlfriends-who-really-really-really-really-really-love-you-season-2/characters",
+      "source": "/manga/the-100-girlfriends-who-really-really-really-really-really-love-you",
+      "query": "the 100 girlfriends all characters",
+      "pos": 8.13,
+      "impr": 15,
+      "clicks": 0
+    },
+    {
+      "target": "/character/hayate-ayasaki",
+      "source": "/character/ryuu",
+      "query": "hayate ayasaki",
+      "pos": 8.8,
+      "impr": 15,
+      "clicks": 0
+    }
+  ]
+}
