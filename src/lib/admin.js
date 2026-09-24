@@ -284,3 +284,31 @@ export function handOff(clicks, views) {
 export function words(name) {
   return String(name || '').replace(/_/g, ' ')
 }
+
+/** What an Amazon link was for, said as a word. Top picks carry a pick_
+ * prefix and their own kinds (plush, poster). Shared by the click feed on Now
+ * and the Money tab, so the two never name the same click differently. */
+const SHOPS = {
+  books: 'Manga and books',
+  book: 'Manga and books',
+  figures: 'Figures',
+  figure: 'Figures',
+  discs: 'Blu-ray and DVD',
+  prints: 'Art prints',
+  poster: 'Posters',
+  plush: 'Plushies',
+  apparel: 'Clothes',
+  merch: 'Merch',
+}
+export function shopName(kind) {
+  const bare = String(kind || 'merch').replace(/^pick_/, '')
+  return SHOPS[bare] || words(bare)
+}
+
+/** Where an Amazon link sat on the page. */
+export const SPOTS = {
+  pick: 'Top picks',
+  buybox: 'Buy box',
+  shop: 'Shop page',
+  themes: 'Theme songs box',
+}

@@ -6,21 +6,37 @@
  *
  * The same link tapped twice in the same minute from the same page is one
  * line with "×2" (groupRepeats in src/lib/admin-chart.js).
+ *
+ * An Amazon click says what it was for and where it sat: "Amazon · Buy
+ * Figures", then "on Solo Leveling · Top picks · Manhwa · United States". Its
+ * `label` is only the button's words ("Printed volumes"), so it is never used
+ * as the page name.
  */
 import PlatformIcon from './PlatformIcon.astro'
-import { clock, countryName, humanize, sectionName, words } from '../../lib/admin.js'
+import { SPOTS, clock, countryName, humanize, sectionName, shopName, words } from '../../lib/admin.js'
 import { clickKey, flagOf, groupRepeats } from '../../lib/admin-chart.js'
 
 const { rows = [], empty = 'No clicks yet.' } = Astro.props
 const TONE = { read: 'blue', watch: 'violet', buy: 'amber' }
 const WORD = { read: 'Read', watch: 'Watch', buy: 'Buy', other: 'Other link' }
-const lines = groupRepeats(rows, clickKey).map((row) => ({
-  ...row,
-  who: row.platform || row.label || words(row.name),
-  from: humanize(row.path, ''),
-  flag: flagOf(row.country),
-  where: row.country ? countryName(row.country) : '',
-}))
+const lines = groupRepeats(rows, clickKey).map((row) => {
+  const isBuy = row.kind === 'buy'
+  const page = humanize(row.path, '')
+  const flag = flagOf(row.country)
+  const where = row.country ? `${flag ? `${flag} ` : ''}${countryName(row.country)}` : ''
+  return {
+    ...row,
+    who: row.platform || row.label || words(row.name),
+    // Read and watch: the page the reader was on. Buy: what they went to buy.
+    what: isBuy ? `Buy ${shopName(row.shop_kind)}` : page,
+    meta: [
+      isBuy ? `on ${page}` : '',
+      isBuy ? SPOTS[row.detail] || '' : '',
+      sectionName(row.page_type),
+      where,
+    ].filter(Boolean).join(' · '),
+  }
+})
 ---
 
 {lines.length === 0 && <p class="empty">{empty}</p>}
@@ -39,19 +55,16 @@ const lines = groupRepeats(rows, clickKey).map((row) => ({
           <time datetime={new Date(row.ts).toISOString()}>{clock(row.ts).replace(' UTC', '')}</time>
           <PlatformIcon name={row.who} />
           <span class="what">
-            <span class="line1" title={`${row.who} · ${row.from}`}>
+            <span class="line1" title={`${row.who} · ${row.what}`}>
               <span class="sr-only">{WORD[row.kind] || row.kind}: </span>
               {row.target ? (
                 <a href={row.target} rel="noopener nofollow" target="_blank">{row.who}</a>
               ) : (
                 <strong>{row.who}</strong>
               )}
-              {' · '}{row.from}
+              {' · '}{row.what}
             </span>
-            <span class="meta">
-              {sectionName(row.page_type)}
-              {row.where && ` · ${row.flag ? `${row.flag} ` : ''}${row.where}`}
-            </span>
+            <span class="meta" title={row.meta}>{row.meta}</span>
           </span>
           {row.count > 1 ? (
             <span class="count" title={`${row.count} clicks in the same minute`}>×{row.count}</span>

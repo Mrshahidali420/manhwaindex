@@ -77,7 +77,7 @@ if (signedIn) {
     ),
     ask(
       db,
-      `SELECT ts, name, kind, path, label, page_type, platform, country, target
+      `SELECT ts, name, kind, path, label, page_type, platform, shop_kind, detail, country, target
        FROM events WHERE ${RECENT} AND ${CLICK} ORDER BY ts DESC LIMIT 30`
     ),
     // Addresses people asked for that are not here. Grouped, because one bad

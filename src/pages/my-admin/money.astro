@@ -12,7 +12,7 @@ import BarList from '../../components/admin/BarList.astro'
 import Columns from '../../components/admin/Columns.astro'
 import Kpi from '../../components/admin/Kpi.astro'
 import { envOf } from '../../lib/runtime.js'
-import { gate, ask, rangeOf, countryName, handOff, humanize, num, sectionName, words } from '../../lib/admin.js'
+import { gate, ask, rangeOf, countryName, handOff, humanize, num, sectionName, shopName } from '../../lib/admin.js'
 import { clicksFor, rawWhere, totalsFor } from '../../lib/admin-data.js'
 import { actionsFor, closedDaysFor, tally, weekPlatforms } from '../../lib/admin-more.js'
 import { platformHint } from '../../lib/admin-hints.js'
@@ -28,20 +28,7 @@ if (secret && !signedIn && Astro.request.method !== 'POST') {
 
 const range = rangeOf(Astro.url)
 
-/** A shop kind, said as a word. Top picks carry a pick_ prefix. */
-const SHOPS = {
-  books: 'Books and volumes',
-  figures: 'Figures and statues',
-  discs: 'Blu-ray and DVD',
-  prints: 'Art prints',
-  apparel: 'Clothes',
-  merch: 'Other merchandise',
-}
-const shopName = (kind) => {
-  const bare = String(kind || 'merch').replace(/^pick_/, '')
-  return SHOPS[bare] || words(bare)
-}
-/** Where an Amazon link sat on the page. */
+/** Where an Amazon link sat, with the longer words this tab has room for. */
 const SPOTS = {
   pick: 'Top picks (hand-picked)',
   buybox: 'BuyBox on a title page',
