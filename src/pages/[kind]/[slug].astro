@@ -54,11 +54,6 @@ const links = isComic ? item.readLinks : item.watchLinks
 // count above it has to be counted the same way.
 const siteCount = new Set((links || []).map((l) => l.site)).size
 
-// Full Bloom already ranks near the top of Google, so that one page keeps
-// the shape it had. Everything new here is switched off for it.
-// Google ranks it at /manga/full-bloom; until 24 Sep this checked /manhwa/,
-// a page that does not exist, so the freeze never applied.
-const isProtected = kind === 'manga' && slug === 'full-bloom'
 const related = isComic ? item.animeInIndex : item.comicInIndex
 
 // The page title is written the way people actually type the search.
@@ -86,16 +81,14 @@ const platformNames = [...new Set(links.map((l) => l.site))]
 
 // The quick numbers strip under the title. Only real numbers go in it.
 const freeNow = freeSplit(links).free.length
-const quickStats = isProtected
-  ? []
-  : [
-      item.score ? ['Score', (item.score / 10).toFixed(1), true] : null,
-      isComic && item.chapters ? ['Chapters', String(item.chapters), false] : null,
-      !isComic && item.episodes ? ['Episodes', String(item.episodes), false] : null,
-      siteCount ? ['Legal sites', String(siteCount), false] : null,
-      freeNow ? ['Free tier', String(freeNow), false] : null,
-      item.startYear ? [isComic ? 'Started' : 'First aired', String(item.startYear), false] : null,
-    ].filter(Boolean)
+const quickStats = [
+  item.score ? ['Score', (item.score / 10).toFixed(1), true] : null,
+  isComic && item.chapters ? ['Chapters', String(item.chapters), false] : null,
+  !isComic && item.episodes ? ['Episodes', String(item.episodes), false] : null,
+  siteCount ? ['Legal sites', String(siteCount), false] : null,
+  freeNow ? ['Free tier', String(freeNow), false] : null,
+  item.startYear ? [isComic ? 'Started' : 'First aired', String(item.startYear), false] : null,
+].filter(Boolean)
 
 // Our own words, written at build time from the facts in the record. This is
 // the main text of the page. See src/lib/prose.mjs.
@@ -197,7 +190,7 @@ const buys = shopLinks(item, countryOf(Astro))
 // Real products picked by hand for the biggest series, shown only to readers on
 // amazon.com (see src/lib/picks.js). A sequel or an adaptation borrows the
 // picks of its own story, and the heading then names that story.
-const picked = !isProtected && picksShowFor(countryOf(Astro)) ? picksForTitle(item) : null
+const picked = picksShowFor(countryOf(Astro)) ? picksForTitle(item) : null
 
 // An anime's key credits (director, writer, designer, composer), from AniList.
 // Grouped by role so two composers share one row. Empty on a comic and on any
@@ -466,8 +459,8 @@ const updatedLong = checkedLong
       {/* On a computer it sits under the cover and scores, and stays in view
           with the sticky rail. On a phone the rail flattens (display:
           contents), so it takes its own full-width row under the cover.
-          Drawn from the reader's own browser; Full Bloom keeps its old shape. */}
-      {!isProtected && <MyListButton item={item} ns={kind} />}
+          Drawn from the reader's own browser. */}
+      <MyListButton item={item} ns={kind} />
     </div>
 
     <header class="title-head">
@@ -495,18 +488,16 @@ const updatedLong = checkedLong
 
     <div class="title-body">
 
-      {!isProtected && (
-        <ul class="pills">
-          <li class={item.status === 'RELEASING' ? 'pill pill--live' : 'pill'}>
-            {statusWord(item.status)}
+      <ul class="pills">
+        <li class={item.status === 'RELEASING' ? 'pill pill--live' : 'pill'}>
+          {statusWord(item.status)}
+        </li>
+        {siteCount > 0 && (
+          <li class="pill">
+            {siteCount} legal {siteCount === 1 ? 'place' : 'places'} to {isComic ? 'read' : 'watch'}
           </li>
-          {siteCount > 0 && (
-            <li class="pill">
-              {siteCount} legal {siteCount === 1 ? 'place' : 'places'} to {isComic ? 'read' : 'watch'}
-            </li>
-          )}
-        </ul>
-      )}
+        )}
+      </ul>
 
       {quickStats.length > 2 && (
         <div class="stats">
@@ -729,25 +720,14 @@ const updatedLong = checkedLong
               <h2>Common questions</h2>
               <p>Answered from the same facts as the table above.</p>
             </div>
-            {isProtected ? (
-              <dl class="qa">
-                {faq.map((row) => (
-                  <div>
-                    <dt>{row.q}</dt>
-                    <dd>{row.a}</dd>
-                  </div>
-                ))}
-              </dl>
-            ) : (
-              <div class="qa2">
-                {faq.map((row, i) => (
-                  <details open={i === 0}>
-                    <summary>{row.q}</summary>
-                    <p class="qa2__a">{row.a}</p>
-                  </details>
-                ))}
-              </div>
-            )}
+            <div class="qa2">
+              {faq.map((row, i) => (
+                <details open={i === 0}>
+                  <summary>{row.q}</summary>
+                  <p class="qa2__a">{row.a}</p>
+                </details>
+              ))}
+            </div>
           </section>
         )
       }
@@ -867,7 +847,7 @@ const updatedLong = checkedLong
               <h2>{order.heading}</h2>
               <p>{order.line}</p>
             </div>
-            <ol class={isProtected ? 'order' : 'order order--tl'}>
+            <ol class="order order--tl">
               {order.chain.map((partOf) => (
                 <li class={partOf.self ? 'order__step order__step--self' : 'order__step'}>
                   <span class="order__name">
@@ -964,7 +944,7 @@ const updatedLong = checkedLong
               <h2>Readers of {item.title} picked these next</h2>
               <p>Voted for by AniList readers who finished this one. Open any of them to see where to read or watch it legally.</p>
             </div>
-            <CoverGrid items={recs} badges={!isProtected} />
+            <CoverGrid items={recs} badges />
           </section>
         )
       }
@@ -978,7 +958,7 @@ const updatedLong = checkedLong
                 ? `${similarOpen} of these ${similarOpen === 1 ? 'has' : 'have'} an official place to ${isComic ? 'read' : 'watch'} right now. Closest by genre, most-read first.`
                 : `Closest ${word} by genre, most-read first.`}</p>
             </div>
-            <CoverGrid items={similar} base={similarBase} badges={!isProtected} />
+            <CoverGrid items={similar} base={similarBase} badges />
           </section>
         )
       }

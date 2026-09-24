@@ -800,30 +800,28 @@ const graph = nodes.length > 0 ? { '@context': 'https://schema.org', '@graph': n
       </div>
     </footer>
 
-    {here !== '/manga/full-bloom' && (
-      <nav class="dock" aria-label="Quick links">
-        <a href="/" class={here === '/' ? 'dock__on' : undefined}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>
-          Home
-        </a>
-        <a href="/where-to-read" class={here === '/where-to-read' ? 'dock__on' : undefined}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z" /><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" /></svg>
-          Read
-        </a>
-        <a href="/where-to-watch" class={here === '/where-to-watch' ? 'dock__on' : undefined}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></svg>
-          Watch
-        </a>
-        <a href="/genre" class={here === '/genre' ? 'dock__on' : undefined}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></svg>
-          Genres
-        </a>
-        <a href="/shop" class={here === '/shop' ? 'dock__on' : undefined}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l1 13H5z" /><path d="M9 10V6a3 3 0 0 1 6 0v4" /></svg>
-          Shop
-        </a>
-      </nav>
-    )}
+    <nav class="dock" aria-label="Quick links">
+      <a href="/" class={here === '/' ? 'dock__on' : undefined}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>
+        Home
+      </a>
+      <a href="/where-to-read" class={here === '/where-to-read' ? 'dock__on' : undefined}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z" /><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" /></svg>
+        Read
+      </a>
+      <a href="/where-to-watch" class={here === '/where-to-watch' ? 'dock__on' : undefined}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></svg>
+        Watch
+      </a>
+      <a href="/genre" class={here === '/genre' ? 'dock__on' : undefined}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></svg>
+        Genres
+      </a>
+      <a href="/shop" class={here === '/shop' ? 'dock__on' : undefined}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l1 13H5z" /><path d="M9 10V6a3 3 0 0 1 6 0v4" /></svg>
+        Shop
+      </a>
+    </nav>
 
     <script>
       // Header search. The index is cut into slices, so typing "to" downloads
