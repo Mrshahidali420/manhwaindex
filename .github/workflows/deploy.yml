@@ -217,6 +217,16 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
         run: node scripts/pull-airing.mjs
 
+      # Which WhereAnime pages are live (sister-data/anime/where-links.json,
+      # written by WhereAnime after each deploy), so anime and character pages
+      # link only to pages that exist. Read only; never fails a deploy.
+      - name: Read WhereAnime's live pages
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+        run: node scripts/pull-where-links.mjs
+
       # The catalog grew to ~107,000 titles and each record now carries the
       # backfilled fields too. Both make-shards and astro build hold the whole
       # thing in memory, and the default 2 GB heap is no longer enough: the

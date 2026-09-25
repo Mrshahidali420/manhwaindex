@@ -30,6 +30,7 @@ import { buildOverview } from '../src/lib/prose.mjs'
 import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage, hasCharacterBuyPage } from '../src/lib/gates.mjs'
 import { hubSeasonKeys, seasonKeyOf } from '../src/lib/season-core.mjs'
 import { indexAiring, attachEpisodes } from '../src/lib/episodes.mjs'
+import { indexWhereLinks, attachWhereLinks } from '../src/lib/where-links.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -107,6 +108,26 @@ function readAiring() {
     return airing
   } catch (error) {
     console.log(`  data/airing.json is unreadable (${error.message}). Building without episode lists.`)
+    return null
+  }
+}
+
+/**
+ * WhereAnime's live pages from data/where-links.json (scripts/pull-where-links.mjs),
+ * or null. Optional like airing.json: without it the pages build with no
+ * WhereAnime links.
+ */
+function readWhereLinks() {
+  if (!existsSync(join(ROOT, 'data', 'where-links.json'))) {
+    console.log('  no data/where-links.json. Building without WhereAnime links.')
+    return null
+  }
+  try {
+    const links = indexWhereLinks(read('where-links.json'))
+    if (!links) console.log('  data/where-links.json is not a where-links file. Building without WhereAnime links.')
+    return links
+  } catch (error) {
+    console.log(`  data/where-links.json is unreadable (${error.message}). Building without WhereAnime links.`)
     return null
   }
 }
@@ -636,7 +657,7 @@ async function main() {
   // A blocked title never reaches a shard, so the Worker answers 404 for it.
   const comics = dropBlockedRows(dropBlocked(read('comics.json')))
   let anime = dropBlockedRows(dropBlocked(read('anime.json')))
-  const characters = read('characters.json')
+  let characters = read('characters.json')
   since('read json')
   // Slugs come from the registry make-redirects.mjs just saved. Frozen: a page
   // it did not register is an error here, never a fresh slug of our own.
@@ -651,6 +672,10 @@ async function main() {
   const animeWithThemes = attachThemes(anime)
   const episodes = attachEpisodes(anime, readAiring())
   anime = episodes.anime
+  // After reslug: the character rows must already carry their final slugs.
+  const where = attachWhereLinks(anime, characters, readWhereLinks())
+  anime = where.anime
+  characters = where.characters
   since('enrich')
 
   rmSync(OUT, { recursive: true, force: true })
@@ -738,6 +763,7 @@ async function main() {
   console.log(`MAL extras folded into ${titlesWithExtras} of ${titles.length} records`)
   console.log(`song lists folded into ${animeWithThemes} of ${anime.length} anime`)
   console.log(`episode lists folded into ${episodes.count} of ${anime.length} anime`)
+  console.log(`WhereAnime links on ${where.titles} anime and ${where.voices} character voice rows`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`list rows  ${titles.length} in ${l.count} shards, ${mb(l.bytes)}, biggest ${(l.biggest / 1024).toFixed(0)} KB`)
   console.log(`feed pool  ${feed.items} titles, ${feed.airing} airing, ${(feed.bytes / 1024).toFixed(0)} KB`)

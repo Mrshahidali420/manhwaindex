@@ -3339,6 +3339,25 @@ main:has(.title-page) {
   text-underline-offset: 3px;
 }
 
+/* One plain line pointing to the sister site's deeper page (WhereAnime). */
+.sister-link {
+  margin: 0 0 1.25rem;
+  font-size: 0.92rem;
+}
+.sister-link a {
+  color: var(--cobalt-bright);
+  text-decoration: none;
+}
+.sister-link a::after {
+  content: ' →';
+}
+.sister-link a:hover,
+.sister-link a:focus-visible {
+  color: var(--day);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .sched {
   margin: 0 0 1.75rem;
 }

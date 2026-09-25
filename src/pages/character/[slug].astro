@@ -24,6 +24,7 @@ import Namesakes from '../../components/Namesakes.astro'
 import { storyName } from '../../lib/namesakes.mjs'
 import AlsoLookFor from '../../components/AlsoLookFor.astro'
 import { ageOf } from '../../lib/age.mjs'
+import { whereVoiceActorUrl } from '../../lib/where-links.mjs'
 
 // Rendered by the Worker on request, so the cast list has no ceiling.
 let person
@@ -159,6 +160,12 @@ const height = parseHeight(person.description)
 const voiced = person.appearsIn.find((a) => a.voice) || null
 // The English dub, from the same kind of row. Absent until the anime carries it.
 const voicedEn = person.appearsIn.find((a) => a.voiceEn) || null
+// Each voice actor's own page on the sister site, where WhereAnime has one
+// live (src/lib/where-links.mjs). The same person twice gets one link.
+const voiceLinks = [
+  voiced?.voiceWhere ? { name: voiced.voice, slug: voiced.voiceWhere } : null,
+  voicedEn?.voiceEnWhere ? { name: voicedEn.voiceEn, slug: voicedEn.voiceEnWhere } : null,
+].filter((row, i, rows) => row && rows.findIndex((r) => r?.slug === row.slug) === i)
 
 // AniList's age as a person would say it: "17-" becomes "17 or older".
 const age = ageOf(person.age)?.text || ''
@@ -393,6 +400,11 @@ const jsonld = {
             <div><dt>{term}</dt><dd>{value}</dd></div>
           ))}
         </dl>
+        {voiceLinks.map((va) => (
+          <p class="sister-link">
+            <a href={whereVoiceActorUrl(va.slug)}>All roles of {va.name} on WhereAnime</a>
+          </p>
+        ))}
         {genres.length > 0 && (
           <div class="chips">
             {genres.map((genre) => (

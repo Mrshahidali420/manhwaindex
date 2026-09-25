@@ -50,5 +50,9 @@ data/themes.json
 # (scripts/pull-airing.mjs). Never cached: a missing file only hides the lists.
 data/airing.json
 
+# WhereAnime's live pages, read from R2 before each build
+# (scripts/pull-where-links.mjs). Never cached: a missing file only hides the links.
+data/where-links.json
+
 # Local secrets for `wrangler dev`. Never committed.
 .dev.vars
