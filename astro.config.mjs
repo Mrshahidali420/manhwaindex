@@ -12,7 +12,12 @@ export default defineConfig({
   trailingSlash: 'never',
   build: {
     format: 'file',
-    inlineStylesheets: 'always',
+    // The stylesheet used to travel inside every page, about 87 KB of the
+    // HTML each time. It now goes to hashed files under /_astro/, which every
+    // page shares and the browser keeps for a year (public/_headers), so a
+    // reader downloads it once per visit to the site, not once per page. The
+    // Worker-rendered title and character pages link the same files.
+    inlineStylesheets: 'never',
   },
   image: {
     // Covers are served straight from AniList's CDN, so no local processing.
