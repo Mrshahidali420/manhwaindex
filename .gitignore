@@ -46,5 +46,9 @@ data/*.r2
 # cache (animethemes-*) and in R2, like the walk files.
 data/themes.json
 
+# Episode air dates, read from the sister ingest's R2 bucket before each build
+# (scripts/pull-airing.mjs). Never cached: a missing file only hides the lists.
+data/airing.json
+
 # Local secrets for `wrangler dev`. Never committed.
 .dev.vars

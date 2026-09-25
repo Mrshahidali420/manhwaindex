@@ -23,6 +23,7 @@ import BuyBox from '../../components/BuyBox.astro'
 import TopPicks from '../../components/TopPicks.astro'
 import { picksForTitle, picksShowFor } from '../../lib/picks.js'
 import Themes from '../../components/Themes.astro'
+import EpisodeList from '../../components/EpisodeList.astro'
 import MyListButton from '../../components/MyListButton.astro'
 import { checkedISO, checkedLong } from '../../lib/checked.js'
 import { sectionOf, SECTIONS } from '../../lib/section.mjs'
@@ -582,6 +583,8 @@ const updatedLong = checkedLong
           />
         )
       }
+
+      {!isComic && <EpisodeList rows={item.episodeList} title={item.title} />}
 
       {
         reach && (

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "ingest": "node scripts/ingest.mjs",
+    "airing": "node scripts/pull-airing.mjs",
     "dev": "astro dev",
     "build": "node scripts/make-redirects.mjs && node --max-old-space-size=6000 scripts/make-shards.mjs && astro build && node scripts/after-build.mjs",
     "preview": "astro preview",

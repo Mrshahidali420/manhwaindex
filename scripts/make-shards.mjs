@@ -29,6 +29,7 @@ import { PLATFORMS, FALLBACK } from '../src/lib/platforms.js'
 import { buildOverview } from '../src/lib/prose.mjs'
 import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage, hasCharacterBuyPage } from '../src/lib/gates.mjs'
 import { hubSeasonKeys, seasonKeyOf } from '../src/lib/season-core.mjs'
+import { indexAiring, attachEpisodes } from '../src/lib/episodes.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'public', 'd')
@@ -88,6 +89,26 @@ function attachThemes(anime) {
     hits++
   }
   return hits
+}
+
+/**
+ * Episode air dates from data/airing.json (scripts/pull-airing.mjs), indexed
+ * by AniList id, or null. The file is optional: without it, or with one that
+ * is not an airing file, every page still builds, just with no episode list.
+ */
+function readAiring() {
+  if (!existsSync(join(ROOT, 'data', 'airing.json'))) {
+    console.log('  no data/airing.json. Building without episode lists.')
+    return null
+  }
+  try {
+    const airing = indexAiring(read('airing.json'))
+    if (!airing) console.log('  data/airing.json is not an airing file. Building without episode lists.')
+    return airing
+  } catch (error) {
+    console.log(`  data/airing.json is unreadable (${error.message}). Building without episode lists.`)
+    return null
+  }
 }
 
 export const kindOf = sectionOf
@@ -614,7 +635,7 @@ async function guardAgainstShrink(manifest) {
 async function main() {
   // A blocked title never reaches a shard, so the Worker answers 404 for it.
   const comics = dropBlockedRows(dropBlocked(read('comics.json')))
-  const anime = dropBlockedRows(dropBlocked(read('anime.json')))
+  let anime = dropBlockedRows(dropBlocked(read('anime.json')))
   const characters = read('characters.json')
   since('read json')
   // Slugs come from the registry make-redirects.mjs just saved. Frozen: a page
@@ -628,6 +649,8 @@ async function main() {
 
   const titlesWithExtras = attachEnrich([...comics, ...anime])
   const animeWithThemes = attachThemes(anime)
+  const episodes = attachEpisodes(anime, readAiring())
+  anime = episodes.anime
   since('enrich')
 
   rmSync(OUT, { recursive: true, force: true })
@@ -714,6 +737,7 @@ async function main() {
   console.log(`titles     ${titles.length} in ${t.count} shards, ${mb(t.bytes)}, biggest ${t.biggest} records`)
   console.log(`MAL extras folded into ${titlesWithExtras} of ${titles.length} records`)
   console.log(`song lists folded into ${animeWithThemes} of ${anime.length} anime`)
+  console.log(`episode lists folded into ${episodes.count} of ${anime.length} anime`)
   console.log(`characters ${pages.length} in ${c.count} shards, ${mb(c.bytes)}, biggest ${c.biggest} records`)
   console.log(`list rows  ${titles.length} in ${l.count} shards, ${mb(l.bytes)}, biggest ${(l.biggest / 1024).toFixed(0)} KB`)
   console.log(`feed pool  ${feed.items} titles, ${feed.airing} airing, ${(feed.bytes / 1024).toFixed(0)} KB`)

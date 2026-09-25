@@ -206,6 +206,17 @@ jobs:
           path: data/novels-walk.json
           key: novels-walk-${{ github.run_id }}
 
+      # Episode air dates for the anime title pages, from the sister ingest's
+      # bucket (sister-data/latest/airing.json). Read only, never written. If
+      # it cannot be read, the script says why and the build goes on without
+      # the episode lists; it never fails a deploy.
+      - name: Read episode air dates
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 735d0fbab0757142b2c29917563e0626
+        run: node scripts/pull-airing.mjs
+
       # The catalog grew to ~107,000 titles and each record now carries the
       # backfilled fields too. Both make-shards and astro build hold the whole
       # thing in memory, and the default 2 GB heap is no longer enough: the

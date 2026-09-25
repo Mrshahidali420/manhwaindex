@@ -1,0 +1,210 @@
+---
+/**
+ * Episode numbers and air dates of one anime, with the episode title when
+ * AniList's streaming list names it. Rows are item.episodeList, [number,
+ * title, airedAt], folded in by make-shards from the sister ingest's
+ * airing.json (src/lib/episodes.mjs). Draws nothing when the record has none.
+ *
+ * The first rows show; the rest sit behind a "show all" fold that stays in
+ * the page, so a search engine still reads every date. Dates only, no
+ * "aired" or "upcoming" label: a rendered page is kept at the edge for up to
+ * a day, and a label would go stale where a date cannot. The countdown to the
+ * next episode stays in the page header.
+ */
+import { airDate, isoDate } from '../lib/episodes.mjs'
+
+const { rows = [], title } = Astro.props
+const list = Array.isArray(rows) ? rows : []
+// The first dozen show. A fold for the last two or three rows would only
+// hide them, so a short list shows whole.
+const FIRST = 12
+const FOLD_AFTER = FIRST + 3
+const cut = list.length > FOLD_AFTER ? FIRST : list.length
+const shown = list.slice(0, cut)
+const folded = list.slice(cut)
+const titled = list.some((row) => row[1])
+const tableClass = titled ? 'eps' : 'eps eps--bare'
+const first = list[0]
+const last = list[list.length - 1]
+const intro = first
+  ? `${list.length} episodes with a broadcast date, episode ${first[0]} to ${last[0]}. ` +
+    "Each date is the original broadcast, in UTC, from AniList's airing schedule."
+  : ''
+---
+
+{
+  list.length > 0 && (
+    <section class="answer" id="episodes">
+      <div class="answer__head">
+        <h2>{title} episodes and air dates</h2>
+        <p>{intro}</p>
+      </div>
+      <table class={tableClass}>
+        <caption class="sr-only">{title} episode air dates</caption>
+        <colgroup>
+          <col class="eps__cn" />
+          {titled && <col />}
+          <col class="eps__cd" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">Ep.</th>
+            {titled && <th scope="col">Title</th>}
+            <th scope="col" class="eps__d">Air date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map(([n, name, at]) => (
+            <tr>
+              <td class="eps__n">{n}</td>
+              {titled && <td>{name || <span class="eps__none">Episode {n}</span>}</td>}
+              <td class="eps__d"><time datetime={isoDate(at)}>{airDate(at)}</time></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {folded.length > 0 && (
+        <details class="eps__more">
+          <summary>Show all {list.length} episodes</summary>
+          <table class={tableClass}>
+            <caption class="sr-only">{title} episode air dates, episode {folded[0][0]} onward</caption>
+            <colgroup>
+              <col class="eps__cn" />
+              {titled && <col />}
+              <col class="eps__cd" />
+            </colgroup>
+            <tbody>
+              {folded.map(([n, name, at]) => (
+                <tr>
+                  <td class="eps__n">{n}</td>
+                  {titled && <td>{name || <span class="eps__none">Episode {n}</span>}</td>}
+                  <td class="eps__d"><time datetime={isoDate(at)}>{airDate(at)}</time></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+    </section>
+  )
+}
+
+<style>
+  .eps {
+    width: 100%;
+    max-width: 48rem;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .eps th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dawn-faint);
+    padding: 0 0.6rem 0.55rem;
+    border-bottom: 1px solid var(--cobalt-line);
+  }
+  .eps td {
+    padding: 0.6rem;
+    border-bottom: 1px solid rgb(36 65 143 / 0.35);
+    color: var(--dawn);
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  .eps tbody tr:hover td {
+    background: var(--night-raised);
+  }
+  /* Widths live on the columns, so the folded table lines up with the first. */
+  .eps__cn {
+    width: 4rem;
+  }
+  .eps__cd {
+    width: 8.4rem;
+  }
+  .eps .eps__n {
+    font-weight: 600;
+  }
+  .eps .eps__d {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .eps td.eps__d {
+    color: var(--dawn-dim);
+  }
+  /* No titles to show: a narrower table, the date next to its number. */
+  .eps--bare {
+    max-width: 22rem;
+  }
+  .eps--bare .eps__cd {
+    width: auto;
+  }
+  .eps--bare .eps__d {
+    text-align: left;
+  }
+  .eps__none {
+    color: var(--dawn-faint);
+  }
+  .eps__more > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--cobalt-line);
+    border-radius: 999px;
+    color: var(--dawn);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    transition: border-color 160ms var(--ease-dawn), color 160ms var(--ease-dawn);
+  }
+  .eps__more > summary::-webkit-details-marker {
+    display: none;
+  }
+  .eps__more > summary::before {
+    content: '';
+    width: 0.42rem;
+    height: 0.42rem;
+    border-right: 2px solid var(--rose);
+    border-bottom: 2px solid var(--rose);
+    rotate: 45deg;
+    translate: 0 -0.12rem;
+    transition: rotate 0.18s var(--ease-dawn);
+  }
+  .eps__more[open] > summary::before {
+    rotate: -135deg;
+    translate: 0 0.12rem;
+  }
+  .eps__more > summary:hover {
+    border-color: var(--rose);
+    color: var(--rose-soft);
+  }
+  .eps__more > summary:focus-visible {
+    outline: 2px solid var(--rose);
+    outline-offset: 2px;
+  }
+  .eps__more[open] > summary {
+    margin-bottom: 0.4rem;
+  }
+  @media (max-width: 520px) {
+    .eps {
+      font-size: 0.88rem;
+    }
+    .eps__cn {
+      width: 3.3rem;
+    }
+    .eps__cd {
+      width: 7rem;
+    }
+    .eps td,
+    .eps th {
+      padding-left: 0.4rem;
+      padding-right: 0.4rem;
+    }
+  }
+</style>
