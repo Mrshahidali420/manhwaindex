@@ -19,6 +19,7 @@
 import { factsFor, FREE, PAY } from './platform-facts.js'
 import { displayName } from './names.mjs'
 import { ageOf } from './age.mjs'
+import { dubFaq } from './dub.mjs'
 
 /* -------------------------------------------------------------- tiny words */
 
@@ -510,9 +511,11 @@ export function titleFaq(item, kind) {
     })
   }
 
-  // The song questions ride on top of the usual seven, so no page loses a
-  // question it had before.
-  return [...faq.slice(0, 7), ...songFaq(item, kind)]
+  // The dub and song questions ride on top of the usual seven, so no page
+  // loses a question it had before. The dub one shows only when the cast
+  // list can answer it (src/lib/dub.mjs).
+  const dub = kind === 'anime' ? dubFaq(item) : null
+  return [...faq.slice(0, 7), ...(dub ? [dub] : []), ...songFaq(item, kind)]
 }
 
 /**
