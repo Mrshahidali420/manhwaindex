@@ -15,52 +15,37 @@
  * not exist on another country's Amazon. So picks are shown only to readers
  * whose store is the US one. Everyone else still gets the search rows in the
  * buy box, which work in their own store.
+ *
+ * Titles nobody picked by hand fall back to data/product-picks.json: volume 1,
+ * a box set and a disc matched from publisher records by
+ * scripts/picks-from-products.mjs. A hand pick always wins. The rules live in
+ * picks-core.js, pure, so the tests can use them without these files.
  */
 import data from '../../data/picks.json'
+import products from '../../data/product-picks.json'
 import { storeFor } from './shop-links.js'
+import { US_HOST, PICK_LABELS, picksForTitleIn, booksKnownIn } from './picks-core.js'
 
-const US_HOST = 'www.amazon.com'
-
-// The relations that are the same story in another form, or the next part of
-// it. A reader on the manga page of a series wants the same volume 1 as a
-// reader on its anime page. Checked in this order, so the closest one wins.
-const SAME_STORY = ['ADAPTATION', 'SOURCE', 'PARENT', 'PREQUEL', 'SEQUEL']
-
-// What each type is called on the card.
-export const PICK_LABELS = {
-  book: 'Book',
-  figure: 'Figure',
-  plush: 'Plush',
-  poster: 'Poster',
-  apparel: 'Apparel',
-  merch: 'Merch',
-}
+export { PICK_LABELS }
 
 export const pickUrl = (asin) => `https://${US_HOST}/dp/${asin}?tag=${storeFor('US').tag}`
 
 // True when this reader shops on amazon.com, the store the picks were made on.
 export const picksShowFor = (country) => storeFor(country).host === US_HOST
 
-const titlePicks = (id) => data.titles[String(id)] || null
+/**
+ * The picks for one title page, and which title they were picked for (see
+ * picks-core.js). `byHand` is false when they were matched from publisher
+ * records rather than chosen by a person.
+ */
+export const picksForTitle = (item) => picksForTitleIn(data, item, products)
 
 /**
- * The picks for one title page, and which title they were picked for.
- *
- * `from` is null when the picks are the page's own. When they belong to the
- * same story in another form (the manga of this anime, the first season of
- * this sequel), `from` names that title, so the heading can say so instead of
- * pretending they were chosen for this exact page.
+ * Whether the buy box should offer a "Shop books" search for this title. False
+ * only for a title that was checked and has no English print (picks-core.js).
+ * Pass it to shopLinks as `{ books }`.
  */
-export function picksForTitle(item) {
-  if (!item) return null
-  const own = titlePicks(item.id)
-  if (own) return { picks: own, from: null }
-  for (const relation of SAME_STORY) {
-    const rel = (item.relations || []).find((r) => r.relation === relation && titlePicks(r.id))
-    if (rel) return { picks: titlePicks(rel.id), from: rel.title || null }
-  }
-  return null
-}
+export const booksKnown = (item) => booksKnownIn(data, item, products)
 
 export const picksForCharacter = (person) =>
   (person && data.characters[String(person.id)]) || null
@@ -72,9 +57,9 @@ export const picksForCharacter = (person) =>
  */
 export function picksForPerson(person, story) {
   const own = picksForCharacter(person)
-  if (own) return { picks: own, from: null }
+  if (own) return { picks: own, from: null, byHand: true }
   const series = picksForTitle(story)
-  return series ? { picks: series.picks, from: series.from || story.title } : null
+  return series ? { picks: series.picks, from: series.from || story.title, byHand: series.byHand } : null
 }
 
 // Every title id with its own picks. The shop page lists these.

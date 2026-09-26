@@ -21,7 +21,7 @@ import { shopLinks } from '../../lib/shop-links.js'
 import { hasFreePage, hasLikePage, hasCastPage, hasBuyPage } from '../../lib/gates.mjs'
 import BuyBox from '../../components/BuyBox.astro'
 import TopPicks from '../../components/TopPicks.astro'
-import { picksForTitle, picksShowFor } from '../../lib/picks.js'
+import { picksForTitle, picksShowFor, booksKnown } from '../../lib/picks.js'
 import Themes from '../../components/Themes.astro'
 import EpisodeList from '../../components/EpisodeList.astro'
 import { dubOf, dubLabel } from '../../lib/dub.mjs'
@@ -188,7 +188,7 @@ const alsoKnown = [...new Set((item.synonyms || []).filter((n) => /^[ -~À-ɏ'�
 // A reader who finished a series often wants to own it. We sell nothing and
 // stock nothing, so these open a search on Amazon and let the reader see what
 // is really in print.
-const buys = shopLinks(item, countryOf(Astro))
+const buys = shopLinks(item, countryOf(Astro), { books: booksKnown(item) })
 
 // Real products picked by hand for the biggest series, shown only to readers on
 // amazon.com (see src/lib/picks.js). A sequel or an adaptation borrows the
@@ -584,7 +584,8 @@ const updatedLong = checkedLong
         picked && (
           <TopPicks
             heading={`Top picks for ${picked.from || item.title}`}
-            sub="Real products on Amazon, picked by hand."
+            sub={picked.byHand ? 'Real products on Amazon, picked by hand.' : 'Real products on Amazon, matched from publisher records.'}
+            byHand={picked.byHand}
             picks={picked.picks}
           />
         )

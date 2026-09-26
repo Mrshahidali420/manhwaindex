@@ -177,8 +177,17 @@ function bookTerms(item, name) {
 
 /**
  * The buy rows for one title page. Empty when we have no usable name.
+ *
+ * `books: false` drops the "Shop books" row. The caller passes it for a title
+ * that was checked and has no English print (booksKnown in picks.js), because
+ * a book search for such a story opens a page of unrelated books. The data
+ * lives there so this file can keep importing nothing.
+ *
+ * The merch row is always kept, so the rows are never empty for a usable
+ * name. That is what lets hasBuyPage in gates.mjs stay free of book data and
+ * still agree with the page: a buy page is never left with nothing to show.
  */
-export function shopLinks(item, country) {
+export function shopLinks(item, country, { books = true } = {}) {
   const name = shopName(item)
   if (name.length < 2) return []
 
@@ -215,18 +224,20 @@ export function shopLinks(item, country) {
           url: shopUrl(bookTerms(item, name), BOOKS, country),
         },
       ]
+  const shown = books ? rows : rows.filter((row) => row.kind !== 'books')
 
-  // This row searches the toys department, so it names what is found there.
-  rows.push({
-    kind: 'merch',
-    icon: 'figure',
-    label: 'Figures and merch',
-    note: 'Figures, plushies and collectibles',
-    cta: 'Shop merch',
-    url: shopUrl(`${name} anime`, TOYS, country),
-  })
-
-  return rows
+  return [
+    ...shown,
+    // This row searches the toys department, so it names what is found there.
+    {
+      kind: 'merch',
+      icon: 'figure',
+      label: 'Figures and merch',
+      note: 'Figures, plushies and collectibles',
+      cta: 'Shop merch',
+      url: shopUrl(`${name} anime`, TOYS, country),
+    },
+  ]
 }
 
 /**

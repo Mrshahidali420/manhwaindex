@@ -422,7 +422,8 @@ const jsonld = {
     {picked && (
       <TopPicks
         heading={`Top picks for ${picked.from || primary}`}
-        sub="Real products on Amazon, picked by hand."
+        sub={picked.byHand ? 'Real products on Amazon, picked by hand.' : 'Real products on Amazon, matched from publisher records.'}
+        byHand={picked.byHand}
         picks={picked.picks}
       />
     )}

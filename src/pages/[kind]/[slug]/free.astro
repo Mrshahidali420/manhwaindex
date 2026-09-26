@@ -14,6 +14,7 @@ import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { freeAnswer, verbOf, wordOf, faqJsonld, listWords } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
+import { booksKnown } from '../../../lib/picks.js'
 import { hasFreePage, hasLikePage, hasBuyPage } from '../../../lib/gates.mjs'
 import BuyBox from '../../../components/BuyBox.astro'
 import { statusWord, charactersOf, genreSlug } from '../../../lib/format.js'
@@ -48,7 +49,7 @@ const paidRows = [...answer.paid, ...answer.unknown]
 // it is where most readers land -- and until now it was the only title page
 // with no way to buy anything. A reader who just learned a story is worth
 // reading is the readiest buyer we ever get, and we were sending them away.
-const buys = shopLinks(item, countryOf(Astro))
+const buys = shopLinks(item, countryOf(Astro), { books: booksKnown(item) })
 
 // Most readers now land here instead of the title page, so this page has to
 // answer the second question too: "fine, but what IS it?". Everything below is

@@ -12,6 +12,7 @@ import { loadTitle, envOf, countryOf, notFound, unavailable } from '../../../lib
 import { sectionOf, SECTIONS } from '../../../lib/section.mjs'
 import { likeAnswer, verbOf, wordOf, listWords } from '../../../lib/answers.mjs'
 import { shopLinks } from '../../../lib/shop-links.js'
+import { booksKnown } from '../../../lib/picks.js'
 import { hasLikePage } from '../../../lib/gates.mjs'
 import BuyBox from '../../../components/BuyBox.astro'
 
@@ -43,7 +44,7 @@ const kindLabel = word.charAt(0).toUpperCase() + word.slice(1)
 
 // A reader who came looking for "something like X" already loves X. The offer
 // is for X itself, not for the picks: those each have their own page.
-const buys = shopLinks(item, countryOf(Astro))
+const buys = shopLinks(item, countryOf(Astro), { books: booksKnown(item) })
 
 
 const jsonld = [
