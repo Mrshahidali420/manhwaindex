@@ -25,6 +25,12 @@ const OUT = 'data/product-picks.json'
 // manhwaindex shows comics of its own and the anime it shares with whereanime.
 const SITES = ['manhwaindex', 'both']
 
+// The "no English books" list is switched off until the crawl is reliable:
+// it missed English print for Monster, Look Back, Real and others, and
+// hiding their book rows would lose real sales. With it off the file lists
+// nobody, and every title keeps its books row. Flip this back when it is.
+const HIDE_EMPTY_BOOKS = false
+
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'))
 
 function main(folder = '../amazon-products/products') {
@@ -34,13 +40,15 @@ function main(folder = '../amazon-products/products') {
     .map((row) => row.anilist_id)
   const handTitles = readJson('data/picks.json').titles || {}
 
-  const { titles, noEnglishBooks } = buildProductPicks({ records, checkedIds, handTitles, sites: SITES })
+  const { titles, noEnglishBooks: empty } = buildProductPicks({ records, checkedIds, handTitles, sites: SITES })
+  const noEnglishBooks = HIDE_EMPTY_BOOKS ? empty : []
   writeJsonAtomic(OUT, { updated: new Date().toISOString().slice(0, 10), titles, noEnglishBooks })
 
   const count = Object.values(titles).reduce((n, list) => n + list.length, 0)
   console.log(
     `${OUT}: ${Object.keys(titles).length} titles, ${count} picks, ` +
-      `${noEnglishBooks.length} of ${checkedIds.length} checked titles with no English books`
+      `${empty.length} of ${checkedIds.length} checked titles found no English books, ` +
+      `${noEnglishBooks.length} listed (HIDE_EMPTY_BOOKS is ${HIDE_EMPTY_BOOKS})`
   )
 }
 
