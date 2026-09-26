@@ -18,6 +18,7 @@ import { watchListPages } from './watch-list-data.js'
 // Written by scripts/make-shards.mjs on every build. It holds only the answer
 // pages that passed their own gate, so the sitemap never offers a thin page.
 import answerUrls from '../../data/answer-urls.json'
+import { PAGES_CHANGED, titleLastmod } from './lastmod.mjs'
 
 export const SITE = 'https://manhwaindex.com'
 
@@ -119,6 +120,7 @@ const comicUrls = (country) =>
     .filter((c) => (country === 'CN' ? c.country === 'CN' || c.country === 'TW' : c.country === country))
     .map((item) => ({
       loc: `${SITE}/${sectionOf(item)}/${item.slug}`,
+      lastmod: titleLastmod(item),
       // Pages that answer the question get crawled first.
       priority: item.readLinks.length > 0 ? '0.8' : '0.5',
       image: item.cover,
@@ -130,6 +132,7 @@ const otherComicUrls = () =>
     .filter((c) => !['KR', 'JP', 'CN', 'TW'].includes(c.country))
     .map((item) => ({
       loc: `${SITE}/manga/${item.slug}`,
+      lastmod: titleLastmod(item),
       priority: item.readLinks.length > 0 ? '0.8' : '0.5',
       image: item.cover,
       caption: `Cover of ${item.title}`,
@@ -138,6 +141,7 @@ const otherComicUrls = () =>
 const novelUrls = () =>
   novels.map((item) => ({
     loc: `${SITE}/novel/${item.slug}`,
+    lastmod: titleLastmod(item),
     priority: item.readLinks.length > 0 ? '0.8' : '0.5',
     image: item.cover,
     caption: `Cover of ${item.title}`,
@@ -146,6 +150,7 @@ const novelUrls = () =>
 const animeUrls = () =>
   anime.map((item) => ({
     loc: `${SITE}/anime/${item.slug}`,
+    lastmod: titleLastmod(item),
     priority: item.watchLinks.length > 0 ? '0.8' : '0.5',
     image: item.cover,
     caption: `Cover of ${item.title}`,
@@ -154,6 +159,8 @@ const animeUrls = () =>
 const characterUrls = () =>
   charactersWithPages.map((person) => ({
     loc: `${SITE}/character/${person.slug}`,
+    // Character records carry no AniList edit date, so the template date it is.
+    lastmod: PAGES_CHANGED,
     priority: '0.6',
     image: person.image,
     caption: `${person.name} portrait`,
@@ -225,7 +232,9 @@ export function urlsetXml(urls) {
 ${urls
   .map(
     (u) =>
-      `  <url><loc>${xml(u.loc)}</loc><lastmod>${day}</lastmod><priority>${u.priority}</priority>${imageTag(u)}</url>`,
+      // Hubs, lists and answer pages keep the build date: their lists really
+      // do change every night. Titles and characters carry their own.
+      `  <url><loc>${xml(u.loc)}</loc><lastmod>${u.lastmod || day}</lastmod><priority>${u.priority}</priority>${imageTag(u)}</url>`,
   )
   .join('\n')}
 </urlset>
